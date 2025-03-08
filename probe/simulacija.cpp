@@ -9,13 +9,13 @@
 #include <queue>
 #include <sstream>
 #include "json.hpp"
-#include "robot.h"
+#include "robot.hpp"
 
 using namespace std;
 
 using json = nlohmann::json;
 
-double time = 0; // trenutno vrijeme simulacije
+double time = 0; // current time in seconds
 
 
 

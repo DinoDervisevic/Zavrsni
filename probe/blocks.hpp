@@ -7,7 +7,9 @@
 #include <memory>
 #include <functional>
 #include "json.hpp"
-#include "robot.h"
+#include "robot.hpp"
+
+using namespace std;
 
 using json = nlohmann::json;
 
@@ -15,17 +17,27 @@ class Block {
 public:
     Block* next = nullptr;
     Block* parent = nullptr;
+    string type;
+    string name;
+    
+    Block(const string& type, string name) : type(type), name(name) {}
 
-    virtual void execute(Robot& robot) = 0;
+    // changes the state of the robot and returns the number of seconds it took to execute the block (0 in case on instantaneus blocks such as speed change)
+    virtual int execute(Robot& robot) = 0; 
     virtual ~Block() = default;
+};
+
+class Move : public Block {
+    bool forward;
+    
 };
 
 class MotorTurnForDirection : public Block {
 public:
     double speed;
-    MotorTurnForDirection(double speed) : speed(speed) {}
+    MotorTurnForDirection(double speed) : Block("Motor", "MotorTurnForDirection"), speed(speed) {}
 
-    void execute(Robot& robot) override {
+    int execute(Robot& robot) override {
         robot.v1 = speed;
         robot.v2 = speed;
         std::cout << "Robot se krece naprijed brzinom: " << speed << std::endl;
@@ -34,19 +46,19 @@ public:
 
 class MotorStop : public Block {
 public:
-    void execute(Robot& robot) override {
+int execute(Robot& robot) override {
         robot.v1 = 0.0;
         robot.v2 = 0.0;
-        std::cout << "Robot je stao." << std::endl;
+        return 0;
     }
 };
 
 class LightDisplayText : public Block {
 public:
     std::string text;
-    LightDisplayText(const std::string& text) : text(text) {}
+    LightDisplayText(const std::string& text) : Block("Light", "LightDisplayText"), text(text) {}
 
-    void execute(Robot& robot) override {
+    int execute(Robot& robot) override {
         robot.display_state = text;
         std::cout << "Prikazujem tekst: " << robot.display_state << std::endl;
     }
@@ -54,7 +66,7 @@ public:
 
 class LightDisplayOff : public Block {
 public:
-    void execute(Robot& robot) override {
+    int execute(Robot& robot) override {
         robot.display_state = "";
         std::cout << "Prikaz je iskljucen." << std::endl;
     }
