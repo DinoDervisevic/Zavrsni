@@ -8,6 +8,7 @@
 #include <functional>
 #include "json.hpp"
 #include "robot.hpp"
+#include "functions.hpp"
 
 using namespace std;
 
@@ -29,6 +30,22 @@ public:
 
 class Move : public Block {
     bool forward;
+    double value;
+    string unit;
+public:
+    Move(bool forward, double value, string unit) : Block("Move", "Move"), forward(forward), value(value), unit(unit) {}
+
+    int execute(Robot& robot) override {
+        double time = convert_to_seconds(robot, unit, value);
+        if(forward){
+            robot.v1 = robot.movement_speed;
+            robot.v2 = robot.movement_speed;
+        } else {
+            robot.v1 = -robot.movement_speed;
+            robot.v2 = -robot.movement_speed;
+        }
+        return time;
+    }
     
 };
 

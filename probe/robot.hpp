@@ -10,6 +10,7 @@ struct Robot {
     int angle;
     int wheel_distance;
     int wheel_radius;
+    int movement_speed;
     std::string sound_state, display_state, button_color_state;
     std::string sensor_color;
     double sensor_distance;

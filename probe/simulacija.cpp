@@ -10,6 +10,8 @@
 #include <sstream>
 #include "json.hpp"
 #include "robot.hpp"
+#include "blocks.hpp"
+#include "functions.hpp"
 
 using namespace std;
 
