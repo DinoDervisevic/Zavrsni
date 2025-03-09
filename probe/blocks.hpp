@@ -227,8 +227,101 @@ public:
         return -1;
     }
 };
+//--------------------------------------------
 
 
+//-------------SOUND BLOCKS-------------------
+class PlayUntilDone : public Block { // TODO : figure out how to know how long the sound is
+    string sound;
+public:
+    PlayUntilDone(string sound) : Block("Sound", "PlayUntilDone"), sound(sound) {}
+
+    int execute(Robot& robot) override {
+        robot.sound_state = sound;
+        return rand() % 10 + 1;
+    }
+};
+
+class Play : public Block {
+    string sound;
+public:
+    Play(string sound) : Block("Sound", "Play"), sound(sound) {}
+
+    int execute(Robot& robot) override {
+        robot.sound_state = sound;
+        return -1;
+    }
+};
+
+class BeepForTime : public Block {
+    double time;
+    double frequency;
+public:
+    BeepForTime(double time) : Block("Sound", "BeepForTime"), time(time) {}
+
+    int execute(Robot& robot) override {
+        robot.sound_state = "beep" + to_string(frequency);
+        return time;
+    }
+};
+
+class Beep : public Block {
+    double frequency;
+public:
+    Beep(double frequency) : Block("Sound", "Beep"), frequency(frequency) {}
+
+    int execute(Robot& robot) override {
+        robot.sound_state = "beep" + to_string(frequency);
+        return -1;
+    }
+};
+
+class StopSound : public Block {
+public:
+    int execute(Robot& robot) override {
+        robot.sound_state = "";
+        return 0;
+    }
+};
+
+class ChangeEffectBy : public Block { // TODO
+    string effect;
+    double value;
+};
+
+class SetEffectTo : public Block { // TODO
+    string effect;
+    double value;
+};
+
+class ClearEffects : public Block { // TODO
+public:
+    int execute(Robot& robot) override {
+        return 0;
+    }
+};
+
+class ChangeVolumeBy : public Block {
+    double value;
+public:
+    ChangeVolumeBy(double value) : Block("Sound", "ChangeVolumeBy"), value(value) {}
+
+    int execute(Robot& robot) override {
+        robot.volume += value;
+        return 0;
+    }
+};
+
+class SetVolumeTo : public Block {
+    double value;
+public:
+    SetVolumeTo(double value) : Block("Sound", "SetVolumeTo"), value(value) {}
+
+    int execute(Robot& robot) override {
+        robot.volume = value;
+        return 0;
+    }
+};
 //--------------------------------------------
 class MotorTurnForDirection : public Block {
 public:
