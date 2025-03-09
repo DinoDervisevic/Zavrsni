@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <functional>
+#include <algorithm>
 #include "json.hpp"
 #include "robot.hpp"
 #include "functions.hpp"
@@ -28,6 +29,8 @@ public:
     virtual ~Block() = default;
 };
 
+
+//-------------MOVEMENT BLOCKS----------------
 class Move : public Block {
     bool forward;
     double value;
@@ -36,7 +39,6 @@ public:
     Move(bool forward, double value, string unit) : Block("Move", "Move"), forward(forward), value(value), unit(unit) {}
 
     int execute(Robot& robot) override {
-        double time = convert_to_seconds(robot, unit, value);
         if(forward){
             robot.v1 = robot.movement_speed;
             robot.v2 = robot.movement_speed;
@@ -44,11 +46,190 @@ public:
             robot.v1 = -robot.movement_speed;
             robot.v2 = -robot.movement_speed;
         }
-        return time;
+        return convert_to_seconds(robot, unit, value);
     }
     
 };
 
+class StartMove : public Block {
+    bool forward;
+
+public:
+    StartMove(bool forward) : Block("Move", "StartMove"), forward(forward) {}
+
+    int execute(Robot& robot) override {
+        if(forward){
+            robot.v1 = robot.movement_speed;
+            robot.v2 = robot.movement_speed;
+        } else {
+            robot.v1 = -robot.movement_speed;
+            robot.v2 = -robot.movement_speed;
+        }
+        return -1;
+    }
+};
+
+class Steer : public Block {
+    int direction;
+    double value;
+    string unit;
+
+public:
+    Steer(int direction, double value, string unit) : Block("Move", "Steer"), direction(direction), value(value), unit(unit) {}
+
+    int execute(Robot& robot) override { // TODO : provjeri jel ovo dobro
+        robot.v1 = robot.movement_speed * min(1 - direction/100, 1);
+        robot.v2 = robot.movement_speed * min(1 + direction/100, 1);
+
+        return convert_to_seconds(robot, unit, value);
+    }
+};
+
+class StartSteer : public Block {
+    int direction;
+
+public:
+    StartSteer(int direction) : Block("Move", "StartSteer"), direction(direction) {}
+
+    int execute(Robot& robot) override {
+        robot.v1 = robot.movement_speed * min(1 - direction/100, 1);
+        robot.v2 = robot.movement_speed * min(1 + direction/100, 1);
+
+        return -1;
+    }
+};
+
+class StopMoving : public Block {
+public:
+    int execute(Robot& robot) override {
+        robot.v1 = 0.0;
+        robot.v2 = 0.0;
+        return 0;
+    }
+};
+
+class SetMovementSpeed : public Block {
+    double speed;
+public:
+    SetMovementSpeed(double speed) : Block("Move", "SetMovementSpeed"), speed(speed) {}
+
+    int execute(Robot& robot) override {
+        robot.movement_speed = speed;
+        return 0;
+    }
+};
+
+class SetMovementPair : public Block { // TODO
+    string left, right;
+};
+
+class SetMotorRotation : public Block { // TODO
+    string unit;
+    double value;
+};
+//--------------------------------------------
+
+//-------------DISPLAY BLOCKS-----------------
+class DisplayImageForTime : public Block {
+    string image;
+    double time;
+public:
+    DisplayImageForTime(string image, double time) : Block("Display", "DisplayImageForTime"), image(image), time(time) {}
+
+    int execute(Robot& robot) override {
+        for(int i = 0; i < 5; ++i){
+            for(int j = 0; j < 5; ++j){
+                robot.pixel_display[i][j] = image[i*5 + j] * 100 * 10 / 9;
+            }
+        }
+        return time;
+    }
+};
+
+class DisplayImage : public Block {
+    string image;
+public:
+    DisplayImage(string image) : Block("Display", "DisplayImage"), image(image) {}
+
+    int execute(Robot& robot) override {
+        for(int i = 0; i < 5; ++i){
+            for(int j = 0; j < 5; ++j){
+                robot.pixel_display[i][j] = image[i*5 + j] * 100 * 10 / 9;
+            }
+        }
+        return -1;
+    }
+};
+
+class DisplayText : public Block { // TODO
+    string text;
+public:
+    DisplayText(string text) : Block("Display", "DisplayText"), text(text) {}
+};
+
+class DisplayOff : public Block {
+public:
+    int execute(Robot& robot) override {
+        for(int i = 0; i < 5; ++i){
+            for(int j = 0; j < 5; ++j){
+                robot.pixel_display[i][j] = 0;
+            }
+        }
+        return 0;
+    }
+};
+
+class SetPixelbrightness : public Block { // TODO
+    double brightness;
+};
+
+class SetPixel : public Block {
+    int x, y;
+    double brightness;
+public:
+    SetPixel(int x, int y, string color) : Block("Display", "SetPixel"), x(x), y(y), brightness(brightness) {}
+
+    int execute(Robot& robot) override {
+        robot.pixel_display[x][y] = brightness;
+        return -1;
+    }
+};
+
+class DisplayRotate : public Block { // TODO
+    int direction;
+};
+
+class DisplaySetorientation : public Block { // TODO
+    string orientation;
+};
+
+class CenterButtonlight : public Block {
+    string color;
+
+public:
+    CenterButtonlight(string color) : Block("Display", "CenterButtonlight"), color(color) {}
+
+    int execute(Robot& robot) override {
+        robot.button_color_state = color;
+        return -1;
+    }
+};
+
+class UltrasonicSensorLight : public Block { // TODO : finish when i know what to do w ports
+    string color;
+    string port;
+
+public:
+    UltrasonicSensorLight(string color, string port) : Block("Display", "UltrasonicSensorLight"), color(color), port(port) {}
+
+    int execute(Robot& robot) override {
+        robot.sensor_color = color;
+        return -1;
+    }
+};
+
+
+//--------------------------------------------
 class MotorTurnForDirection : public Block {
 public:
     double speed;
@@ -70,25 +251,6 @@ int execute(Robot& robot) override {
     }
 };
 
-class LightDisplayText : public Block {
-public:
-    std::string text;
-    LightDisplayText(const std::string& text) : Block("Light", "LightDisplayText"), text(text) {}
-
-    int execute(Robot& robot) override {
-        robot.display_state = text;
-        std::cout << "Prikazujem tekst: " << robot.display_state << std::endl;
-    }
-};
-
-class LightDisplayOff : public Block {
-public:
-    int execute(Robot& robot) override {
-        robot.display_state = "";
-        std::cout << "Prikaz je iskljucen." << std::endl;
-    }
-};
-
 using FunctionMap = std::map<std::string, std::function<std::unique_ptr<Block>(json)>>;
 
 FunctionMap createFunctionMap() {
@@ -99,13 +261,6 @@ FunctionMap createFunctionMap() {
     };
     functionMap["flippermotor_motorStop"] = [](json inputs) {
         return std::make_unique<MotorStop>();
-    };
-    functionMap["flipperlight_lightDisplayText"] = [](json inputs) {
-        std::string text = inputs["TEXT"][1][1].get<std::string>();
-        return std::make_unique<LightDisplayText>(text);
-    };
-    functionMap["flipperlight_lightDisplayOff"] = [](json inputs) {
-        return std::make_unique<LightDisplayOff>();
     };
     // Dodajte ostale funkcije prema potrebi
     return functionMap;
