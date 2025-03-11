@@ -31,7 +31,7 @@ public:
 
 
 //-------------MOVEMENT BLOCKS----------------
-class Move : public Block {
+class Move : public Block { // TODO :  on this and every other move block, change speed of motors, not wheels (when you get the robot that is)
     bool forward;
     double value;
     string unit;
@@ -119,8 +119,15 @@ public:
     }
 };
 
-class SetMovementPair : public Block { // TODO
+class SetMovementPair : public Block { // TODO : change so this only marks these two ports as wheels, not the wheels as being on these two ports
     string left, right;
+public:
+    SetMovementPair(string left, string right) : Block("Move", "SetMovementPair"), left(left), right(right) {}
+    int execute(Robot& robot) override {
+        robot.left_wheel = left;
+        robot.right_wheel = right;
+        return 0;
+    }
 };
 
 class SetMotorRotation : public Block { // TODO
@@ -331,7 +338,7 @@ public:
     int execute(Robot& robot) override {
         robot.v1 = speed;
         robot.v2 = speed;
-        std::cout << "Robot se krece naprijed brzinom: " << speed << std::endl;
+        cout << "Robot se krece naprijed brzinom: " << speed << endl;
     }
 };
 
@@ -344,18 +351,88 @@ int execute(Robot& robot) override {
     }
 };
 
-using FunctionMap = std::map<std::string, std::function<std::unique_ptr<Block>(json)>>;
+using FunctionMap = map<string, function<unique_ptr<Block>(json, string)>>;
 
 FunctionMap createFunctionMap() {
     FunctionMap functionMap;
-    functionMap["flippermotor_motorTurnForDirection"] = [](json inputs) {
-        double speed = inputs["VALUE"][1][1].get<double>();
-        return std::make_unique<MotorTurnForDirection>(speed);
+
+    // Movement blocks
+    functionMap["move_move"] = [](json json, string name) {
+        string direction_name = json[name]["inputs"]["DIRECTION"][1];
+        string fwd = json[direction_name]["fields"]["field_flippermove_custom-icon-direction"][0];
+        bool forward;
+        if(fwd == "forward") {
+            forward = true;
+        } else {
+            forward = false;
+        }
+        double value = stod(json[name]["inputs"]["VALUE"][1][1].get<string>());
+        string unit = json[name]["fields"]["UNIT"][0];
+        return make_unique<Move>(forward, value, unit);
     };
-    functionMap["flippermotor_motorStop"] = [](json inputs) {
-        return std::make_unique<MotorStop>();
+
+    functionMap["move_startmove"] = [](json json, string name) {
+        string direction_name = json[name]["inputs"]["DIRECTION"][1];
+        string fwd = json[direction_name]["fields"]["field_flippermove_custom-icon-direction"][0];
+        bool forward;
+        if(fwd == "forward") {
+            forward = true;
+        } else {
+            forward = false;
+        }
+        return make_unique<StartMove>(forward);
     };
-    // Dodajte ostale funkcije prema potrebi
+
+    functionMap["move_steer"] = [](json json, string name) {
+        string direction_name = json[name]["inputs"]["STEERING"][1];
+        int direction = stoi(json[direction_name]["fields"]["field_flippermove_rotation-wheel"][0].get<string>());
+        double value = stod(json[name]["inputs"]["VALUE"][1][1].get<string>());
+        string unit = json[name]["fields"]["UNIT"][0];
+        return make_unique<Steer>(direction, value, unit);
+    };
+
+    functionMap["move_startsteer"] = [](json json, string name) {
+        string direction_name = json[name]["inputs"]["STEERING"][1];
+        int direction = stoi(json[direction_name]["fields"]["field_flippermove_rotation-wheel"][0].get<string>());
+        return make_unique<StartSteer>(direction);
+    };
+
+    functionMap["move_stopmoving"] = [](json json, string name) {
+        return make_unique<StopMoving>();
+    };
+
+    functionMap["move_setmovementspeed"] = [](json json, string name) {
+        double speed = stod(json[name]["fields"]["SPEED"][1][1].get<string>());
+        return make_unique<SetMovementSpeed>(speed);
+    };
+
+    functionMap["move_setmovementpair"] = [](json json, string name) {
+        string pair_name = json[name]["inputs"]["PAIR"][1];
+        string pair = json[pair_name]["fields"]["field_flippermove_movement-port-selector"][0];
+        return make_unique<SetMovementPair>(string(1, pair[0]), string(1, pair[1]));
+    };
+
+    functionMap["move_setmotorrotation"] = [](json json, string name) {
+        string unit = json[name]["fields"]["UNIT"][0];
+        string distance_name = json[name]["inputs"]["DISTANCE"][1];
+        double value = stod(json[distance_name]["fields"]["field_flippermove_custom-set-move-distance-number"][0].get<string>());
+        return make_unique<SetMotorRotation>(unit, value);
+    };
+    //--------------------------------------------
+    // Display blocks
+    functionMap["display_displayimagefortime"] = [](json json, string name) {
+        string matrix_name = json[name]["inputs"]["MATRIX"][1];
+        string image = json[matrix_name]["fields"]["field_flipperlight_matrix-5x5-brightness-image"][0];
+        double time = stod(json[name]["inputs"]["VALUE"][1][1].get<string>());
+        return make_unique<DisplayImageForTime>(image, time);
+    };
+
+    functionMap["display_displayimage"] = [](json json, string name) {
+        string matrix_name = json[name]["inputs"]["MATRIX"][1];
+        string image = json[matrix_name]["fields"]["field_flipperlight_matrix-5x5-brightness-image"][0];
+        return make_unique<DisplayImage>(image);
+    };
+
     return functionMap;
 }
 
