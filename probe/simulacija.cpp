@@ -12,6 +12,7 @@
 #include "robot.hpp"
 #include "blocks.hpp"
 #include "functions.hpp"
+#include "block_sequence.hpp"
 
 using namespace std;
 

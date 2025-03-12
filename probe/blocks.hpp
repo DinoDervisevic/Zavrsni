@@ -343,6 +343,10 @@ int execute(Robot& robot) override {
         return 0;
     }
 };
+//-----------END OF BLOCKS--------------------
+
+
+//-----------FUNCTION MAP---------------------
 
 using FunctionMap = map<string, function<unique_ptr<Block>(json, string)>>;
 
