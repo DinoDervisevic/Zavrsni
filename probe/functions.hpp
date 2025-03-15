@@ -27,6 +27,7 @@ int convert_to_seconds(Robot& robot, string unit, double value) {
     if(unit == "degrees"){ // TODO: check if this is correct
         return value/360*robot.wheel_distance/(2*robot.wheel_radius*3.14159*speed);
     }
+    return 0;
 }  
 
 #endif // FUNCTIONS_H

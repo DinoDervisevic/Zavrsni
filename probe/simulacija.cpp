@@ -5,6 +5,7 @@
 #include <utility>
 #include <fstream>
 #include <algorithm>
+#include <functional>
 #include <set>
 #include <queue>
 #include <sstream>
@@ -18,12 +19,26 @@ using namespace std;
 
 using json = nlohmann::json;
 
-double time = 0; // current time in seconds
+double time_since_start = 0; // current time in seconds
+
+FunctionMap functionMap = createFunctionMap();
 
 
 
 void start_simulation(Robot& robot, json blocks) {
 }
+
+void print_sequences(vector<BlockSequence*> sequences) {
+    for (const auto& sequence : sequences) {
+        Block* block = sequence->get_start_block();
+        while (block != nullptr) {
+            cout << "Block: " << block->name << ", Opcode: " << block->type << endl;
+            block = block->next;
+        }
+        cout << "End of sequence" << endl;
+    }
+}
+
 
 
 int main() {
@@ -41,7 +56,31 @@ int main() {
 
     Robot robot("robot", 0, 0);
 
-    start_simulation(robot, blocks);
+    vector<BlockSequence*> sequences;
+    for(auto it = blocks.begin(); it != blocks.end(); ++it){
+        if(it.value()["topLevel"]) {
+            auto curr_block = it.value();
+            auto curr_sequence_block = functionMap[it.value()["opcode"]](blocks, it.key()).release();
+            BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
+            sequences.push_back(block_sequence);
+            while(true){
+                if(curr_block["next"].is_null()){
+                    break;
+                }
+                
+                auto next_block = blocks[curr_block["next"]];
+                auto next_sequence_block = functionMap[next_block["opcode"]](blocks, curr_block["next"]).release();
+                curr_sequence_block->next = next_sequence_block;
+                next_sequence_block->parent = curr_sequence_block;
+                curr_sequence_block = next_sequence_block;
+                curr_block = next_block;
+                
+            }
+        }
+    }
+    
+
+    print_sequences(sequences);
 
     return 0;
 }

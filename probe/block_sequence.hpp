@@ -23,6 +23,10 @@ public:
     double get_time_left() {
         return time_left;
     }
+
+    Block* get_start_block() const {
+        return current_block;
+    }
 };
 
 #endif // BLOCKSEQUENCE_HPP

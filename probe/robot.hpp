@@ -2,6 +2,9 @@
 #define ROBOT_H
 
 #include <string>
+#include <map>
+
+using namespace std;
 
 struct MotorState {
     double speed;
