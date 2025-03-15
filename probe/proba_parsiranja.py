@@ -9,7 +9,7 @@ def extract_sb3(file_path, output_dir):
         zip_ref.extractall(output_dir)
 
 # Putanja do .llsp datoteke
-llsp_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/Project 2.llsp3"
+llsp_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/Project_2.llsp3"
 
 output_dir = 'C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE'
 

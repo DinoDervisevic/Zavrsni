@@ -28,6 +28,8 @@ struct Robot {
     map<string, MotorState> motor_states; // motor name -> motor state
     string left_wheel, right_wheel; // movement motors
 
+    int discrete_time_interval = 0.05; // time in seconds between each simulation step
+
     Robot(string name, int x, int y) : name(name), x(x), y(y) {}
 };
 

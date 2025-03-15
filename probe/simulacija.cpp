@@ -25,7 +25,18 @@ FunctionMap functionMap = createFunctionMap();
 
 
 
-void start_simulation(Robot& robot, json blocks) {
+void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
+    while (true){
+        for(auto sequence : sequences){ //TODO: make the logic for paralel block sequence interpretation
+            if(sequence->get_start_block()->type == "Event" && sequence->get_start_block()->execute(robot)){
+                sequence->set_is_running(true);
+            }
+            if(sequence->get_is_running()){
+                sequence->execute(robot);
+            }
+        }
+        time_since_start += robot.discrete_time_interval;
+    }
 }
 
 void print_sequences(vector<BlockSequence*> sequences) {

@@ -31,6 +31,7 @@ public:
 
 
 //-------------EVENT BLOCKS-------------------
+// Since we know all events last 0 seconds, the return value tells us wether the condition is true or false (that is wether we need to start the block)
 class WhenProgramStarts : public Block {
 public:
     WhenProgramStarts() : Block("Event", "WhenProgramStarts") {}
@@ -397,7 +398,8 @@ public:
 
 class MotorStop : public Block {
 public:
-int execute(Robot& robot) override {
+    MotorStop() : Block("Motor", "MotorStop") {}
+    int execute(Robot& robot) override {
         robot.v1 = 0.0;
         robot.v2 = 0.0;
         return 0;
