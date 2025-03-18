@@ -10,6 +10,7 @@
 #include "json.hpp"
 #include "robot.hpp"
 #include "functions.hpp"
+#include "value_storer.hpp"
 
 using namespace std;
 
@@ -46,10 +47,10 @@ public:
 //-------------MOVEMENT BLOCKS----------------
 class Move : public Block { // TODO :  on this and every other move block, change speed of motors, not wheels (when you get the robot that is)
     bool forward;
-    double value;
+    DoubleValueStorer* value;
     string unit;
 public:
-    Move(bool forward, double value, string unit) : Block("Move", "Move"), forward(forward), value(value), unit(unit) {}
+    Move(bool forward, DoubleValueStorer* value, string unit) : Block("Move", "Move"), forward(forward), value(value), unit(unit) {}
 
     int execute(Robot& robot) override {
         if(forward){
@@ -59,7 +60,7 @@ public:
             robot.v1 = -robot.movement_speed;
             robot.v2 = -robot.movement_speed;
         }
-        return convert_to_seconds(robot, unit, value);
+        return convert_to_seconds(robot, unit, value->get_value(robot));
     }
     
 };
@@ -405,6 +406,59 @@ public:
         return 0;
     }
 };
+//--------------------------------------------
+//-----------CONTROL BLOCKS-------------------
+class Wait : public Block {
+    double time;
+public:
+    Wait(double time) : Block("Control", "Wait"), time(time) {}
+
+    int execute(Robot& robot) override {
+        return time;
+    }
+};
+
+class Repeat : public Block {
+    int times;
+    BlockSequence* block_sequence;
+    int counter;
+public:
+    Repeat(int times, BlockSequence* block_sequence) : Block("Control", "Repeat"), times(times), block_sequence(block_sequence), counter(0) {}
+
+    int execute(Robot& robot) override {
+        if(counter == times){
+            return 0;
+        }
+        block_sequence->execute(robot);
+        return 0;
+    }
+};
+
+class Forever : public Block {
+    BlockSequence* block_sequence;
+public:
+    Forever(BlockSequence* block_sequence) : Block("Control", "Forever"), block_sequence(block_sequence) {}
+
+    int execute(Robot& robot) override {
+        block_sequence->execute(robot);
+        return 0;
+    }
+};
+
+class If : public Block {
+    BlockSequence* block_sequence;
+    bool condition;
+public:
+    If(BlockSequence* block_sequence, bool condition) : Block("Control", "If"), block_sequence(block_sequence), condition(condition) {}
+
+    int execute(Robot& robot) override {
+        if(condition){
+            block_sequence->execute(robot);
+        }
+        return 0;
+    }
+};
+//--------------------------------------------
 //-----------END OF BLOCKS--------------------
 
 
@@ -416,13 +470,13 @@ FunctionMap createFunctionMap() {
     FunctionMap functionMap;
 
     // Event blocks
-    functionMap["flipperevents_whenProgramStarts"] = [](json json_object, string name) {
+    functionMap["flipperevents_whenProgramStarts"] = [](const json& json_object, const string& name) {
         return make_unique<WhenProgramStarts>();
     };
     //--------------------------------------------
 
     // Movement blocks
-    functionMap["flippermove_move"] = [](json json_object, string name) {
+    functionMap["flippermove_move"] = [](const json& json_object, const string& name) {
         string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
         string fwd = json_object[direction_name]["fields"]["field_flippermove_custom-icon-direction"][0];
         bool forward;
@@ -431,12 +485,12 @@ FunctionMap createFunctionMap() {
         } else {
             forward = false;
         }
-        double value = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
+        string value = json_object[name]["inputs"]["VALUE"][1][1].get<string>();
         string unit = json_object[name]["fields"]["UNIT"][0];
         return make_unique<Move>(forward, value, unit);
     };
 
-    functionMap["flippermove_startMove"] = [](json json_object, string name) {
+    functionMap["flippermove_startMove"] = [](const json& json_object, const string& name) {
         string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
         string fwd = json_object[direction_name]["fields"]["field_flippermove_custom-icon-direction"][0];
         bool forward;
@@ -448,7 +502,7 @@ FunctionMap createFunctionMap() {
         return make_unique<StartMove>(forward);
     };
 
-    functionMap["flippermove_steer"] = [](json json_object, string name) {
+    functionMap["flippermove_steer"] = [](const json& json_object, const string& name) {
         string direction_name = json_object[name]["inputs"]["STEERING"][1];
         int direction = stoi(json_object[direction_name]["fields"]["field_flippermove_rotation-wheel"][0].get<string>());
         double value = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
@@ -456,28 +510,28 @@ FunctionMap createFunctionMap() {
         return make_unique<Steer>(direction, value, unit);
     };
 
-    functionMap["flippermove_startSteer"] = [](json json_object, string name) {
+    functionMap["flippermove_startSteer"] = [](const json& json_object, const string& name) {
         string direction_name = json_object[name]["inputs"]["STEERING"][1];
         int direction = stoi(json_object[direction_name]["fields"]["field_flippermove_rotation-wheel"][0].get<string>());
         return make_unique<StartSteer>(direction);
     };
 
-    functionMap["flippermove_stopMove"] = [](json json_object, string name) {
+    functionMap["flippermove_stopMove"] = [](const json& json_object, const string& name) {
         return make_unique<StopMoving>();
     };
 
-    functionMap["flippermove_movementSpeed"] = [](json json_object, string name) {
+    functionMap["flippermove_movementSpeed"] = [](const json& json_object, const string& name) {
         double speed = stod(json_object[name]["fields"]["SPEED"][1][1].get<string>());
         return make_unique<SetMovementSpeed>(speed);
     };
 
-    functionMap["flippermove_setMovementPair"] = [](json json_object, string name) {
+    functionMap["flippermove_setMovementPair"] = [](const json& json_object, const string& name) {
         string pair_name = json_object[name]["inputs"]["PAIR"][1];
         string pair = json_object[pair_name]["fields"]["field_flippermove_movement-port-selector"][0];
         return make_unique<SetMovementPair>(string(1, pair[0]), string(1, pair[1]));
     };
 
-    functionMap["flippermove_setDistance"] = [](json json_object, string name) {
+    functionMap["flippermove_setDistance"] = [](const json& json_object, const string& name) {
         string unit = json_object[name]["fields"]["UNIT"][0];
         string distance_name = json_object[name]["inputs"]["DISTANCE"][1];
         double value = stod(json_object[distance_name]["fields"]["field_flippermove_custom-set-move-distance-number"][0].get<string>());
@@ -485,34 +539,34 @@ FunctionMap createFunctionMap() {
     };
     //--------------------------------------------
     // Display blocks
-    functionMap["flipperlight_lightDisplayImageOnForTime"] = [](json json_object, string name) {
+    functionMap["flipperlight_lightDisplayImageOnForTime"] = [](const json& json_object, const string& name) {
         string matrix_name = json_object[name]["inputs"]["MATRIX"][1];
         string image = json_object[matrix_name]["fields"]["field_flipperlight_matrix-5x5-brightness-image"][0];
         double time = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
         return make_unique<DisplayImageForTime>(image, time);
     };
 
-    functionMap["flipperlight_lightDisplayImageOn"] = [](json json_object, string name) {
+    functionMap["flipperlight_lightDisplayImageOn"] = [](const json& json_object, const string& name) {
         string matrix_name = json_object[name]["inputs"]["MATRIX"][1];
         string image = json_object[matrix_name]["fields"]["field_flipperlight_matrix-5x5-brightness-image"][0];
         return make_unique<DisplayImage>(image);
     };
 
-    functionMap["flipperlight_lightDisplayText"] = [](json json_object, string name) {
+    functionMap["flipperlight_lightDisplayText"] = [](const json& json_object, const string& name) {
         string text = json_object[name]["inputs"]["TEXT"][1][1].get<string>();
         return make_unique<DisplayText>(text);
     };
 
-    functionMap["flipperlight_lightDisplayOff"] = [](json json_object, string name) {
+    functionMap["flipperlight_lightDisplayOff"] = [](const json& json_object, const string& name) {
         return make_unique<DisplayOff>();
     };
 
-    functionMap["flipperlight_lightDisplaySetBrightness"] = [](json json_object, string name) {
+    functionMap["flipperlight_lightDisplaySetBrightness"] = [](const json& json_object, const string& name) {
         double brightness = stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>());
         return make_unique<SetPixelbrightness>(brightness);
     };
 
-    functionMap["flipperlight_lightDisplaySetPixel"] = [](json json_object, string name) {
+    functionMap["flipperlight_lightDisplaySetPixel"] = [](const json& json_object, const string& name) {
         string x_name = json_object[name]["inputs"]["X"][1];
         string y_name = json_object[name]["inputs"]["Y"][1];
         int x = stoi(json_object[x_name]["fields"]["field_flipperlight_matrix-pixel-index"][0].get<string>());
@@ -521,25 +575,25 @@ FunctionMap createFunctionMap() {
         return make_unique<SetPixel>(x, y, brightness);
     };
 
-    functionMap["flipperlight_lightDisplayRotate"] = [](json json_object, string name) {
+    functionMap["flipperlight_lightDisplayRotate"] = [](const json& json_object, const string& name) {
         string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
         string direction = json_object[direction_name]["fields"]["field_flipperlight_custom-icon-direction"][0].get<string>();
         return make_unique<DisplayRotate>(direction);
     };
 
-    functionMap["flipperlight_lightDisplaySetOrientation"] = [](json json_object, string name) {
+    functionMap["flipperlight_lightDisplaySetOrientation"] = [](const json& json_object, const string& name) {
         string orientation_name = json_object[name]["inputs"]["ORIENTATION"][1];
         string orientation = json_object[orientation_name]["fields"]["orientation"][0].get<string>();
         return make_unique<DisplaySetorientation>(orientation);
     };
 
-    functionMap["flipperlight_centerButtonLight"] = [](json json_object, string name) {
+    functionMap["flipperlight_centerButtonLight"] = [](const json& json_object, const string& name) {
         string color_name = json_object[name]["inputs"]["COLOR"][1];
         string color = json_object[color_name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<string>();
         return make_unique<CenterButtonlight>(color);
     };
 
-    functionMap["flipperlight_ultrasonicLightUp"] = [](json json_object, string name) {
+    functionMap["flipperlight_ultrasonicLightUp"] = [](const json& json_object, const string& name) {
         string port_name = json_object[name]["inputs"]["PORT"][1];
         string value_name = json_object[name]["inputs"]["VALUE"][1];
         string color = json_object[value_name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<string>();
@@ -548,7 +602,7 @@ FunctionMap createFunctionMap() {
     };
     //--------------------------------------------
     // Sound blocks
-    functionMap["flippersound_playSoundUntilDone"] = [](json json_object, string name) {
+    functionMap["flippersound_playSoundUntilDone"] = [](const json& json_object, const string& name) {
         string sound_name = json_object[name]["inputs"]["SOUND"][1];
         string sound_string = json_object[sound_name]["fields"]["field_flippersound_sound-selector"][0].get<string>();
         json sound_json = json::parse(sound_string);
@@ -558,7 +612,7 @@ FunctionMap createFunctionMap() {
         return make_unique<PlayUntilDone>(sound, sound_location);
     };
 
-    functionMap["flippersound_playSound"] = [](json json_object, string name) {
+    functionMap["flippersound_playSound"] = [](const json& json_object, const string& name) {
         string sound_name_name = json_object[name]["inputs"]["SOUND"][1];
         string sound_string = json_object[sound_name_name]["fields"]["field_flippersound_sound-selector"][0].get<string>();
         json sound_json = json::parse(sound_string);
@@ -568,45 +622,45 @@ FunctionMap createFunctionMap() {
         return make_unique<Play>(sound_name, sound_location);
     };
 
-    functionMap["flippersound_beepForTime"] = [](json json_object, string name) {
+    functionMap["flippersound_beepForTime"] = [](const json& json_object, const string& name) {
         double time = stod(json_object[name]["inputs"]["DURATION"][1][1].get<string>());
         string frequency_name = json_object[name]["inputs"]["NOTE"][1];
         double frequency = stod(json_object[frequency_name]["fields"]["field_flippersound_custom-piano"][0].get<string>());
         return make_unique<BeepForTime>(time, frequency);
     };
 
-    functionMap["flippersound_beep"] = [](json json_object, string name) {
+    functionMap["flippersound_beep"] = [](const json& json_object, const string& name) {
         string frequency_name = json_object[name]["inputs"]["NOTE"][1];
         double frequency = stod(json_object[frequency_name]["fields"]["field_flippersound_custom-piano"][0].get<string>());
         return make_unique<Beep>(frequency);
     };
 
-    functionMap["flippersound_stopSound"] = [](json json_object, string name) {
+    functionMap["flippersound_stopSound"] = [](const json& json_object, const string& name) {
         return make_unique<StopSound>();
     };
 
-    functionMap["sound_changeeffectby"] = [](json json_object, string name) {
+    functionMap["sound_changeeffectby"] = [](const json& json_object, const string& name) {
         string effect = json_object[name]["fields"]["EFFECT"][1].get<string>();
         double value = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
         return make_unique<ChangeEffectBy>(effect, value);
     };
 
-    functionMap["sound_seteffectto"] = [](json json_object, string name) {
+    functionMap["sound_seteffectto"] = [](const json& json_object, const string& name) {
         string effect = json_object[name]["fields"]["EFFECT"][1].get<string>();
         double value = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
         return make_unique<SetEffectTo>(effect, value);
     };
 
-    functionMap["sound_cleareffects"] = [](json json_object, string name) {
+    functionMap["sound_cleareffects"] = [](const json& json_object, const string& name) {
         return make_unique<ClearEffects>();
     };
 
-    functionMap["sound_changevolumeby"] = [](json json_object, string name) {
+    functionMap["sound_changevolumeby"] = [](const json& json_object, const string& name) {
         double value = stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>());
         return make_unique<ChangeVolumeBy>(value);
     };
 
-    functionMap["sound_setvolumeto"] = [](json json_object, string name) {
+    functionMap["sound_setvolumeto"] = [](const json& json_object, const string& name) {
         double value = stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>());
         return make_unique<SetVolumeTo>(value);
     };

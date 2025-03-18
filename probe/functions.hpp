@@ -30,4 +30,28 @@ int convert_to_seconds(Robot& robot, string unit, double value) {
     return 0;
 }  
 
+bool is_number(const std::string& s) {
+    try {
+        std::size_t pos;
+        std::stod(s, &pos);
+        return pos == s.size();
+    } catch (const std::invalid_argument&) {
+        return false;
+    } catch (const std::out_of_range&) {
+        return false;
+    }
+}
+
+bool is_integer(const std::string& s) {
+    try {
+        std::size_t pos;
+        std::stoi(s, &pos);
+        return pos == s.size();
+    } catch (const std::invalid_argument&) {
+        return false;
+    } catch (const std::out_of_range&) {
+        return false;
+    }
+}
+
 #endif // FUNCTIONS_H

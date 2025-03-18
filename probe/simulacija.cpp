@@ -14,6 +14,7 @@
 #include "blocks.hpp"
 #include "functions.hpp"
 #include "block_sequence.hpp"
+#include "value_storer.hpp"
 
 using namespace std;
 
@@ -28,7 +29,7 @@ FunctionMap functionMap = createFunctionMap();
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
     while (true){
         for(auto sequence : sequences){ //TODO: make the logic for paralel block sequence interpretation
-            if(sequence->get_start_block()->type == "Event" && sequence->get_start_block()->execute(robot)){
+            if(sequence->get_current_block()->type == "Event" && sequence->get_current_block()->execute(robot)){
                 sequence->set_is_running(true);
             }
             if(sequence->get_is_running()){
@@ -41,7 +42,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
 
 void print_sequences(vector<BlockSequence*> sequences) {
     for (const auto& sequence : sequences) {
-        Block* block = sequence->get_start_block();
+        Block* block = sequence->get_current_block();
         while (block != nullptr) {
             cout << "Block: " << block->name << ", Opcode: " << block->type << endl;
             block = block->next;

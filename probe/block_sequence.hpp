@@ -9,10 +9,11 @@
 
 class BlockSequence {
     Block* current_block;
+    Block* starting_block;
     double time_left;
     bool is_running = false;
 public:
-    BlockSequence(Block* first_block) : current_block(first_block), time_left(0) {}
+    BlockSequence(Block* first_block) : current_block(first_block), starting_block(first_block),  time_left(0) {}
 
     void execute(Robot& robot) {
         if(time_left != 0){
@@ -29,8 +30,12 @@ public:
         return time_left;
     }
 
-    Block* get_start_block() const {
+    Block* get_current_block() const {
         return current_block;
+    }
+
+    Block* get_starting_block() const {
+        return starting_block;
     }
 
     void set_is_running(bool is_running) {
