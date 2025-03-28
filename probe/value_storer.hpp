@@ -52,7 +52,7 @@ public:
         if(is_number(name)){
             value = stod(name);
         } else {
-            block = functionMap[json_object[name]["opcode"]](json_object, name).release();;
+            block = functionMap[json_object[name]["opcode"]](json_object, name).release();
         }
     }
 

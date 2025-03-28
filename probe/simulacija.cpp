@@ -13,8 +13,6 @@
 #include "robot.hpp"
 #include "blocks.hpp"
 #include "functions.hpp"
-#include "block_sequence.hpp"
-#include "value_storer.hpp"
 
 using namespace std;
 
@@ -40,11 +38,12 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
     }
 }
 
-void print_sequences(vector<BlockSequence*> sequences) {
+void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
     for (const auto& sequence : sequences) {
         Block* block = sequence->get_current_block();
         while (block != nullptr) {
             cout << "Block: " << block->name << ", Opcode: " << block->type << endl;
+            cout << "Execution: " << block->execute(robot) << endl;
             block = block->next;
         }
         cout << "End of sequence" << endl;
@@ -79,7 +78,6 @@ int main() {
                 if(curr_block["next"].is_null()){
                     break;
                 }
-                
                 auto next_block = blocks[curr_block["next"]];
                 auto next_sequence_block = functionMap[next_block["opcode"]](blocks, curr_block["next"]).release();
                 curr_sequence_block->next = next_sequence_block;
@@ -92,7 +90,7 @@ int main() {
     }
     
 
-    print_sequences(sequences);
+    print_sequences(sequences, robot);
 
     return 0;
 }
