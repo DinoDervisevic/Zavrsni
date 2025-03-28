@@ -32,6 +32,9 @@ class Block {
         // changes the state of the robot and returns the number of seconds it took to execute the block (0 in case on instantaneus blocks such as speed change)
         virtual int execute(Robot& robot) = 0; 
         virtual ~Block() = default;
+        bool done() {
+            return true;
+        }
 };
 
 class BlockSequence {
@@ -49,12 +52,21 @@ public:
         }
         while(time_left == 0 || current_block != nullptr) {
             time_left += current_block->execute(robot);
-            current_block = current_block->next;
+            if(current_block->done()) current_block = current_block->next;
         }
+    }
+
+    void reset() {
+        current_block = starting_block;
+        time_left = 0;
     }
 
     double get_time_left() {
         return time_left;
+    }
+
+    void set_time_left(int amount){
+        time_left = amount;
     }
 
     Block* get_current_block() const {
@@ -546,28 +558,43 @@ public:
 //--------------------------------------------
 //-----------CONTROL BLOCKS-------------------
 class Wait : public Block {
-    double time;
+    Block* time;
 public:
-    Wait(double time) : Block("Control", "Wait"), time(time) {}
+    Wait(Block* time) : Block("Control", "Wait"), time(time) {}
 
     int execute(Robot& robot) override {
-        return time;
+        return time->execute(robot);
     }
 };
 
 class Repeat : public Block {
-    int times;
+    Block* times;
     BlockSequence* block_sequence;
     int counter;
+    bool done = false;
 public:
-    Repeat(int times, BlockSequence* block_sequence) : Block("Control", "Repeat"), times(times), block_sequence(block_sequence), counter(0) {}
+    Repeat(Block* times, BlockSequence* block_sequence) : Block("Control", "Repeat"), times(times), block_sequence(block_sequence), counter(0) {}
 
     int execute(Robot& robot) override {
-        if(counter == times){
+        if (block_sequence == nullptr) {
+            return 0;
+        }
+        if (block_sequence->get_current_block()->next == nullptr) {
+            counter++;
+            block_sequence->reset();
+        }
+        if(counter == times->execute(robot)){
+            done = true;
             return 0;
         }
         block_sequence->execute(robot);
-        return 0;
+        int t = block_sequence->get_time_left();
+        block_sequence->set_time_left(0);
+        return t;
+    }
+
+    bool done() {
+        return done;
     }
 };
 
@@ -577,24 +604,134 @@ public:
     Forever(BlockSequence* block_sequence) : Block("Control", "Forever"), block_sequence(block_sequence) {}
 
     int execute(Robot& robot) override {
+        if (block_sequence == nullptr) {
+            return 0;
+        }
+        if (block_sequence->get_current_block()->next == nullptr) block_sequence->reset();
+
         block_sequence->execute(robot);
-        return 0;
+        int t = block_sequence->get_time_left();
+        block_sequence->set_time_left(0);
+        return t;
+    }
+
+    bool done() {
+        return false;
     }
 };
 
 class If : public Block {
     BlockSequence* block_sequence;
-    bool condition;
+    bool condition_checked, done = false;
+    Block* condition;
 public:
-    If(BlockSequence* block_sequence, bool condition) : Block("Control", "If"), block_sequence(block_sequence), condition(condition) {}
+    If(BlockSequence* block_sequence, Block* condition) : Block("Control", "If"), block_sequence(block_sequence), condition(condition) {}
 
     int execute(Robot& robot) override {
-        if(condition){
+        if((condition->execute(robot) && !condition_checked) || condition_checked){
+            if(block_sequence->get_current_block()->next == nullptr){
+                done = true;
+                block_sequence->reset();
+            }
+            condition_checked = true;
             block_sequence->execute(robot);
+            int t = block_sequence->get_time_left();
+            block_sequence->set_time_left(0);
+            return t;
+        }
+        else{
+            done = true;
         }
         return 0;
     }
+
+    bool done() {
+        return done;
+    }
 };
+
+class IfElse : public Block {
+    BlockSequence* block_sequence1;
+    BlockSequence* block_sequence2;
+    bool condition_checked, else_checked, done = false;
+    Block* condition;
+public:
+    IfElse(BlockSequence* block_sequence1, BlockSequence* block_sequence2, Block* condition) : Block("Control", "IfElse"), block_sequence1(block_sequence1), block_sequence2(block_sequence2), condition(condition) {}
+
+    int execute(Robot& robot) override {
+        int t = 0;
+        if((condition->execute(robot) && !condition_checked && !else_checked) || condition_checked){
+            condition_checked = true;
+            block_sequence1->execute(robot);
+            t = block_sequence1->get_time_left();
+            block_sequence1->set_time_left(0);
+        } else {
+            else_checked = true;
+            block_sequence2->execute(robot);
+            t = block_sequence2->get_time_left();
+            block_sequence2->set_time_left(0);
+        }
+        if((block_sequence1->get_current_block()->next == nullptr && condition_checked) || (block_sequence2->get_current_block()->next == nullptr && else_checked)){
+            done = true;
+            block_sequence1->reset();
+            block_sequence2->reset();
+        }
+        return t;
+    }
+
+    bool done() {
+        return done;
+    }
+};
+
+class WaitUntil : public Block {
+    Block* condition;
+    bool done = false;
+public:
+    WaitUntil(Block* condition) : Block("Control", "WaitUntil"), condition(condition) {}
+
+    int execute(Robot& robot) override {
+        if(condition->execute(robot) == 1){
+            done = true;
+            return 0;
+        }
+        return -1;
+    }
+
+    bool done() {
+        return done;
+    }
+};
+
+class RepeatUntil : public Block {
+    Block* condition;
+    BlockSequence* block_sequence;
+    bool done = false;
+public:
+    RepeatUntil(Block* condition, BlockSequence* block_sequence) : Block("Control", "RepeatUntil"), condition(condition), block_sequence(block_sequence) {}
+
+    int execute(Robot& robot) override {
+        if (block_sequence == nullptr) {
+            return 0;
+        }
+        if (block_sequence->get_current_block()->next == nullptr) {
+            block_sequence->reset();
+        }
+        if(block_sequence->get_current_block() == block_sequence->get_starting_block() && condition->execute(robot) == 1){
+            done = true;
+            return 0;
+        }
+        block_sequence->execute(robot);
+        int t = block_sequence->get_time_left();
+        block_sequence->set_time_left(0);
+        return t;
+    }
+
+    bool done() {
+        return done;
+    }
+};
+
 //--------------------------------------------
 //-----------END OF BLOCKS--------------------
 
@@ -926,6 +1063,37 @@ FunctionMap createFunctionMap() {
         return make_unique<SetVolumeTo>(value);
     };
     //--------------------------------------------
+
+    // Control blocks
+    functionMap["control_wait"] = [&functionMap](const json& json_object, const string& name) {
+        Block* duration;
+        if(json_object[name]["inputs"]["DURATION"][0] == 1){
+            duration = new BlankBlockDouble(stod(json_object[name]["inputs"]["DURATION"][1][1].get<string>()));
+        } else {
+            string duration_name = json_object[name]["inputs"]["DURATION"][1];
+            duration = functionMap[json_object[duration_name]["opcode"]](json_object, duration_name).release();
+        }
+        return make_unique<Wait>(duration);
+    };
+
+    functionMap["control_repeat"] = [&functionMap](const json& json_object, const string& name) {
+        Block* times;
+        if(json_object[name]["inputs"]["TIMES"][0] == 1){
+            times = new BlankBlockInt(stoi(json_object[name]["inputs"]["TIMES"][1][1].get<string>()));
+        } else {
+            string times_name = json_object[name]["inputs"]["TIMES"][1];
+            times = functionMap[json_object[times_name]["opcode"]](json_object, times_name).release();
+        }
+        BlockSequence* block_sequence = new BlockSequence(nullptr);
+        return make_unique<Repeat>(times, block_sequence);
+    };
+
+    functionMap["control_forever"] = [&functionMap](const json& json_object, const string& name) {
+        BlockSequence* block_sequence = new BlockSequence(nullptr);
+        return make_unique<Forever>(block_sequence);
+    };
+
+    //TODO : add the rest of the blocks when i know what to do w conditions
 
     return functionMap;
 }
