@@ -706,12 +706,16 @@ public:
     }
 };
 //--------------------------------------------
+//-----------MOTOR BLOCKS--------------------
 class MotorTurnForDirection : public Block {
+    string port;
+    Block* speed;
+    string direction;
+    string unit;
 public:
-    double speed;
-    MotorTurnForDirection(double speed) : Block("Motor", "MotorTurnForDirection"), speed(speed) {}
+    MotorTurnForDirection(string port, Block* speed, string direction, string unit) : Block("Motor", "MotorTurnForDirection"), port(port), speed(speed), direction(direction), unit(unit) {}
 
-    int execute(Robot& robot) override { // TODO
+    int execute(Robot& robot) override { //TODO
         return 0;
     }
 };
@@ -1475,6 +1479,25 @@ FunctionMap createFunctionMap() {
         return make_unique<SetVolumeTo>(value);
     };
     //--------------------------------------------
+
+    //Motor blocks
+    functionMap["flippermotor_motorTurnForDirection"] = [&functionMap](const json& json_object, const string& name) {
+        string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
+        string direction = json_object[direction_name]["fields"]["field_flippermotor_custom-icon-direction"][0].get<string>();
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        string port = json_object[direction_name]["fields"]["field_flippermotor_multiple-port-selector"][0].get<string>();
+        string unit = json_object[name]["fields"]["UNIT"][0].get<string>();
+        
+        Block* value;
+        if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        } else {
+            string from_name = json_object[name]["inputs"]["VALUE"][1];
+            value = functionMap[json_object[from_name]["opcode"]](json_object, from_name).release();
+        }
+        return make_unique<MotorTurnForDirection>(port, value, direction, unit);
+    };
+    //---------------------------------------------
 
     // Control blocks
     functionMap["control_wait"] = [&functionMap](const json& json_object, const string& name) {
