@@ -159,6 +159,176 @@ public:
         return value1->execute(robot) / value2->execute(robot);
     }
 };
+
+//Some of these return a binary value, and some a number or string, depending on the context in which they are used
+class LessThan : public Block {
+    Block* value1;
+    Block* value2;
+public:
+    LessThan(Block* value1, Block* value2) : Block("Operator", "LessThan"), value1(value1), value2(value2) {}
+
+    int execute(Robot& robot) override {
+        return value1->execute(robot) < value2->execute(robot);
+    }
+};
+
+class Equals : public Block {
+    Block* value1;
+    Block* value2;
+public:
+    Equals(Block* value1, Block* value2) : Block("Operator", "Equals"), value1(value1), value2(value2) {}
+
+    int execute(Robot& robot) override {
+        return value1->execute(robot) == value2->execute(robot);
+    }
+};
+
+class GreaterThan : public Block {
+    Block* value1;
+    Block* value2;
+public:
+    GreaterThan(Block* value1, Block* value2) : Block("Operator", "GreaterThan"), value1(value1), value2(value2) {}
+
+    int execute(Robot& robot) override {
+        return value1->execute(robot) > value2->execute(robot);
+    }
+};
+
+class And : public Block {
+    Block* value1;
+    Block* value2;
+public:
+    And(Block* value1, Block* value2) : Block("Operator", "And"), value1(value1), value2(value2) {}
+
+    int execute(Robot& robot) override {
+        return value1->execute(robot) && value2->execute(robot);
+    }
+};
+
+class Or : public Block {
+    Block* value1;
+    Block* value2;
+public:
+    Or(Block* value1, Block* value2) : Block("Operator", "Or"), value1(value1), value2(value2) {}
+
+    int execute(Robot& robot) override {
+        return value1->execute(robot) || value2->execute(robot);
+    }
+};
+
+class Not : public Block {
+    Block* value;
+public:
+    Not(Block* value) : Block("Operator", "Not"), value(value) {}
+
+    int execute(Robot& robot) override {
+        return !value->execute(robot);
+    }
+};
+
+class IsInBetween : public Block {
+    Block* value1;
+    Block* value2;
+    Block* value3;
+public:
+    IsInBetween(Block* value1, Block* value2, Block* value3) : Block("Operator", "IsInBetween"), value1(value1), value2(value2), value3(value3) {}
+
+    int execute(Robot& robot) override {
+        return value1->execute(robot) < value2->execute(robot) && value2->execute(robot) < value3->execute(robot);
+    }
+};
+
+class Join : public Block {
+    Block* value1;
+    Block* value2;
+public:
+    Join(Block* value1, Block* value2) : Block("Operator", "Join"), value1(value1), value2(value2) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement string joining
+    }
+};
+
+class LetterOf : public Block {
+    Block* value1;
+    Block* value2;
+public:
+    LetterOf(Block* value1, Block* value2) : Block("Operator", "LetterOf"), value1(value1), value2(value2) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement string letter extraction
+    }
+};
+
+class LengthOf : public Block {
+    Block* value;
+public:
+    LengthOf(Block* value) : Block("Operator", "LengthOf"), value(value) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement string length calculation
+    }
+};
+
+class Contains : public Block {
+    Block* value1;
+    Block* value2;
+public:
+    Contains(Block* value1, Block* value2) : Block("Operator", "Contains"), value1(value1), value2(value2) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement string contains check
+    }
+};
+
+class Modulus : public Block {
+    Block* value1;
+    Block* value2;
+public:
+    Modulus(Block* value1, Block* value2) : Block("Operator", "Modulus"), value1(value1), value2(value2) {}
+
+    int execute(Robot& robot) override {
+        return value1->execute(robot) % value2->execute(robot);
+    }
+};
+
+class Round : public Block {
+    Block* value;
+public:
+    Round(Block* value) : Block("Operator", "Round"), value(value) {}
+
+    int execute(Robot& robot) override {
+        return round(value->execute(robot));
+    }
+};
+
+class MathOp : public Block {
+    Block* value;
+    string function_name;
+public:
+    MathOp(Block* value, string function_name) : Block("Operator", "MathOp"), value(value), function_name(function_name) {}
+
+    int execute(Robot& robot) override { // TODO: add rest of them
+        if(function_name == "sin"){
+            return sin(value->execute(robot));
+        } else if(function_name == "cos"){
+            return cos(value->execute(robot));
+        } else if(function_name == "tan"){
+            return tan(value->execute(robot));
+        } else if(function_name == "asin"){
+            return asin(value->execute(robot));
+        } else if(function_name == "acos"){
+            return acos(value->execute(robot));
+        } else if(function_name == "atan"){
+            return atan(value->execute(robot));
+        } else if(function_name == "ln"){
+            return log(value->execute(robot));
+        } else if(function_name == "log"){
+            return log10(value->execute(robot));
+        }
+        return 0;
+    }
+};
 //--------------------------------------------
 //-----------BLANK BLOCKS---------------------
 class BlankBlockInt : public Block {
@@ -568,7 +738,7 @@ public:
 };
 
 class Repeat : public Block {
-    Block* times;
+    Block* times; // TODO: check if this needs to be calculated only once or every time
     BlockSequence* block_sequence;
     int counter;
     bool done = false;
@@ -844,6 +1014,248 @@ FunctionMap createFunctionMap() {
             value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
         }
         return make_unique<Divide>(value1, value2);
+    };
+
+    functionMap["operator_lt"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        if(json_object[name]["inputs"]["OPERAND1"][0] == 1){
+            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND1"][1][1].get<string>()));
+        } else {
+            string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+
+        if(json_object[name]["inputs"]["OPERAND2"][0] == 1){
+            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND2"][1][1].get<string>()));
+        } else {
+            string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
+            value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        }
+        return make_unique<LessThan>(value1, value2);
+    };
+
+    functionMap["operator_equals"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        if(json_object[name]["inputs"]["OPERAND1"][0] == 1){
+            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND1"][1][1].get<string>()));
+        } else {
+            string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+
+        if(json_object[name]["inputs"]["OPERAND2"][0] == 1){
+            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND2"][1][1].get<string>()));
+        } else {
+            string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
+            value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        }
+        return make_unique<Equals>(value1, value2);
+    };
+
+    functionMap["operator_gt"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        if(json_object[name]["inputs"]["OPERAND1"][0] == 1){
+            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND1"][1][1].get<string>()));
+        } else {
+            string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+
+        if(json_object[name]["inputs"]["OPERAND2"][0] == 1){
+            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND2"][1][1].get<string>()));
+        } else {
+            string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
+            value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        }
+        return make_unique<GreaterThan>(value1, value2);
+    };
+
+    functionMap["operator_and"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        if (json_object[name]["inputs"].contains("OPERAND1")) {
+            string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        } else {
+            cerr << "Error: Operator AND is missing input one!" << endl;
+        }
+
+        if (json_object[name]["inputs"].contains("OPERAND2")) {
+            string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
+            value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        } else {
+            cerr << "Error: Operator AND is missing input two!" << endl;
+        }
+        return make_unique<And>(value1, value2);
+    };
+
+    functionMap["operator_or"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        if (json_object[name]["inputs"].contains("OPERAND1")) {
+            string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        } else {
+            cerr << "Error: Operator OR is missing input one!" << endl;
+        }
+
+        if (json_object[name]["inputs"].contains("OPERAND2")) {
+            string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
+            value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        } else {
+            cerr << "Error: Operator OR is missing input two!" << endl;
+        }
+        return make_unique<Or>(value1, value2);
+    };
+
+    functionMap["operator_not"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        if (json_object[name]["inputs"].contains("OPERAND")) {
+            string value1_name = json_object[name]["inputs"]["OPERAND"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        } else {
+            cerr << "Error: Operator NOT is missing input!" << endl;
+        }
+        return make_unique<Not>(value1);
+    };
+
+    functionMap["flipperoperator_isInBetween"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        Block* value3;
+        if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        } else {
+            string value1_name = json_object[name]["inputs"]["VALUE"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+
+        if(json_object[name]["inputs"]["LOW"][0] == 1){
+            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["LOW"][1][1].get<string>()));
+        } else {
+            string value2_name = json_object[name]["inputs"]["LOW"][1];
+            value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        }
+
+        if(json_object[name]["inputs"]["HIGH"][0] == 1){
+            value3 = new BlankBlockDouble(stod(json_object[name]["inputs"]["HIGH"][1][1].get<string>()));
+        } else {
+            string value3_name = json_object[name]["inputs"]["HIGH"][1];
+            value3 = functionMap[json_object[value3_name]["opcode"]](json_object, value3_name).release();
+        }
+        return make_unique<IsInBetween>(value1, value2, value3);
+    };
+
+    functionMap["operator_join"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        if(json_object[name]["inputs"]["STRING1"][0] == 1){
+            value1 = new BlankBlockString(json_object[name]["inputs"]["STRING1"][1][1].get<string>());
+        } else {
+            string value1_name = json_object[name]["inputs"]["STRING1"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+
+        if(json_object[name]["inputs"]["STRING2"][0] == 1){
+            value2 = new BlankBlockString(json_object[name]["inputs"]["STRING2"][1][1].get<string>());
+        } else {
+            string value2_name = json_object[name]["inputs"]["STRING2"][1];
+            value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        }
+        return make_unique<Join>(value1, value2);
+    };
+
+    functionMap["operator_letterof"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        if(json_object[name]["inputs"]["STRING"][0] == 1){
+            value2 = new BlankBlockString(json_object[name]["inputs"]["STRING"][1][1].get<string>());
+        } else {
+            string value1_name = json_object[name]["inputs"]["STRING"][1];
+            value2 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+
+        if(json_object[name]["inputs"]["LETTER"][0] == 1){
+            value1 = new BlankBlockInt(stoi(json_object[name]["inputs"]["LETTER"][1][1].get<string>()));
+        } else {
+            string value2_name = json_object[name]["inputs"]["LETTER"][1];
+            value1 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        }
+        return make_unique<LetterOf>(value1, value2);
+    };
+
+    functionMap["operator_length"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        if(json_object[name]["inputs"]["STRING"][0] == 1){
+            value1 = new BlankBlockString(json_object[name]["inputs"]["STRING"][1][1].get<string>());
+        } else {
+            string value1_name = json_object[name]["inputs"]["STRING"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+        return make_unique<LengthOf>(value1);
+    };
+
+    functionMap["operator_contains"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        if(json_object[name]["inputs"]["STRING1"][0] == 1){
+            value1 = new BlankBlockString(json_object[name]["inputs"]["STRING1"][1][1].get<string>());
+        } else {
+            string value1_name = json_object[name]["inputs"]["STRING1"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+
+        if(json_object[name]["inputs"]["STRING2"][0] == 1){
+            value2 = new BlankBlockString(json_object[name]["inputs"]["STRING2"][1][1].get<string>());
+        } else {
+            string value2_name = json_object[name]["inputs"]["STRING2"][1];
+            value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        }
+        return make_unique<Contains>(value1, value2);
+    };
+
+    functionMap["operator_mod"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        Block* value2;
+        if(json_object[name]["inputs"]["NUM1"][0] == 1){
+            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
+        } else {
+            string value1_name = json_object[name]["inputs"]["NUM1"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+
+        if(json_object[name]["inputs"]["NUM2"][0] == 1){
+            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
+        } else {
+            string value2_name = json_object[name]["inputs"]["NUM2"][1];
+            value2 = functionMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
+        }
+        return make_unique<Modulus>(value1, value2);
+    };
+
+    functionMap["operator_round"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        if(json_object[name]["inputs"]["NUM"][0] == 1){
+            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM"][1][1].get<string>()));
+        } else {
+            string value1_name = json_object[name]["inputs"]["NUM"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+        return make_unique<Round>(value1);
+    };
+
+    functionMap["operator_mathop"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value1;
+        if(json_object[name]["inputs"]["NUM"][0] == 1){
+            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM"][1][1].get<string>()));
+        } else {
+            string value1_name = json_object[name]["inputs"]["NUM"][1];
+            value1 = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+        return make_unique<MathOp>(value1, json_object[name]["fields"]["OPERATOR"][0]);
     };
     //--------------------------------------------
 
