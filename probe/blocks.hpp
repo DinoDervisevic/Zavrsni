@@ -455,9 +455,9 @@ public:
 };
 
 class SetMovementPair : public Block { // TODO : change so this only marks these two ports as wheels, not the wheels as being on these two ports
-    string left, right;
+    Block* pair;
 public:
-    SetMovementPair(string left, string right) : Block("Move", "SetMovementPair"), left(left), right(right) {}
+    SetMovementPair(Block* pair) : Block("Move", "SetMovementPair"), pair(pair) {}
     int execute(Robot& robot) override { //TODO
 
         return 0;
@@ -1265,15 +1265,22 @@ FunctionMap createFunctionMap() {
 
     // Movement blocks
     functionMap["flippermove_move"] = [&functionMap](const json& json_object, const string& name) {
-        string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
-        string fwd = json_object[direction_name]["fields"]["field_flippermove_custom-icon-direction"][0];
         bool forward;
-        if(fwd == "forward") {
+        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        if(args != 1){
             forward = true;
-        } else {
-            forward = false;
         }
-
+        else{
+            string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
+            string fwd = json_object[direction_name]["fields"]["field_flippermove_custom-icon-direction"][0];
+            
+            if(fwd == "forward") {
+                forward = true;
+            } else {
+                forward = false;
+            }
+        }
+        
         string unit = json_object[name]["fields"]["UNIT"][0];
 
         Block* value;
@@ -1288,13 +1295,20 @@ FunctionMap createFunctionMap() {
     };
 
     functionMap["flippermove_startMove"] = [&functionMap](const json& json_object, const string& name) {
-        string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
-        string fwd = json_object[direction_name]["fields"]["field_flippermove_custom-icon-direction"][0];
         bool forward;
-        if(fwd == "forward") {
+        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        if(args != 1){
             forward = true;
-        } else {
-            forward = false;
+        }
+        else{
+            string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
+            string fwd = json_object[direction_name]["fields"]["field_flippermove_custom-icon-direction"][0];
+            
+            if(fwd == "forward") {
+                forward = true;
+            } else {
+                forward = false;
+            }
         }
         return make_unique<StartMove>(forward);
     };
@@ -1336,8 +1350,8 @@ FunctionMap createFunctionMap() {
 
     functionMap["flippermove_setMovementPair"] = [&functionMap](const json& json_object, const string& name) {
         string pair_name = json_object[name]["inputs"]["PAIR"][1];
-        string pair = json_object[pair_name]["fields"]["field_flippermove_movement-port-selector"][0];
-        return make_unique<SetMovementPair>(string(1, pair[0]), string(1, pair[1]));
+        Block* pair = functionMap[json_object[pair_name]["opcode"]](json_object, pair_name).release();
+        return make_unique<SetMovementPair>(pair);
     };
 
     functionMap["flippermove_setDistance"] = [&functionMap](const json& json_object, const string& name) {
@@ -1526,6 +1540,12 @@ FunctionMap createFunctionMap() {
     functionMap["control_forever"] = [&functionMap](const json& json_object, const string& name) {
         BlockSequence* block_sequence = new BlockSequence(nullptr);
         return make_unique<Forever>(block_sequence);
+    };
+    //--------------------------------------------
+    // Miscelanious helper "blocks"
+    functionMap["flippermove_movement-port-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string port = json_object[name]["fields"]["field_flippermove_multiple-port-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(port);
     };
 
     //TODO : add the rest of the blocks when i know what to do w conditions
