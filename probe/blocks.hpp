@@ -10,6 +10,7 @@
 #include <functional>
 #include <algorithm>
 #include <random>
+#include <cmath>
 #include "json.hpp"
 #include "robot.hpp"
 #include "functions.hpp"
@@ -308,8 +309,16 @@ class MathOp : public Block {
 public:
     MathOp(Block* value, string function_name) : Block("Operator", "MathOp"), value(value), function_name(function_name) {}
 
-    int execute(Robot& robot) override { // TODO: add rest of them
-        if(function_name == "sin"){
+    int execute(Robot& robot) override {
+        if(function_name == "abs"){
+            return abs(value->execute(robot));
+        } else if(function_name == "floor"){
+            return floor(value->execute(robot));
+        } else if (function_name == "ceiling"){
+            return ceil(value->execute(robot));
+        } else if (function_name == "sqrt"){
+            return sqrt(value->execute(robot));
+        } else if(function_name == "sin"){
             return sin(value->execute(robot));
         } else if(function_name == "cos"){
             return cos(value->execute(robot));
@@ -325,6 +334,10 @@ public:
             return log(value->execute(robot));
         } else if(function_name == "log"){
             return log10(value->execute(robot));
+        } else if(function_name == "e ^"){
+            return exp(value->execute(robot));
+        } else if(function_name == "10 ^"){
+            return pow(10, value->execute(robot));
         }
         return 0;
     }
@@ -705,15 +718,47 @@ public:
         return 0;
     }
 };
+
+class Volume : public Block {
+public:
+    Volume() : Block("Sound", "Volume") {}
+
+    int execute(Robot& robot) override {
+        return robot.volume;
+    }
+};
 //--------------------------------------------
 //-----------MOTOR BLOCKS--------------------
 class MotorTurnForDirection : public Block {
-    string port;
+    Block* port;
+    bool forward;
     Block* speed;
-    string direction;
     string unit;
 public:
-    MotorTurnForDirection(string port, Block* speed, string direction, string unit) : Block("Motor", "MotorTurnForDirection"), port(port), speed(speed), direction(direction), unit(unit) {}
+    MotorTurnForDirection(Block* port, Block* speed, bool forward, string unit) : Block("Motor", "MotorTurnForDirection"), port(port), speed(speed), forward(forward), unit(unit) {}
+
+    int execute(Robot& robot) override { //TODO
+        return 0;
+    }
+};
+
+class MotorGoDirectionToPosition : public Block {
+    Block* port;
+    string direction;
+    Block* position;
+public:
+    MotorGoDirectionToPosition(Block* port, string direction, Block* position) : Block("Motor", "MotorGoDirectionToPosition"), port(port), direction(direction), position(position) {}
+
+    int execute(Robot& robot) override { //TODO
+        return 0;
+    }
+};
+
+class MotorStartDirection : public Block {
+    Block* port;
+    bool forward;
+public:
+    MotorStartDirection(Block* port, bool forward) : Block("Motor", "MotorStartDirection"), port(port), forward(forward) {}
 
     int execute(Robot& robot) override { //TODO
         return 0;
@@ -721,11 +766,41 @@ public:
 };
 
 class MotorStop : public Block {
+    Block* port;
 public:
-    MotorStop() : Block("Motor", "MotorStop") {}
-    int execute(Robot& robot) override {
-        robot.v1 = 0.0;
-        robot.v2 = 0.0;
+    MotorStop(Block* port) : Block("Motor", "MotorStop"), port(port) {}
+    int execute(Robot& robot) override { //TODO
+        return 0;
+    }
+};
+
+class MotorSetSpeed : public Block {
+    Block* port;
+    Block* speed;
+public:
+    MotorSetSpeed(Block* port, Block* speed) : Block("Motor", "MotorSetSpeed"), port(port), speed(speed) {}
+
+    int execute(Robot& robot) override { //TODO
+        return 0;
+    }
+};
+
+class MotorPosition : public Block {
+    Block* port;
+public:
+    MotorPosition(Block* port) : Block("Motor", "MotorPosition"), port(port) {}
+
+    int execute(Robot& robot) override { //TODO
+        return 0;
+    }
+};
+
+class MotorSpeed : public Block {
+    Block* port;
+public:
+    MotorSpeed(Block* port) : Block("Motor", "MotorSpeed"), port(port) {}
+
+    int execute(Robot& robot) override { //TODO
         return 0;
     }
 };
@@ -903,6 +978,15 @@ public:
 
     bool done() {
         return done;
+    }
+};
+
+class StopOtherStacks : public Block {
+public:
+    StopOtherStacks() : Block("Control", "StopOtherStacks") {}
+
+    int execute(Robot& robot) override {
+        return 0;
     }
 };
 
@@ -1492,14 +1576,32 @@ FunctionMap createFunctionMap() {
         double value = stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>());
         return make_unique<SetVolumeTo>(value);
     };
+
+    functionMap ["sound_volume"] = [&functionMap](const json& json_object, const string& name) {
+        return make_unique<Volume>();
+    };
     //--------------------------------------------
 
     //Motor blocks
     functionMap["flippermotor_motorTurnForDirection"] = [&functionMap](const json& json_object, const string& name) {
-        string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
-        string direction = json_object[direction_name]["fields"]["field_flippermotor_custom-icon-direction"][0].get<string>();
+        bool forward;
+        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        if(args != 1){
+            forward = true;
+        }
+        else{
+            string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
+            string fwd = json_object[direction_name]["fields"]["field_flippermotor_custom-icon-direction"][0];
+            
+            if(fwd == "counterclockwise") {
+                forward = true;
+            } else {
+                forward = false;
+            }
+        }
         string port_name = json_object[name]["inputs"]["PORT"][1];
-        string port = json_object[direction_name]["fields"]["field_flippermotor_multiple-port-selector"][0].get<string>();
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+
         string unit = json_object[name]["fields"]["UNIT"][0].get<string>();
         
         Block* value;
@@ -1509,7 +1611,75 @@ FunctionMap createFunctionMap() {
             string from_name = json_object[name]["inputs"]["VALUE"][1];
             value = functionMap[json_object[from_name]["opcode"]](json_object, from_name).release();
         }
-        return make_unique<MotorTurnForDirection>(port, value, direction, unit);
+        return make_unique<MotorTurnForDirection>(port, value, forward, unit);
+    };
+
+    functionMap["flippermotor_motorGoDirectionToPosition"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+
+        string direction = json_object[name]["fields"]["DIRECTION"][0].get<string>();
+        
+        string position_name = json_object[name]["inputs"]["POSITION"][1];
+        Block* position = functionMap[json_object[position_name]["opcode"]](json_object, position_name).release();
+        return make_unique<MotorGoDirectionToPosition>(port, direction, position);
+    };
+
+    functionMap ["flippermotor_motorStartDirection"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+
+        bool forward;
+        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        if(args != 1){
+            forward = true;
+        }
+        else{
+            string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
+            string fwd = json_object[direction_name]["fields"]["field_flippermotor_custom-icon-direction"][0];
+            
+            if(fwd == "counterclockwise") {
+                forward = true;
+            } else {
+                forward = false;
+            }
+        }
+        
+        return make_unique<MotorStartDirection>(port, forward);
+    };
+
+    functionMap ["flippermotor_motorStop"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        return make_unique<MotorStop>(port);
+    };
+
+    functionMap ["flippermotor_motorSetSpeed"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+
+        Block* speed;
+        if(json_object[name]["inputs"]["SPEED"][0] == 1){
+            speed = new BlankBlockDouble(stod(json_object[name]["inputs"]["SPEED"][1][1].get<string>()));
+        } else {
+            string speed_name = json_object[name]["inputs"]["SPEED"][1];
+            speed = functionMap[json_object[speed_name]["opcode"]](json_object, speed_name).release();
+        }
+        return make_unique<MotorSetSpeed>(port, speed);
+    };
+
+    functionMap ["flippermotor_absolutePosition"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        return make_unique<MotorPosition>(port);
+    };
+
+    functionMap ["flippermotor_speed"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        return make_unique<MotorSpeed>(port);
     };
     //---------------------------------------------
 
@@ -1546,6 +1716,16 @@ FunctionMap createFunctionMap() {
     functionMap["flippermove_movement-port-selector"] = [&functionMap](const json& json_object, const string& name) {
         string port = json_object[name]["fields"]["field_flippermove_multiple-port-selector"][0].get<string>();
         return make_unique<BlankBlockString>(port);
+    };
+
+    functionMap ["flippermotor_multiple-port-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string port = json_object[name]["fields"]["field_flippermotor_multiple-port-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(port);
+    };
+
+    functionMap["flippermotor_custom-angle"] = [&functionMap](const json& json_object, const string& name) {
+        string angle = json_object[name]["fields"]["field_flippermotor_custom-angle"][0].get<string>();
+        return make_unique<BlankBlockInt>(stoi(angle));
     };
 
     //TODO : add the rest of the blocks when i know what to do w conditions
