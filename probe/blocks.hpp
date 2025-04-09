@@ -1145,6 +1145,97 @@ public:
 };
 
 //--------------------------------------------
+
+//-----------SENSOR BLOCKS--------------------
+class IsColor : public Block {
+    Block* port;
+    Block* color;
+public:
+    IsColor(Block* port, Block* color) : Block("Sensor", "IsColor"), port(port), color(color) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement color detection
+    }
+};
+
+class SensorColor : public Block {
+    Block* port;
+public:
+    SensorColor(Block* port) : Block("Sensor", "SensorColor"), port(port) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement color detection
+    }
+};
+
+class IsReflectivity : public Block {
+    Block* port;
+    string comparator;
+    Block* value;
+public:
+    IsReflectivity(Block* port, string comparator, Block* value) : Block("Sensor", "IsReflectivity"), port(port), comparator(comparator), value(value) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement reflectivity detection
+    }
+};
+
+class SensorReflectivity : public Block {
+    Block* port;
+public:
+    SensorReflectivity(Block* port) : Block("Sensor", "SensorReflectivity"), port(port) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement reflectivity detection
+    }
+};
+
+class IsPressed : public Block {
+    Block* port;
+    string operation;
+public:
+    IsPressed(Block* port, string operation) : Block("Sensor", "IsPressed"), port(port), operation(operation) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement button press detection
+    }
+};
+
+class SensorForce : public Block {
+    Block* port;
+    string unit;
+public:
+    SensorForce(Block* port, string unit) : Block("Sensor", "SensorForce"), port(port), unit(unit) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement force detection
+    }
+};
+
+class IsDistance : public Block {
+    Block* port;
+    string comparator;
+    Block* value;
+    string unit;
+public:
+    IsDistance(Block* port, string comparator, Block* value, string unit) : Block("Sensor", "IsDistance"), port(port), comparator(comparator), value(value), unit(unit) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement distance detection
+    }
+};
+
+class SensorDistance : public Block {
+    Block* port;
+    string unit;
+public:
+    SensorDistance(Block* port, string unit) : Block("Sensor", "SensorDistance"), port(port), unit(unit) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement distance detection
+    }
+};
+//-------------------------------------------
 //-----------END OF BLOCKS--------------------
 
 
@@ -2051,6 +2142,93 @@ FunctionMap createFunctionMap() {
         return make_unique<ControlStop>(option);
     };
     //--------------------------------------------
+    // Sensor blocks
+    functionMap ["flippersensors_isColor"] = [&functionMap](const json& json_object, const string& name) {
+        string color_name = json_object[name]["inputs"]["VALUE"][1];
+        Block* color = functionMap[json_object[color_name]["opcode"]](json_object, color_name).release();
+        
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+
+        return make_unique<IsColor>(port, color);
+    };
+
+    functionMap ["flippersensors_color"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        return make_unique<SensorColor>(port);
+    };
+
+    functionMap ["flippersensors_isReflectivity"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value;
+        if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        } else {
+            string value1_name = json_object[name]["inputs"]["VALUE"][1];
+            value = functionMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
+        }
+
+        string comparator = json_object[name]["fields"]["COMPARATOR"][0].get<string>();
+
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+
+        return make_unique<IsReflectivity>(port, comparator, value);
+    };
+
+    functionMap ["flippersensors_reflectivity"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        return make_unique<SensorReflectivity>(port);
+    };
+
+    functionMap ["flippersensors_isPressed"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        return make_unique<IsPressed>(port);
+    }; 
+
+    functionMap ["flippersensors_force"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        string unit = json_object[name]["fields"]["UNIT"][0].get<string>();
+
+        return make_unique<SensorForce>(port, unit);
+    };
+
+    functionMap ["flippersensors_isDistance"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value;
+        if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        } else {
+            string value_name = json_object[name]["inputs"]["VALUE"][1];
+            value = functionMap[json_object[value_name]["opcode"]](json_object, value_name).release();
+        }
+
+        string comparator = json_object[name]["fields"]["COMPARATOR"][0].get<string>();
+
+        string unit = json_object[name]["fields"]["UNIT"][0].get<string>();
+
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+
+        return make_unique<IsDistance>(port, comparator, value, unit);
+    };
+
+    functionMap ["flippersensors_distance"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        string unit = json_object[name]["fields"]["UNIT"][0].get<string>();
+
+        return make_unique<SensorDistance>(port, unit);
+    };
+
+    //---------------------------------------------
     // Miscelanious helper "blocks"
     functionMap["flippermove_movement-port-selector"] = [&functionMap](const json& json_object, const string& name) {
         string port = json_object[name]["fields"]["field_flippermove_multiple-port-selector"][0].get<string>();
@@ -2089,6 +2267,31 @@ FunctionMap createFunctionMap() {
 
     functionMap ["flipperevents_custom-tilted"] = [&functionMap](const json& json_object, const string& name) {
         string tilt = json_object[name]["fields"]["field_flipperevents_custom-tilted"][0].get<string>();
+        return make_unique<BlankBlockInt>(stoi(tilt));
+    };
+
+    functionMap ["flippersensors_color-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string color = json_object[name]["fields"]["field_flippersensors_color-selector"][0].get<string>();
+        return make_unique<BlankBlockInt>(stoi(color));
+    };
+
+    functionMap ["flippersensors_color-sensor-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string color = json_object[name]["fields"]["field_flippersensors_color-sensor-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(color);
+    };
+
+    functionMap ["flippersensors_force-sensor-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string force = json_object[name]["fields"]["field_flippersensors_force-sensor-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(force);
+    };
+
+    functionMap ["flippersensors_distance-sensor-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string distance = json_object[name]["fields"]["field_flippersensors_distance-sensor-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(distance);
+    };
+
+    functionMap ["flippersensors_custom-tilted"] = [&functionMap](const json& json_object, const string& name) {
+        string tilt = json_object[name]["fields"]["field_flippersensors_custom-tilted"][0].get<string>();
         return make_unique<BlankBlockInt>(stoi(tilt));
     };
 
