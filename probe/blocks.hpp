@@ -88,6 +88,35 @@ public:
 };
 
 
+BlockSequence* processBlock(const json& blocks, string key) {
+    auto curr_block = blocks[key];
+    if (!curr_block.contains("opcode")) {
+        cerr << "Error: Block is missing 'opcode'!" << endl;
+        return nullptr;
+    }
+    auto curr_sequence_block = functionMap[curr_block["opcode"]](blocks, key).release();
+    BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
+
+    while (true) {
+        if (!blocks.contains(curr_block["next"]) || curr_block["next"].is_null()) {
+            break;
+        }
+        auto next_block = blocks[curr_block["next"]];
+        if (!next_block.contains("opcode")) {
+            cerr << "Error: Block is missing 'opcode'!" << endl;
+            return nullptr;
+        }
+        auto next_sequence_block = functionMap[next_block["opcode"]](blocks, curr_block["next"]).release();
+        curr_sequence_block->next = next_sequence_block;
+        next_sequence_block->parent = curr_sequence_block;
+        curr_sequence_block = next_sequence_block;
+        curr_block = next_block;
+    }
+
+    return block_sequence;
+}
+
+
 
 
 //-------------EVENT BLOCKS-------------------
@@ -990,6 +1019,16 @@ public:
     }
 };
 
+class ControlStop : public Block {
+    string option;
+public:
+    ControlStop(string option) : Block("Control", "ControlStop"), option(option) {}
+
+    int execute(Robot& robot) override {
+        return 0;
+    }
+};
+
 //--------------------------------------------
 //-----------END OF BLOCKS--------------------
 
@@ -1703,13 +1742,97 @@ FunctionMap createFunctionMap() {
             string times_name = json_object[name]["inputs"]["TIMES"][1];
             times = functionMap[json_object[times_name]["opcode"]](json_object, times_name).release();
         }
-        BlockSequence* block_sequence = new BlockSequence(nullptr);
+
+        BlockSequence* block_sequence = nullptr;
+        if (json_object[name]["inputs"].contains("SUBSTACK")) {
+            string key = json_object[name]["inputs"]["SUBSTACK"][1];
+            BlockSequence* block_sequence = processBlock(json_object, key);
+        }
+
         return make_unique<Repeat>(times, block_sequence);
     };
 
     functionMap["control_forever"] = [&functionMap](const json& json_object, const string& name) {
-        BlockSequence* block_sequence = new BlockSequence(nullptr);
+        BlockSequence* block_sequence = nullptr;
+        if (json_object[name]["inputs"].contains("SUBSTACK")) {
+            string key = json_object[name]["inputs"]["SUBSTACK"][1];
+            BlockSequence* block_sequence = processBlock(json_object, key);
+        }
+
         return make_unique<Forever>(block_sequence);
+    };
+
+    functionMap ["control_if"] = [&functionMap](const json& json_object, const string& name) {
+        Block* condition = nullptr;
+        if (json_object[name]["inputs"].contains("CONDITION")) {
+            string condition_name = json_object[name]["inputs"]["CONDITION"][1];
+            condition = functionMap[json_object[condition_name]["opcode"]](json_object, condition_name).release();
+        }
+
+        BlockSequence* block_sequence = nullptr;
+        if (json_object[name]["inputs"].contains("SUBSTACK")) {
+            string key = json_object[name]["inputs"]["SUBSTACK"][1];
+            BlockSequence* block_sequence = processBlock(json_object, key);
+        }
+
+        return make_unique<If>(block_sequence, condition);
+    };
+
+    functionMap["control_if_else"] = [&functionMap](const json& json_object, const string& name) {
+        Block* condition = nullptr;
+        if (json_object[name]["inputs"].contains("CONDITION")) {
+            string condition_name = json_object[name]["inputs"]["CONDITION"][1];
+            condition = functionMap[json_object[condition_name]["opcode"]](json_object, condition_name).release();
+        }
+
+        BlockSequence* block_sequence = nullptr;
+        if (json_object[name]["inputs"].contains("SUBSTACK")) {
+            string key = json_object[name]["inputs"]["SUBSTACK"][1];
+            BlockSequence* block_sequence = processBlock(json_object, key);
+        }
+
+        BlockSequence* else_block_sequence = nullptr;
+        if (json_object[name]["inputs"].contains("SUBSTACK2")) {
+            string key = json_object[name]["inputs"]["SUBSTACK2"][1];
+            BlockSequence* else_block_sequence = processBlock(json_object, key);
+        }
+
+        return make_unique<IfElse>(block_sequence, else_block_sequence, condition);
+    };
+
+    functionMap ["control_wait_until"] = [&functionMap](const json& json_object, const string& name) {
+        Block* condition = nullptr;
+        if (json_object[name]["inputs"].contains("CONDITION")) {
+            string condition_name = json_object[name]["inputs"]["CONDITION"][1];
+            condition = functionMap[json_object[condition_name]["opcode"]](json_object, condition_name).release();
+        }
+
+        return make_unique<WaitUntil>(condition);
+    };
+
+    functionMap ["control_repeat_until"] = [&functionMap](const json& json_object, const string& name) {
+        Block* condition = nullptr;
+        if (json_object[name]["inputs"].contains("CONDITION")) {
+            string condition_name = json_object[name]["inputs"]["CONDITION"][1];
+            condition = functionMap[json_object[condition_name]["opcode"]](json_object, condition_name).release();
+        }
+
+        BlockSequence* block_sequence = nullptr;
+        if (json_object[name]["inputs"].contains("SUBSTACK")) {
+            string key = json_object[name]["inputs"]["SUBSTACK"][1];
+            BlockSequence* block_sequence = processBlock(json_object, key);
+        }
+
+        return make_unique<RepeatUntil>(condition, block_sequence);
+    };
+
+    functionMap ["flippercontrol_stopOtherStacks"] = [&functionMap](const json& json_object, const string& name) {
+        return make_unique<StopOtherStacks>();
+    };
+
+    functionMap ["flippercontrol_stop"] = [&functionMap](const json& json_object, const string& name) {
+        string option = json_object[name]["fields"]["STOP_OPTION"][0];
+        return make_unique<ControlStop>(option);
     };
     //--------------------------------------------
     // Miscelanious helper "blocks"

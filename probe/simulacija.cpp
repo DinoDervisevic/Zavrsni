@@ -69,23 +69,9 @@ int main() {
 
     vector<BlockSequence*> sequences;
     for(auto it = blocks.begin(); it != blocks.end(); ++it){
-        if(it.value()["topLevel"]) {
-            auto curr_block = it.value();
-            auto curr_sequence_block = functionMap[it.value()["opcode"]](blocks, it.key()).release();
-            BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
+        if (it.value()["topLevel"]) {
+            BlockSequence* block_sequence = processBlock(blocks, it.key());
             sequences.push_back(block_sequence);
-            while(true){
-                if(curr_block["next"].is_null()){
-                    break;
-                }
-                auto next_block = blocks[curr_block["next"]];
-                auto next_sequence_block = functionMap[next_block["opcode"]](blocks, curr_block["next"]).release();
-                curr_sequence_block->next = next_sequence_block;
-                next_sequence_block->parent = curr_sequence_block;
-                curr_sequence_block = next_sequence_block;
-                curr_block = next_block;
-                
-            }
         }
     }
     
