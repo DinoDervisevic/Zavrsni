@@ -129,6 +129,121 @@ public:
         return 0;
     }
 };
+
+class WhenColor : public Block {
+    Block* color;
+    Block* port;
+public:
+    WhenColor(Block* port, Block* color) : Block("Event", "WhenColor"), port(port), color(color) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement color detection
+    }
+};
+
+class WhenPressed : public Block {
+    Block* port;
+public:
+    WhenPressed(Block* port) : Block("Event", "WhenPressed"), port(port) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement button press detection
+    }
+};
+
+class WhenDistance : public Block {
+    Block* distance;
+    Block* port;
+    string option;
+    string unit;
+public:
+    WhenDistance(Block* port, string option, Block* distance, string unit) : Block("Event", "WhenDistance"), port(port), option(option), distance(distance), unit(unit) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement distance detection
+    }
+};
+
+class WhenTilted : public Block {
+    Block* angle;
+public:
+    WhenTilted(Block* angle) : Block("Event", "WhenTilted"), angle(angle) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement tilt detection
+    }
+};
+
+class WhenOrientation : public Block {
+    string orientation;
+public:
+    WhenOrientation(string orientation) : Block("Event", "WhenOrientation"), orientation(orientation) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement orientation detection
+    }
+};
+
+class WhenGesture : public Block {
+    string gesture;
+public:
+    WhenGesture(string gesture) : Block("Event", "WhenGesture"), gesture(gesture) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement gesture detection
+    }
+};
+
+class WhenButton : public Block {
+    string button;
+    string event;
+public:
+    WhenButton(string button, string event) : Block("Event", "WhenButton"), button(button), event(event) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement button event detection
+    }
+};
+
+class WhenTimer : public Block {
+    Block* value;
+public:
+    WhenTimer(Block* value) : Block("Event", "WhenTimer"), value(value) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement timer event detection
+    }
+};
+
+class WhenBroadcastReceived : public Block {
+    string message;
+public:
+    WhenBroadcastReceived(string message) : Block("Event", "WhenBroadcastReceived"), message(message) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement broadcast event detection
+    }
+};
+
+class Broadcast : public Block {
+    Block* message;
+public:
+    Broadcast(Block* message) : Block("Event", "Broadcast"), message(message) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement broadcast sending
+    }
+};
+
+class BroadcastAndWait : public Block {
+    Block* message;
+public:
+    BroadcastAndWait(Block* message) : Block("Event", "BroadcastAndWait"), message(message) {}
+
+    int execute(Robot& robot) override {
+        return 0; // TODO: implement broadcast sending and waiting for response
+    }
+};
 //--------------------------------------------
 
 //-------------OPERATOR BLOCKS----------------
@@ -1045,6 +1160,107 @@ FunctionMap createFunctionMap() {
     functionMap["flipperevents_whenProgramStarts"] = [&functionMap](const json& json_object, const string& name) {
         return make_unique<WhenProgramStarts>();
     };
+
+    functionMap ["flipperevents_whenColor"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        string color_name = json_object[name]["inputs"]["OPTION"][1];
+        Block* color = functionMap[json_object[color_name]["opcode"]](json_object, color_name).release();
+        
+        return make_unique<WhenColor>(port, color);
+    };
+
+    functionMap ["flipperevents_whenPressed"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        return make_unique<WhenPressed>(port);
+    };
+
+    functionMap ["flipperevents_whenDistance"] = [&functionMap](const json& json_object, const string& name) {
+        string port_name = json_object[name]["inputs"]["PORT"][1];
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        
+        string option = json_object[name]["inputs"]["COMPARATOR"][0];
+        
+        Block* distance;
+        if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            distance = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        } else {
+            string from_name = json_object[name]["inputs"]["VALUE"][1];
+            distance = functionMap[json_object[from_name]["opcode"]](json_object, from_name).release();
+        }
+
+        string unit = json_object[name]["fields"]["UNIT"][0];
+        
+        return make_unique<WhenDistance>(port, option, distance, unit);
+    };
+
+    functionMap ["flipperevents_whenTilted"] = [&functionMap](const json& json_object, const string& name) {
+        string angle_name = json_object[name]["inputs"]["VALUE"][1];
+        Block* angle = functionMap[json_object[angle_name]["opcode"]](json_object, angle_name).release();
+        
+        return make_unique<WhenTilted>(angle);
+    };
+
+    functionMap ["flipperevents_whenOrientation"] = [&functionMap](const json& json_object, const string& name) {
+        string orientation = json_object[name]["fields"]["VALUE"][0];
+        
+        return make_unique<WhenOrientation>(orientation);
+    }; 
+
+    functionMap ["flipperevents_whenGesture"] = [&functionMap](const json& json_object, const string& name) {
+        string gesture = json_object[name]["fields"]["EVENT"][0];
+        
+        return make_unique<WhenGesture>(gesture);
+    };
+
+    functionMap ["flipperevents_whenButton"] = [&functionMap](const json& json_object, const string& name) {
+        string button = json_object[name]["fields"]["BUTTON"][0];
+        string event = json_object[name]["fields"]["EVENT"][0];
+        
+        return make_unique<WhenButton>(button, event);
+    };
+
+    functionMap ["flipperevents_whenTimer"] = [&functionMap](const json& json_object, const string& name) {
+        Block* value;
+        if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        } else {
+            string from_name = json_object[name]["inputs"]["VALUE"][1];
+            value = functionMap[json_object[from_name]["opcode"]](json_object, from_name).release();
+        }
+        
+        return make_unique<WhenTimer>(value);
+    };
+
+    functionMap["event_whenbroadcastreceived"] = [&functionMap](const json& json_object, const string& name) {
+        string broadcast = json_object[name]["fields"]["BROADCAST_OPTION"][0];
+        return make_unique<WhenBroadcastReceived>(broadcast);
+    };
+
+    functionMap ["event_broadcast"] = [&functionMap](const json& json_object, const string& name) {
+        Block* broadcast;
+        if(json_object[name]["inputs"]["BROADCAST_INPUT"][0] == 1){
+            broadcast = new BlankBlockString(json_object[name]["inputs"]["BROADCAST_INPUT"][1][1].get<string>());
+        } else {
+            string from_name = json_object[name]["inputs"]["BROADCAST_INPUT"][1];
+            broadcast = functionMap[json_object[from_name]["opcode"]](json_object, from_name).release();
+        }
+        return make_unique<Broadcast>(broadcast);
+    };
+
+    functionMap ["event_broadcastandwait"] = [&functionMap](const json& json_object, const string& name) {
+        Block* broadcast;
+        if(json_object[name]["inputs"]["BROADCAST_INPUT"][0] == 1){
+            broadcast = new BlankBlockString(json_object[name]["inputs"]["BROADCAST_INPUT"][1][1].get<string>());
+        } else {
+            string from_name = json_object[name]["inputs"]["BROADCAST_INPUT"][1];
+            broadcast = functionMap[json_object[from_name]["opcode"]](json_object, from_name).release();
+        }
+        return make_unique<BroadcastAndWait>(broadcast);
+    };
     //--------------------------------------------
 
     // Operator blocks
@@ -1848,7 +2064,32 @@ FunctionMap createFunctionMap() {
 
     functionMap["flippermotor_custom-angle"] = [&functionMap](const json& json_object, const string& name) {
         string angle = json_object[name]["fields"]["field_flippermotor_custom-angle"][0].get<string>();
-        return make_unique<BlankBlockInt>(stoi(angle));
+        return make_unique<BlankBlockInt>(angle);
+    };
+
+    functionMap ["flipperevents_color-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string color = json_object[name]["fields"]["field_flipperevents_color-selector"][0].get<string>();
+        return make_unique<BlankBlockInt>(stoi(color));
+    };
+
+    functionMap ["flipperevents_color-sensor-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string color = json_object[name]["fields"]["field_flipperevents_color-sensor-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(color);
+    };
+
+    functionMap ["flipperevents_force-sensor-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string force = json_object[name]["fields"]["field_flipperevents_force-sensor-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(force);
+    };
+
+    functionMap ["flipperevents_distance-sensor-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string distance = json_object[name]["fields"]["field_flipperevents_distance-sensor-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(distance);
+    };
+
+    functionMap ["flipperevents_custom-tilted"] = [&functionMap](const json& json_object, const string& name) {
+        string tilt = json_object[name]["fields"]["field_flipperevents_custom-tilted"][0].get<string>();
+        return make_unique<BlankBlockInt>(stoi(tilt));
     };
 
     //TODO : add the rest of the blocks when i know what to do w conditions
