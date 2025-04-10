@@ -34,7 +34,7 @@ class Block {
             return to_string(execute(robot));
         }
         virtual ~Block() = default;
-        bool done() {
+        virtual bool done() {
             return true;
         }
 };
@@ -103,8 +103,8 @@ public:
 };
 
 class WhenColor : public Block {
-    Block* color;
     Block* port;
+    Block* color;
 public:
     WhenColor(Block* port, Block* color) : Block("Event", "WhenColor"), port(port), color(color) {}
 
@@ -1027,7 +1027,7 @@ class Repeat : public Block {
     Block* times; // TODO: check if this needs to be calculated only once or every time
     BlockSequence* block_sequence;
     int counter;
-    bool done = false;
+    bool when_done = false;
 public:
     Repeat(Block* times, BlockSequence* block_sequence) : Block("Control", "Repeat"), times(times), block_sequence(block_sequence), counter(0) {}
 
@@ -1040,7 +1040,7 @@ public:
             block_sequence->reset();
         }
         if(counter == times->execute(robot)){
-            done = true;
+            when_done = true;
             return 0;
         }
         block_sequence->execute(robot);
@@ -1049,8 +1049,8 @@ public:
         return t;
     }
 
-    bool done() {
-        return done;
+    bool done() override {
+        return when_done;
     }
 };
 
@@ -1071,14 +1071,14 @@ public:
         return t;
     }
 
-    bool done() {
+    bool done() override {
         return false;
     }
 };
 
 class If : public Block {
     BlockSequence* block_sequence;
-    bool condition_checked, done = false;
+    bool condition_checked, when_done = false;
     Block* condition;
 public:
     If(BlockSequence* block_sequence, Block* condition) : Block("Control", "If"), block_sequence(block_sequence), condition(condition) {}
@@ -1086,7 +1086,7 @@ public:
     double execute(Robot& robot) override {
         if((condition->execute(robot) && !condition_checked) || condition_checked){
             if(block_sequence->get_current_block()->next == nullptr){
-                done = true;
+                when_done = true;
                 block_sequence->reset();
             }
             condition_checked = true;
@@ -1096,20 +1096,20 @@ public:
             return t;
         }
         else{
-            done = true;
+            when_done = true;
         }
         return 0;
     }
 
-    bool done() {
-        return done;
+    bool done() override {
+        return when_done;
     }
 };
 
 class IfElse : public Block {
     BlockSequence* block_sequence1;
     BlockSequence* block_sequence2;
-    bool condition_checked, else_checked, done = false;
+    bool condition_checked, else_checked, when_done = false;
     Block* condition;
 public:
     IfElse(BlockSequence* block_sequence1, BlockSequence* block_sequence2, Block* condition) : Block("Control", "IfElse"), block_sequence1(block_sequence1), block_sequence2(block_sequence2), condition(condition) {}
@@ -1128,41 +1128,41 @@ public:
             block_sequence2->set_time_left(0);
         }
         if((block_sequence1->get_current_block()->next == nullptr && condition_checked) || (block_sequence2->get_current_block()->next == nullptr && else_checked)){
-            done = true;
+            when_done = true;
             block_sequence1->reset();
             block_sequence2->reset();
         }
         return t;
     }
 
-    bool done() {
-        return done;
+    bool done() override {
+        return when_done;
     }
 };
 
 class WaitUntil : public Block {
     Block* condition;
-    bool done = false;
+    bool when_done = false;
 public:
     WaitUntil(Block* condition) : Block("Control", "WaitUntil"), condition(condition) {}
 
     double execute(Robot& robot) override {
         if(condition->execute(robot) == 1){
-            done = true;
+            when_done = true;
             return 0;
         }
         return -1;
     }
 
-    bool done() {
-        return done;
+    bool done() override {
+        return when_done;
     }
 };
 
 class RepeatUntil : public Block {
     Block* condition;
     BlockSequence* block_sequence;
-    bool done = false;
+    bool when_done = false;
 public:
     RepeatUntil(Block* condition, BlockSequence* block_sequence) : Block("Control", "RepeatUntil"), condition(condition), block_sequence(block_sequence) {}
 
@@ -1174,7 +1174,7 @@ public:
             block_sequence->reset();
         }
         if(block_sequence->get_current_block() == block_sequence->get_starting_block() && condition->execute(robot) == 1){
-            done = true;
+            when_done = true;
             return 0;
         }
         block_sequence->execute(robot);
@@ -1183,8 +1183,8 @@ public:
         return t;
     }
 
-    bool done() {
-        return done;
+    bool done() override {
+        return when_done;
     }
 };
 
@@ -1896,7 +1896,15 @@ FunctionMap createFunctionMap() {
     functionMap["flippermove_steer"] = [&functionMap](const json& json_object, const string& name) {
         string direction_name = json_object[name]["inputs"]["STEERING"][1];
         Block* direction = functionMap[json_object[direction_name]["opcode"]](json_object, direction_name).release();
-        double value = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
+        
+        Block* value;
+        if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        } else {
+            string from_name = json_object[name]["inputs"]["VALUE"][1];
+            value = functionMap[json_object[from_name]["opcode"]](json_object, from_name).release();
+        }
+        
         string unit = json_object[name]["fields"]["UNIT"][0];
         return make_unique<Steer>(direction, value, unit);
     };
@@ -2332,7 +2340,9 @@ FunctionMap createFunctionMap() {
         string port_name = json_object[name]["inputs"]["PORT"][1];
         Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
         
-        return make_unique<IsPressed>(port);
+        string pressed = json_object[name]["fields"]["PRESSED"][0].get<string>();
+
+        return make_unique<IsPressed>(port, pressed);
     }; 
 
     functionMap ["flippersensors_force"] = [&functionMap](const json& json_object, const string& name) {
