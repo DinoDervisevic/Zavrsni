@@ -20,8 +20,7 @@ using json = nlohmann::json;
 
 double time_since_start = 0; // current time in seconds
 
-FunctionMap functionMap = createFunctionMap();
-
+using FunctionMap = map<string, function<unique_ptr<Block>(json, string)>>;
 
 
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
@@ -79,4 +78,5 @@ int main() {
     print_sequences(sequences, robot);
 
     return 0;
+
 }

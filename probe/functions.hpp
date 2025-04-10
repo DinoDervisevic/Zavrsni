@@ -53,5 +53,28 @@ bool is_integer(const std::string& s) {
         return false;
     }
 }
+string calculate_pressed_event(ForceSensor* state){
+    if(state->value > 0 && state->previous_value == 0){
+        state->previous_value = state->value;
+        return "pressed";
+    } else if(state->value == 0 && state->previous_value > 0){
+        state->previous_value = state->value;
+        return "released";
+    } else {
+        return "none";
+    }
+}
+
+bool check_distance(double distance, string option, double value){ //TODO: check what tf % is and how it translates into cm
+    if(option == "closer than"){
+        return distance < value;
+    } else if(option == "farther than"){
+        return distance > value;
+    } else if(option == "exactly at"){
+        return distance == value;
+    }else {
+        return false;
+    }
+}
 
 #endif // FUNCTIONS_H

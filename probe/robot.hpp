@@ -6,10 +6,37 @@
 
 using namespace std;
 
-struct MotorState {
-    double speed;
+struct State {
+    string device_type;
+    double value;
+
+    State(string device_type, double value) : device_type(device_type), value(value) {}
+
+    virtual ~State() = default;
+};
+
+struct MotorState : public State {
     double duration;
-    string connected_device;
+    double position = 0;
+
+    MotorState(double speed, double duration) : State("Motor", speed), duration(duration) {}
+};
+
+struct ColorSensor : public State {
+
+    ColorSensor(double value) : State("ColorSensor", value){}
+};
+
+struct DistanceSensor : public State {
+
+    DistanceSensor(double value) : State("DistanceSensor", value){}
+};
+
+struct ForceSensor : public State {
+
+    double previous_value = 0;
+
+    ForceSensor(double value) : State("ForceSensor", value){}
 };
 
 struct Robot {
@@ -22,15 +49,34 @@ struct Robot {
     int movement_speed;
     double volume;
     string sound_state, button_color_state;
-    string sensor_color;
-    double sensor_distance;
     double pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
-    map<string, MotorState> motor_states; // motor name -> motor state
-    string left_wheel, right_wheel; // movement motors
+    map<string, State*> states; // motor name -> motor state
 
     int discrete_time_interval = 0.05; // time in seconds between each simulation step
 
     Robot(string name, int x, int y) : name(name), x(x), y(y) {}
+
+    ~Robot() {
+        for (auto& pair : states) {
+            delete pair.second;
+        }
+    }
+
+    void addMotorState(const string& key, double speed, double duration) {
+        states[key] = new MotorState(speed, duration);
+    }
+
+    void addColorSensor(const string& key, double value) {
+        states[key] = new ColorSensor( value);
+    }
+
+    void addDistanceSensor(const string& key, double value) {
+        states[key] = new DistanceSensor(value);
+    }
+
+    void addForceSensor(const string& key, double value) {
+        states[key] = new ForceSensor(value);
+    }
 };
 
 #endif // ROBOT_H

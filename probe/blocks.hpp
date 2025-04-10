@@ -19,8 +19,6 @@ using namespace std;
 
 using json = nlohmann::json;
 
-
-
 class Block {
     public:
         Block* next = nullptr;
@@ -31,7 +29,10 @@ class Block {
         Block(const string& type, string name) : type(type), name(name) {}
     
         // changes the state of the robot and returns the number of seconds it took to execute the block (0 in case on instantaneus blocks such as speed change)
-        virtual int execute(Robot& robot) = 0; 
+        virtual double execute(Robot& robot) = 0; 
+        virtual string executeString(Robot& robot) {
+            return to_string(execute(robot));
+        }
         virtual ~Block() = default;
         bool done() {
             return true;
@@ -87,36 +88,7 @@ public:
     }
 };
 
-
-BlockSequence* processBlock(const json& blocks, string key) {
-    auto curr_block = blocks[key];
-    if (!curr_block.contains("opcode")) {
-        cerr << "Error: Block is missing 'opcode'!" << endl;
-        return nullptr;
-    }
-    auto curr_sequence_block = functionMap[curr_block["opcode"]](blocks, key).release();
-    BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
-
-    while (true) {
-        if (!blocks.contains(curr_block["next"]) || curr_block["next"].is_null()) {
-            break;
-        }
-        auto next_block = blocks[curr_block["next"]];
-        if (!next_block.contains("opcode")) {
-            cerr << "Error: Block is missing 'opcode'!" << endl;
-            return nullptr;
-        }
-        auto next_sequence_block = functionMap[next_block["opcode"]](blocks, curr_block["next"]).release();
-        curr_sequence_block->next = next_sequence_block;
-        next_sequence_block->parent = curr_sequence_block;
-        curr_sequence_block = next_sequence_block;
-        curr_block = next_block;
-    }
-
-    return block_sequence;
-}
-
-
+BlockSequence* processBlock(const json& blocks, string key);
 
 
 //-------------EVENT BLOCKS-------------------
@@ -125,8 +97,8 @@ class WhenProgramStarts : public Block {
 public:
     WhenProgramStarts() : Block("Event", "WhenProgramStarts") {}
 
-    int execute(Robot& robot) override {
-        return 0;
+    double execute(Robot& robot) override {
+        return 1;
     }
 };
 
@@ -136,18 +108,29 @@ class WhenColor : public Block {
 public:
     WhenColor(Block* port, Block* color) : Block("Event", "WhenColor"), port(port), color(color) {}
 
-    int execute(Robot& robot) override {
-        return 0; // TODO: implement color detection
+    double execute(Robot& robot) override {
+        if (robot.states.find(port->executeString(robot)) != robot.states.end()
+        && robot.states[port->executeString(robot)]->device_type == "ColorSensor" 
+        && robot.states[port->executeString(robot)]->value == color->execute(robot)) {
+            return 1;
+        }
+        else return 0;
     }
 };
 
 class WhenPressed : public Block {
     Block* port;
+    string event;
 public:
-    WhenPressed(Block* port) : Block("Event", "WhenPressed"), port(port) {}
+    WhenPressed(Block* port, string event) : Block("Event", "WhenPressed"), port(port), event(event) {}
 
-    int execute(Robot& robot) override {
-        return 0; // TODO: implement button press detection
+    double execute(Robot& robot) override {
+        if (robot.states.find(port->executeString(robot)) != robot.states.end()
+        && robot.states[port->executeString(robot)]->device_type == "ForceSensor" 
+        && calculate_pressed_event(static_cast<ForceSensor*>(robot.states[port->executeString(robot)])) == event) {
+            return 1;
+        }
+        else return 0;
     }
 };
 
@@ -159,8 +142,13 @@ class WhenDistance : public Block {
 public:
     WhenDistance(Block* port, string option, Block* distance, string unit) : Block("Event", "WhenDistance"), port(port), option(option), distance(distance), unit(unit) {}
 
-    int execute(Robot& robot) override {
-        return 0; // TODO: implement distance detection
+    double execute(Robot& robot) override {
+        if (robot.states.find(port->executeString(robot)) != robot.states.end()
+        && robot.states[port->executeString(robot)]->device_type == "DistanceSensor" 
+        && check_distance(robot.states[port->executeString(robot)]->value == distance->execute(robot), option, distance->execute(robot))) {
+            return 1;
+        }
+        else return 0;
     }
 };
 
@@ -169,7 +157,7 @@ class WhenTilted : public Block {
 public:
     WhenTilted(Block* angle) : Block("Event", "WhenTilted"), angle(angle) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement tilt detection
     }
 };
@@ -179,7 +167,7 @@ class WhenOrientation : public Block {
 public:
     WhenOrientation(string orientation) : Block("Event", "WhenOrientation"), orientation(orientation) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement orientation detection
     }
 };
@@ -189,7 +177,7 @@ class WhenGesture : public Block {
 public:
     WhenGesture(string gesture) : Block("Event", "WhenGesture"), gesture(gesture) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement gesture detection
     }
 };
@@ -200,7 +188,7 @@ class WhenButton : public Block {
 public:
     WhenButton(string button, string event) : Block("Event", "WhenButton"), button(button), event(event) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement button event detection
     }
 };
@@ -210,7 +198,7 @@ class WhenTimer : public Block {
 public:
     WhenTimer(Block* value) : Block("Event", "WhenTimer"), value(value) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement timer event detection
     }
 };
@@ -220,7 +208,7 @@ class WhenBroadcastReceived : public Block {
 public:
     WhenBroadcastReceived(string message) : Block("Event", "WhenBroadcastReceived"), message(message) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement broadcast event detection
     }
 };
@@ -230,7 +218,7 @@ class Broadcast : public Block {
 public:
     Broadcast(Block* message) : Block("Event", "Broadcast"), message(message) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement broadcast sending
     }
 };
@@ -240,7 +228,7 @@ class BroadcastAndWait : public Block {
 public:
     BroadcastAndWait(Block* message) : Block("Event", "BroadcastAndWait"), message(message) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement broadcast sending and waiting for response
     }
 };
@@ -253,7 +241,7 @@ class PickRandom : public Block {
 public:
     PickRandom(Block* from, Block* to) : Block("Operator", "PickRandom"), from(from), to(to) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         random_device rd;
         mt19937 gen(rd());
         uniform_int_distribution<> dis(from->execute(robot), to->execute(robot));
@@ -267,7 +255,7 @@ class Add : public Block {
 public:
     Add(Block* value1, Block* value2) : Block("Operator", "Add"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) + value2->execute(robot);
     }
 };
@@ -278,7 +266,7 @@ class Subtract : public Block {
 public:
     Subtract(Block* value1, Block* value2) : Block("Operator", "Subtract"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) - value2->execute(robot);
     }
 };
@@ -289,7 +277,7 @@ class Multiply : public Block {
 public:
     Multiply(Block* value1, Block* value2) : Block("Operator", "Multiply"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) * value2->execute(robot);
     }
 };
@@ -300,7 +288,7 @@ class Divide : public Block {
 public:
     Divide(Block* value1, Block* value2) : Block("Operator", "Divide"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) / value2->execute(robot);
     }
 };
@@ -312,8 +300,16 @@ class LessThan : public Block {
 public:
     LessThan(Block* value1, Block* value2) : Block("Operator", "LessThan"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) < value2->execute(robot);
+    }
+
+    string executeString(Robot& robot) override {
+        if(value1->execute(robot) < value2->execute(robot)){
+            return "True";
+        } else {
+            return "False";
+        }
     }
 };
 
@@ -323,8 +319,16 @@ class Equals : public Block {
 public:
     Equals(Block* value1, Block* value2) : Block("Operator", "Equals"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) == value2->execute(robot);
+    }
+
+    string executeString(Robot& robot) override {
+        if(value1->execute(robot) == value2->execute(robot)){
+            return "True";
+        } else {
+            return "False";
+        }
     }
 };
 
@@ -334,8 +338,16 @@ class GreaterThan : public Block {
 public:
     GreaterThan(Block* value1, Block* value2) : Block("Operator", "GreaterThan"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) > value2->execute(robot);
+    }
+
+    string executeString(Robot& robot) override {
+        if(value1->execute(robot) > value2->execute(robot)){
+            return "True";
+        } else {
+            return "False";
+        }
     }
 };
 
@@ -345,8 +357,16 @@ class And : public Block {
 public:
     And(Block* value1, Block* value2) : Block("Operator", "And"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) && value2->execute(robot);
+    }
+
+    string executeString(Robot& robot) override {
+        if(value1->execute(robot) && value2->execute(robot)){
+            return "True";
+        } else {
+            return "False";
+        }
     }
 };
 
@@ -356,8 +376,16 @@ class Or : public Block {
 public:
     Or(Block* value1, Block* value2) : Block("Operator", "Or"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) || value2->execute(robot);
+    }
+
+    string executeString(Robot& robot) override {
+        if(value1->execute(robot) || value2->execute(robot)){
+            return "True";
+        } else {
+            return "False";
+        }
     }
 };
 
@@ -366,8 +394,16 @@ class Not : public Block {
 public:
     Not(Block* value) : Block("Operator", "Not"), value(value) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return !value->execute(robot);
+    }
+
+    string executeString(Robot& robot) override {
+        if(!value->execute(robot)){
+            return "True";
+        } else {
+            return "False";
+        }
     }
 };
 
@@ -378,8 +414,16 @@ class IsInBetween : public Block {
 public:
     IsInBetween(Block* value1, Block* value2, Block* value3) : Block("Operator", "IsInBetween"), value1(value1), value2(value2), value3(value3) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value1->execute(robot) < value2->execute(robot) && value2->execute(robot) < value3->execute(robot);
+    }
+
+    string executeString(Robot& robot) override {
+        if(value1->execute(robot) < value2->execute(robot) && value2->execute(robot) < value3->execute(robot)){
+            return "True";
+        } else {
+            return "False";
+        }
     }
 };
 
@@ -389,8 +433,12 @@ class Join : public Block {
 public:
     Join(Block* value1, Block* value2) : Block("Operator", "Join"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement string joining
+    }
+
+    string executeString(Robot& robot) override {
+        return value1->executeString(robot) + value2->executeString(robot);
     }
 };
 
@@ -400,8 +448,12 @@ class LetterOf : public Block {
 public:
     LetterOf(Block* value1, Block* value2) : Block("Operator", "LetterOf"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement string letter extraction
+    }
+
+    string executeString(Robot& robot) override {
+        return value1->executeString(robot).substr(value2->execute(robot), 1);
     }
 };
 
@@ -410,8 +462,8 @@ class LengthOf : public Block {
 public:
     LengthOf(Block* value) : Block("Operator", "LengthOf"), value(value) {}
 
-    int execute(Robot& robot) override {
-        return 0; // TODO: implement string length calculation
+    double execute(Robot& robot) override {
+        return value->executeString(robot).length();
     }
 };
 
@@ -421,8 +473,16 @@ class Contains : public Block {
 public:
     Contains(Block* value1, Block* value2) : Block("Operator", "Contains"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
-        return 0; // TODO: implement string contains check
+    double execute(Robot& robot) override {
+        return value1->executeString(robot).find(value2->executeString(robot)) != string::npos;
+    }
+
+    string executeString(Robot& robot) override {
+        if(value1->executeString(robot).find(value2->executeString(robot)) != string::npos){
+            return "True";
+        } else {
+            return "False";
+        }
     }
 };
 
@@ -432,8 +492,8 @@ class Modulus : public Block {
 public:
     Modulus(Block* value1, Block* value2) : Block("Operator", "Modulus"), value1(value1), value2(value2) {}
 
-    int execute(Robot& robot) override {
-        return value1->execute(robot) % value2->execute(robot);
+    double execute(Robot& robot) override {
+        return static_cast<int>(value1->execute(robot)) % static_cast<int>(value2->execute(robot));
     }
 };
 
@@ -442,7 +502,7 @@ class Round : public Block {
 public:
     Round(Block* value) : Block("Operator", "Round"), value(value) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return round(value->execute(robot));
     }
 };
@@ -453,7 +513,7 @@ class MathOp : public Block {
 public:
     MathOp(Block* value, string function_name) : Block("Operator", "MathOp"), value(value), function_name(function_name) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         if(function_name == "abs"){
             return abs(value->execute(robot));
         } else if(function_name == "floor"){
@@ -493,7 +553,7 @@ class BlankBlockInt : public Block {
 public:
     BlankBlockInt(int value) : Block("Blank", "BlankBlockInt"), value(value) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value;
     }
 };
@@ -503,7 +563,7 @@ class BlankBlockDouble : public Block {
 public:
     BlankBlockDouble(double value) : Block("Blank", "BlankBlockDouble"), value(value) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return value;
     }
 };
@@ -513,8 +573,12 @@ class BlankBlockString : public Block {
 public:
     BlankBlockString(string value) : Block("Blank", "BlankBlockString"), value(value) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0;
+    }
+
+    string executeString(Robot& robot) override {
+        return value;
     }
 };
 //--------------------------------------------
@@ -527,7 +591,7 @@ class Move : public Block { // TODO :  on this and every other move block, chang
 public:
     Move(bool forward, Block* value, string unit) : Block("Move", "Move"), forward(forward), value(value), unit(unit) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         if(forward){
             robot.v1 = robot.movement_speed;
             robot.v2 = robot.movement_speed;
@@ -547,7 +611,7 @@ class StartMove : public Block {
 public:
     StartMove(bool forward) : Block("Move", "StartMove"), forward(forward) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         if(forward){
             robot.v1 = robot.movement_speed;
             robot.v2 = robot.movement_speed;
@@ -567,9 +631,9 @@ class Steer : public Block {
 public:
     Steer(Block* direction, Block* value, string unit) : Block("Move", "Steer"), direction(direction), value(value), unit(unit) {}
 
-    int execute(Robot& robot) override { // TODO : provjeri jel ovo dobro
-        robot.v1 = robot.movement_speed * min(1 - direction->execute(robot)/100, 1);
-        robot.v2 = robot.movement_speed * min(1 + direction->execute(robot)/100, 1);
+    double execute(Robot& robot) override { // TODO : provjeri jel ovo dobro
+        //robot.v1 = robot.movement_speed * min(1 - direction->execute(robot)/100, 1);
+        //robot.v2 = robot.movement_speed * min(1 + direction->execute(robot)/100, 1);
 
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
@@ -581,9 +645,9 @@ class StartSteer : public Block {
 public:
     StartSteer(Block* direction) : Block("Move", "StartSteer"), direction(direction) {}
 
-    int execute(Robot& robot) override {
-        robot.v1 = robot.movement_speed * min(1 - direction->execute(robot)/100, 1);
-        robot.v2 = robot.movement_speed * min(1 + direction->execute(robot)/100, 1);
+    double execute(Robot& robot) override {
+        //robot.v1 = robot.movement_speed * min(1 - direction->execute(robot)/100, 1);
+        //robot.v2 = robot.movement_speed * min(1 + direction->execute(robot)/100, 1);
 
         return -1;
     }
@@ -593,7 +657,7 @@ class StopMoving : public Block {
 public:
     StopMoving() : Block("Move", "StopMoving") {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         robot.v1 = 0.0;
         robot.v2 = 0.0;
         return 0;
@@ -605,7 +669,7 @@ class SetMovementSpeed : public Block {
 public:
     SetMovementSpeed(Block* speed) : Block("Move", "SetMovementSpeed"), speed(speed) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         robot.movement_speed = speed->execute(robot);
         return 0;
     }
@@ -615,7 +679,7 @@ class SetMovementPair : public Block { // TODO : change so this only marks these
     Block* pair;
 public:
     SetMovementPair(Block* pair) : Block("Move", "SetMovementPair"), pair(pair) {}
-    int execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO
 
         return 0;
     }
@@ -627,7 +691,7 @@ class SetMotorRotation : public Block { // TODO
 public:
     SetMotorRotation(string unit, Block* value) : Block("Move", "SetMotorRotation"), unit(unit), value(value) {}
 
-    int execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO
         return 0;
     }
 };
@@ -640,7 +704,7 @@ class DisplayImageForTime : public Block {
 public:
     DisplayImageForTime(string image, double time) : Block("Display", "DisplayImageForTime"), image(image), time(time) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
                 robot.pixel_display[i][j] = image[i*5 + j] * 100 * 10 / 9;
@@ -655,7 +719,7 @@ class DisplayImage : public Block {
 public:
     DisplayImage(string image) : Block("Display", "DisplayImage"), image(image) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
                 robot.pixel_display[i][j] = image[i*5 + j] * 100 * 10 / 9;
@@ -669,7 +733,7 @@ class DisplayText : public Block { // TODO
     string text;
 public:
     DisplayText(string text) : Block("Display", "DisplayText"), text(text) {}
-    int execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO
         return 0;
     }
 };
@@ -678,7 +742,7 @@ class DisplayOff : public Block {
 public:
     DisplayOff() : Block("Display", "DisplayOff") {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
                 robot.pixel_display[i][j] = 0;
@@ -693,7 +757,7 @@ class SetPixelbrightness : public Block { // TODO
 public:
     SetPixelbrightness(double brightness) : Block("Display", "SetPixelbrightness"), brightness(brightness) {}
 
-    int execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO
         
         return 0;
     }
@@ -705,7 +769,7 @@ class SetPixel : public Block {
 public:
     SetPixel(int x, int y, double brightness) : Block("Display", "SetPixel"), x(x), y(y), brightness(brightness) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         robot.pixel_display[x][y] = brightness;
         return -1;
     }
@@ -715,7 +779,7 @@ class DisplayRotate : public Block { // TODO
     string direction;
 public:
     DisplayRotate(string direction) : Block("Display", "DisplayRotate"), direction(direction) {}
-    int execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO
         return 0;
     }
 };
@@ -724,18 +788,18 @@ class DisplaySetorientation : public Block { // TODO
     string orientation;
 public:
     DisplaySetorientation(string orientation) : Block("Display", "DisplaySetorientation"), orientation(orientation) {}
-    int execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO
         return 0;
     }
 };
 
-class CenterButtonlight : public Block {
+class CenterButtonLight : public Block {
     string color;
 
 public:
-    CenterButtonlight(string color) : Block("Display", "CenterButtonlight"), color(color) {}
+    CenterButtonLight(string color) : Block("Display", "CenterButtonLight"), color(color) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         robot.button_color_state = color;
         return -1;
     }
@@ -748,8 +812,7 @@ class UltrasonicSensorLight : public Block { // TODO : finish when i know what t
 public:
     UltrasonicSensorLight(string color, string port) : Block("Display", "UltrasonicSensorLight"), color(color), port(port) {}
 
-    int execute(Robot& robot) override {
-        robot.sensor_color = color;
+    double execute(Robot& robot) override {
         return -1;
     }
 };
@@ -762,7 +825,7 @@ class PlayUntilDone : public Block { // TODO : finish
     string sound_location;
 public:
     PlayUntilDone(string sound, string sound_location) : Block("Sound", "PlayUntilDone"), sound_name(sound_name), sound_location(sound_location) {};
-    int execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO
         return 0;
     }
 };
@@ -772,7 +835,7 @@ class Play : public Block { // TODO : finish
     string sound_location;
 public:
     Play(string sound, string sound_location) : Block("Sound", "Play"), sound_name(sound_name), sound_location(sound_location) {};
-    int execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO
         return 0;
     }
 };
@@ -783,7 +846,7 @@ class BeepForTime : public Block {
 public:
     BeepForTime(double time, double frequency) : Block("Sound", "BeepForTime"), time(time), frequency(frequency) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         robot.sound_state = "beep" + to_string(frequency);
         return time;
     }
@@ -794,7 +857,7 @@ class Beep : public Block {
 public:
     Beep(double frequency) : Block("Sound", "Beep"), frequency(frequency) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         robot.sound_state = "beep" + to_string(frequency);
         return -1;
     }
@@ -804,7 +867,7 @@ class StopSound : public Block {
 public:
     StopSound() : Block("Sound", "StopSound") {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         robot.sound_state = "";
         return 0;
     }
@@ -816,7 +879,7 @@ class ChangeEffectBy : public Block { // TODO
 public:
     ChangeEffectBy(string effect, double value) : Block("Sound", "ChangeEffectBy"), effect(effect), value(value) {}
 
-    int execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO
         return 0;
     }
 };
@@ -827,7 +890,7 @@ class SetEffectTo : public Block { // TODO
 public:
     SetEffectTo(string effect, double value) : Block("Sound", "SetEffectTo"), effect(effect), value(value) {}
 
-    int execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO
         return 0;
     }
 };
@@ -836,7 +899,7 @@ class ClearEffects : public Block { // TODO
 public:
     ClearEffects() : Block("Sound", "ClearEffects") {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0;
     }
 };
@@ -846,7 +909,7 @@ class ChangeVolumeBy : public Block {
 public:
     ChangeVolumeBy(double value) : Block("Sound", "ChangeVolumeBy"), value(value) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         robot.volume += value;
         return 0;
     }
@@ -857,7 +920,7 @@ class SetVolumeTo : public Block {
 public:
     SetVolumeTo(double value) : Block("Sound", "SetVolumeTo"), value(value) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         robot.volume = value;
         return 0;
     }
@@ -867,7 +930,7 @@ class Volume : public Block {
 public:
     Volume() : Block("Sound", "Volume") {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return robot.volume;
     }
 };
@@ -881,7 +944,7 @@ class MotorTurnForDirection : public Block {
 public:
     MotorTurnForDirection(Block* port, Block* speed, bool forward, string unit) : Block("Motor", "MotorTurnForDirection"), port(port), speed(speed), forward(forward), unit(unit) {}
 
-    int execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO
         return 0;
     }
 };
@@ -893,7 +956,7 @@ class MotorGoDirectionToPosition : public Block {
 public:
     MotorGoDirectionToPosition(Block* port, string direction, Block* position) : Block("Motor", "MotorGoDirectionToPosition"), port(port), direction(direction), position(position) {}
 
-    int execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO
         return 0;
     }
 };
@@ -904,7 +967,7 @@ class MotorStartDirection : public Block {
 public:
     MotorStartDirection(Block* port, bool forward) : Block("Motor", "MotorStartDirection"), port(port), forward(forward) {}
 
-    int execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO
         return 0;
     }
 };
@@ -913,7 +976,7 @@ class MotorStop : public Block {
     Block* port;
 public:
     MotorStop(Block* port) : Block("Motor", "MotorStop"), port(port) {}
-    int execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO
         return 0;
     }
 };
@@ -924,7 +987,7 @@ class MotorSetSpeed : public Block {
 public:
     MotorSetSpeed(Block* port, Block* speed) : Block("Motor", "MotorSetSpeed"), port(port), speed(speed) {}
 
-    int execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO
         return 0;
     }
 };
@@ -934,7 +997,7 @@ class MotorPosition : public Block {
 public:
     MotorPosition(Block* port) : Block("Motor", "MotorPosition"), port(port) {}
 
-    int execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO
         return 0;
     }
 };
@@ -944,7 +1007,7 @@ class MotorSpeed : public Block {
 public:
     MotorSpeed(Block* port) : Block("Motor", "MotorSpeed"), port(port) {}
 
-    int execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO
         return 0;
     }
 };
@@ -955,7 +1018,7 @@ class Wait : public Block {
 public:
     Wait(Block* time) : Block("Control", "Wait"), time(time) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return time->execute(robot);
     }
 };
@@ -968,7 +1031,7 @@ class Repeat : public Block {
 public:
     Repeat(Block* times, BlockSequence* block_sequence) : Block("Control", "Repeat"), times(times), block_sequence(block_sequence), counter(0) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         if (block_sequence == nullptr) {
             return 0;
         }
@@ -996,7 +1059,7 @@ class Forever : public Block {
 public:
     Forever(BlockSequence* block_sequence) : Block("Control", "Forever"), block_sequence(block_sequence) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         if (block_sequence == nullptr) {
             return 0;
         }
@@ -1020,7 +1083,7 @@ class If : public Block {
 public:
     If(BlockSequence* block_sequence, Block* condition) : Block("Control", "If"), block_sequence(block_sequence), condition(condition) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         if((condition->execute(robot) && !condition_checked) || condition_checked){
             if(block_sequence->get_current_block()->next == nullptr){
                 done = true;
@@ -1051,7 +1114,7 @@ class IfElse : public Block {
 public:
     IfElse(BlockSequence* block_sequence1, BlockSequence* block_sequence2, Block* condition) : Block("Control", "IfElse"), block_sequence1(block_sequence1), block_sequence2(block_sequence2), condition(condition) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         int t = 0;
         if((condition->execute(robot) && !condition_checked && !else_checked) || condition_checked){
             condition_checked = true;
@@ -1083,7 +1146,7 @@ class WaitUntil : public Block {
 public:
     WaitUntil(Block* condition) : Block("Control", "WaitUntil"), condition(condition) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         if(condition->execute(robot) == 1){
             done = true;
             return 0;
@@ -1103,7 +1166,7 @@ class RepeatUntil : public Block {
 public:
     RepeatUntil(Block* condition, BlockSequence* block_sequence) : Block("Control", "RepeatUntil"), condition(condition), block_sequence(block_sequence) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         if (block_sequence == nullptr) {
             return 0;
         }
@@ -1129,7 +1192,7 @@ class StopOtherStacks : public Block {
 public:
     StopOtherStacks() : Block("Control", "StopOtherStacks") {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0;
     }
 };
@@ -1139,7 +1202,7 @@ class ControlStop : public Block {
 public:
     ControlStop(string option) : Block("Control", "ControlStop"), option(option) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0;
     }
 };
@@ -1153,9 +1216,10 @@ class IsColor : public Block {
 public:
     IsColor(Block* port, Block* color) : Block("Sensor", "IsColor"), port(port), color(color) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement color detection
     }
+    //TODO : make the executeString funciton for this and all other boolean-type sensor blocks
 };
 
 class SensorColor : public Block {
@@ -1163,7 +1227,7 @@ class SensorColor : public Block {
 public:
     SensorColor(Block* port) : Block("Sensor", "SensorColor"), port(port) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement color detection
     }
 };
@@ -1175,7 +1239,7 @@ class IsReflectivity : public Block {
 public:
     IsReflectivity(Block* port, string comparator, Block* value) : Block("Sensor", "IsReflectivity"), port(port), comparator(comparator), value(value) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement reflectivity detection
     }
 };
@@ -1185,7 +1249,7 @@ class SensorReflectivity : public Block {
 public:
     SensorReflectivity(Block* port) : Block("Sensor", "SensorReflectivity"), port(port) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement reflectivity detection
     }
 };
@@ -1196,7 +1260,7 @@ class IsPressed : public Block {
 public:
     IsPressed(Block* port, string operation) : Block("Sensor", "IsPressed"), port(port), operation(operation) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement button press detection
     }
 };
@@ -1207,7 +1271,7 @@ class SensorForce : public Block {
 public:
     SensorForce(Block* port, string unit) : Block("Sensor", "SensorForce"), port(port), unit(unit) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement force detection
     }
 };
@@ -1220,7 +1284,7 @@ class IsDistance : public Block {
 public:
     IsDistance(Block* port, string comparator, Block* value, string unit) : Block("Sensor", "IsDistance"), port(port), comparator(comparator), value(value), unit(unit) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement distance detection
     }
 };
@@ -1231,8 +1295,86 @@ class SensorDistance : public Block {
 public:
     SensorDistance(Block* port, string unit) : Block("Sensor", "SensorDistance"), port(port), unit(unit) {}
 
-    int execute(Robot& robot) override {
+    double execute(Robot& robot) override {
         return 0; // TODO: implement distance detection
+    }
+};
+
+class IsTilted : public Block {
+    Block* angle;
+public:
+    IsTilted(Block* angle) : Block("Sensor", "IsTilted"), angle(angle) {}
+
+    double execute(Robot& robot) override {
+        return 0; // TODO: implement tilt detection
+    }
+};
+
+class IsOrientation : public Block {
+    string orientation;
+public:
+    IsOrientation(string orientation) : Block("Sensor", "IsOrientation"), orientation(orientation) {}
+
+    double execute(Robot& robot) override {
+        return 0; // TODO: implement orientation detection
+    }
+};
+
+class IsMotion : public Block {
+    string motion;
+public: 
+    IsMotion(string motion) : Block("Sensor", "IsMotion"), motion(motion) {}
+
+    double execute(Robot& robot) override {
+        return 0; // TODO: implement motion detection
+    }
+};
+
+class OrientationAxis : public Block {
+    string axis;
+public:
+    OrientationAxis(string axis) : Block("Sensor", "OrientationAxis"), axis(axis) {}
+
+    double execute(Robot& robot) override {
+        return 0; // TODO: implement orientation axis detection
+    }
+};
+
+class ResetYawAngle : public Block {
+public:
+    ResetYawAngle() : Block("Sensor", "ResetYawAngle") {}
+
+    double execute(Robot& robot) override {
+        return 0; // TODO: implement yaw angle reset
+    }
+};
+
+class IsButtonPressed : public Block {
+    string button;
+    string event;
+public:
+    IsButtonPressed(string button, string event) : Block("Sensor", "IsButtonPressed"), button(button), event(event) {}
+
+    double execute(Robot& robot) override {
+        return 0; // TODO: implement button press detection
+    }
+};
+
+class Timer : public Block {
+public:
+    Timer() : Block("Sensor", "Timer") {}
+
+    double execute(Robot& robot) override {
+        return 0; // TODO: implement timer detection
+    }
+}; 
+
+class ResetTimer : public Block {
+public:
+    ResetTimer() : Block("Sensor", "ResetTimer") {}
+
+    double execute(Robot& robot) override {
+        return 0; // TODO: implement timer reset
     }
 };
 //-------------------------------------------
@@ -1266,7 +1408,9 @@ FunctionMap createFunctionMap() {
         string port_name = json_object[name]["inputs"]["PORT"][1];
         Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
         
-        return make_unique<WhenPressed>(port);
+        string event = json_object[name]["fields"]["OPTION"][0];
+
+        return make_unique<WhenPressed>(port, event);
     };
 
     functionMap ["flipperevents_whenDistance"] = [&functionMap](const json& json_object, const string& name) {
@@ -1848,7 +1992,7 @@ FunctionMap createFunctionMap() {
     functionMap["flipperlight_centerButtonLight"] = [&functionMap](const json& json_object, const string& name) {
         string color_name = json_object[name]["inputs"]["COLOR"][1];
         string color = json_object[color_name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<string>();
-        return make_unique<CenterButtonlight>(color);
+        return make_unique<CenterButtonLight>(color);
     };
 
     functionMap["flipperlight_ultrasonicLightUp"] = [&functionMap](const json& json_object, const string& name) {
@@ -2228,6 +2372,46 @@ FunctionMap createFunctionMap() {
         return make_unique<SensorDistance>(port, unit);
     };
 
+    functionMap ["flippersensors_isTilted"] = [&functionMap](const json& json_object, const string& name) {
+        string angle_name = json_object[name]["inputs"]["VALUE"][1];
+        Block* angle = functionMap[json_object[angle_name]["opcode"]](json_object, angle_name).release();
+        
+        return make_unique<IsTilted>(angle);
+    };
+
+    functionMap ["flippersensors_isorientation"] = [&functionMap](const json& json_object, const string& name) {
+        string orientation = json_object[name]["fields"]["ORIENTATION"][0].get<string>();
+        return make_unique<IsOrientation>(orientation);
+    };
+
+    functionMap ["flippersensors_ismotion"] = [&functionMap](const json& json_object, const string& name) {
+        string motion = json_object[name]["fields"]["MOTION"][0].get<string>();
+        return make_unique<IsMotion>(motion);
+    };
+
+    functionMap ["flippersensors_orientationAxis"] = [&functionMap](const json& json_object, const string& name) {
+        string axis = json_object[name]["fields"]["AXIS"][0].get<string>();
+        return make_unique<OrientationAxis>(axis);
+    };
+
+    functionMap ["flippersensors_resetYaw"] = [&functionMap](const json& json_object, const string& name) {
+        return make_unique<ResetYawAngle>();
+    };
+
+    functionMap ["flippersensors_buttonIsPressed"] = [&functionMap](const json& json_object, const string& name) {
+        string button = json_object[name]["fields"]["BUTTON"][0].get<string>();
+        string event = json_object[name]["fields"]["EVENT"][0].get<string>();
+        return make_unique<IsButtonPressed>(button, event);
+    };
+
+    functionMap ["flippersensors_timer"] = [&functionMap](const json& json_object, const string& name) {
+        return make_unique<Timer>();
+    };
+
+    functionMap ["flippersensors_resetTimer"] = [&functionMap](const json& json_object, const string& name) {
+        return make_unique<ResetTimer>();
+    };
+
     //---------------------------------------------
     // Miscelanious helper "blocks"
     functionMap["flippermove_movement-port-selector"] = [&functionMap](const json& json_object, const string& name) {
@@ -2242,7 +2426,7 @@ FunctionMap createFunctionMap() {
 
     functionMap["flippermotor_custom-angle"] = [&functionMap](const json& json_object, const string& name) {
         string angle = json_object[name]["fields"]["field_flippermotor_custom-angle"][0].get<string>();
-        return make_unique<BlankBlockInt>(angle);
+        return make_unique<BlankBlockInt>(stoi(angle));
     };
 
     functionMap ["flipperevents_color-selector"] = [&functionMap](const json& json_object, const string& name) {
@@ -2299,5 +2483,37 @@ FunctionMap createFunctionMap() {
 
     return functionMap;
 }
+
+FunctionMap functionMap = createFunctionMap();
+
+
+inline BlockSequence* processBlock(const json& blocks, string key) {
+    auto curr_block = blocks[key];
+    if (!curr_block.contains("opcode")) {
+        cerr << "Error: Block is missing 'opcode'!" << endl;
+        return nullptr;
+    }
+    auto curr_sequence_block = functionMap[curr_block["opcode"]](blocks, key).release();
+    BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
+
+    while (true) {
+        if (!blocks.contains(curr_block["next"]) || curr_block["next"].is_null()) {
+            break;
+        }
+        auto next_block = blocks[curr_block["next"]];
+        if (!next_block.contains("opcode")) {
+            cerr << "Error: Block is missing 'opcode'!" << endl;
+            return nullptr;
+        }
+        auto next_sequence_block = functionMap[next_block["opcode"]](blocks, curr_block["next"]).release();
+        curr_sequence_block->next = next_sequence_block;
+        next_sequence_block->parent = curr_sequence_block;
+        curr_sequence_block = next_sequence_block;
+        curr_block = next_block;
+    }
+
+    return block_sequence;
+}
+
 
 #endif // BLOCKS_H
