@@ -16,10 +16,10 @@ struct State {
 };
 
 struct MotorState : public State {
-    double duration;
+    //double duration;
     double position = 0;
 
-    MotorState(double speed, double duration) : State("Motor", speed), duration(duration) {}
+    MotorState(double speed) : State("Motor", speed) {}
 };
 
 struct ColorSensor : public State {
@@ -51,6 +51,8 @@ struct Robot {
     string sound_state, button_color_state;
     double pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
     map<string, State*> states; // motor name -> motor state
+    string movement_motors[2] = {"", ""}; // names of the motors
+    pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
 
     int discrete_time_interval = 0.05; // time in seconds between each simulation step
 
@@ -63,7 +65,7 @@ struct Robot {
     }
 
     void addMotorState(const string& key, double speed, double duration) {
-        states[key] = new MotorState(speed, duration);
+        states[key] = new MotorState(speed);
     }
 
     void addColorSensor(const string& key, double value) {

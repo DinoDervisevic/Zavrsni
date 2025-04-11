@@ -592,14 +592,23 @@ public:
     Move(bool forward, Block* value, string unit) : Block("Move", "Move"), forward(forward), value(value), unit(unit) {}
 
     double execute(Robot& robot) override {
-        if(forward){
-            robot.v1 = robot.movement_speed;
-            robot.v2 = robot.movement_speed;
-        } else {
-            robot.v1 = -robot.movement_speed;
-            robot.v2 = -robot.movement_speed;
+        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
+        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
+        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        || robot.movement_motors[0] == robot.movement_motors[1]
+        || !is_number(value->executeString(robot))) {
+            return 0;
         }
-        cout << "Moving for " << value->execute(robot) << " seconds" << endl;
+
+        if(forward){ // TODO: check if this is correct
+            robot.states[robot.movement_motors[0]] -> value = robot.movement_speed;
+            robot.states[robot.movement_motors[1]] -> value = -robot.movement_speed;
+        } else {
+            robot.states[robot.movement_motors[0]] -> value = -robot.movement_speed;
+            robot.states[robot.movement_motors[1]] -> value = robot.movement_speed;
+        }
+
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
     
@@ -612,13 +621,22 @@ public:
     StartMove(bool forward) : Block("Move", "StartMove"), forward(forward) {}
 
     double execute(Robot& robot) override {
-        if(forward){
-            robot.v1 = robot.movement_speed;
-            robot.v2 = robot.movement_speed;
-        } else {
-            robot.v1 = -robot.movement_speed;
-            robot.v2 = -robot.movement_speed;
+        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
+        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
+        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        || robot.movement_motors[0] == robot.movement_motors[1]) {
+            return 0;
         }
+
+        if(forward){ // TODO: check if this is correct
+            robot.states[robot.movement_motors[0]] -> value = robot.movement_speed;
+            robot.states[robot.movement_motors[1]] -> value = -robot.movement_speed;
+        } else {
+            robot.states[robot.movement_motors[0]] -> value = -robot.movement_speed;
+            robot.states[robot.movement_motors[1]] -> value = robot.movement_speed;
+        }
+
         return -1;
     }
 };
@@ -631,9 +649,18 @@ class Steer : public Block {
 public:
     Steer(Block* direction, Block* value, string unit) : Block("Move", "Steer"), direction(direction), value(value), unit(unit) {}
 
-    double execute(Robot& robot) override { // TODO : provjeri jel ovo dobro
-        //robot.v1 = robot.movement_speed * min(1 - direction->execute(robot)/100, 1);
-        //robot.v2 = robot.movement_speed * min(1 + direction->execute(robot)/100, 1);
+    double execute(Robot& robot) override { // TODO : nemma pojma sto radit s direction --> skuzi i popravi
+        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
+        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
+        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        || robot.movement_motors[0] == robot.movement_motors[1]
+        || !is_number(value->executeString(robot))) {
+            return 0;
+        }
+
+        robot.states[robot.movement_motors[0]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/100, 1.0);
+        robot.states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 + direction->execute(robot)/100, 1.0);
 
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
@@ -645,9 +672,17 @@ class StartSteer : public Block {
 public:
     StartSteer(Block* direction) : Block("Move", "StartSteer"), direction(direction) {}
 
-    double execute(Robot& robot) override {
-        //robot.v1 = robot.movement_speed * min(1 - direction->execute(robot)/100, 1);
-        //robot.v2 = robot.movement_speed * min(1 + direction->execute(robot)/100, 1);
+    double execute(Robot& robot) override { // TODO : tu isti direction je jedan veliki ?
+        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
+        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
+        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        || robot.movement_motors[0] == robot.movement_motors[1]) {
+            return 0;
+        }
+
+        robot.states[robot.movement_motors[0]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/100, 1.0);
+        robot.states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 + direction->execute(robot)/100, 1.0);
 
         return -1;
     }
@@ -658,8 +693,17 @@ public:
     StopMoving() : Block("Move", "StopMoving") {}
 
     double execute(Robot& robot) override {
-        robot.v1 = 0.0;
-        robot.v2 = 0.0;
+        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
+        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
+        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        || robot.movement_motors[0] == robot.movement_motors[1]) {
+            return 0;
+        }
+
+        robot.states[robot.movement_motors[0]] -> value = 0;
+        robot.states[robot.movement_motors[1]] -> value = 0;
+
         return 0;
     }
 };
@@ -680,12 +724,15 @@ class SetMovementPair : public Block { // TODO : change so this only marks these
 public:
     SetMovementPair(Block* pair) : Block("Move", "SetMovementPair"), pair(pair) {}
     double execute(Robot& robot) override { //TODO
-
+        if (pair->executeString(robot).length() == 2){
+            robot.movement_motors[0] = pair->executeString(robot)[0];
+            robot.movement_motors[1] = pair->executeString(robot)[1];
+        } 
         return 0;
     }
 };
 
-class SetMotorRotation : public Block { // TODO
+class SetMotorRotation : public Block { // TODO : pravo da kazem jako sam zbunjen oko toga sto tocno ovo radi
     string unit;
     Block* value;
 public:
@@ -704,7 +751,7 @@ class DisplayImageForTime : public Block {
 public:
     DisplayImageForTime(string image, double time) : Block("Display", "DisplayImageForTime"), image(image), time(time) {}
 
-    double execute(Robot& robot) override {
+    double execute(Robot& robot) override { // TODO : image mora biti Block*
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
                 robot.pixel_display[i][j] = image[i*5 + j] * 100 * 10 / 9;
@@ -776,9 +823,9 @@ public:
 };
 
 class DisplayRotate : public Block { // TODO
-    string direction;
+    bool forward;
 public:
-    DisplayRotate(string direction) : Block("Display", "DisplayRotate"), direction(direction) {}
+    DisplayRotate(bool forward) : Block("Display", "DisplayRotate"), forward(forward) {}
     double execute(Robot& robot) override { // TODO
         return 0;
     }
@@ -1986,9 +2033,22 @@ FunctionMap createFunctionMap() {
     };
 
     functionMap["flipperlight_lightDisplayRotate"] = [&functionMap](const json& json_object, const string& name) {
-        string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
-        string direction = json_object[direction_name]["fields"]["field_flipperlight_custom-icon-direction"][0].get<string>();
-        return make_unique<DisplayRotate>(direction);
+        bool forward;
+        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        if(args != 1){
+            forward = true;
+        }
+        else{
+            string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
+            string fwd = json_object[direction_name]["fields"]["field_flippermotor_custom-icon-direction"][0];
+            
+            if(fwd == "counterclockwise") {
+                forward = true;
+            } else {
+                forward = false;
+            }
+        }
+        return make_unique<DisplayRotate>(forward);
     };
 
     functionMap["flipperlight_lightDisplaySetOrientation"] = [&functionMap](const json& json_object, const string& name) {

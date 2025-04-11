@@ -77,4 +77,21 @@ bool check_distance(double distance, string option, double value){ //TODO: check
     }
 }
 
+void rotate_matrix_right(Robot& robot){
+    double temp[5][5];
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            temp[j][i] = robot.pixel_display[i][j];
+        }
+    }
+
+    // Preokreni redoslijed stupaca
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            robot.pixel_display[i][j] = temp[i][4 - j];
+        }
+    }
+}
+
+
 #endif // FUNCTIONS_H
