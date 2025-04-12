@@ -10,6 +10,7 @@
 #include <functional>
 #include <algorithm>
 #include <random>
+#include <cctype>
 #include <cmath>
 #include "json.hpp"
 #include "robot.hpp"
@@ -30,6 +31,9 @@ class Block {
     
         // changes the state of the robot and returns the number of seconds it took to execute the block (0 in case on instantaneus blocks such as speed change)
         virtual double execute(Robot& robot) = 0; 
+        virtual void finish(Robot& robot){
+            return;
+        }
         virtual string executeString(Robot& robot) {
             return to_string(execute(robot));
         }
@@ -611,6 +615,19 @@ public:
 
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
+
+    void finish(Robot& robot) override {
+        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
+        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
+        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        || robot.movement_motors[0] == robot.movement_motors[1]
+        || !is_number(value->executeString(robot))) {
+            return;
+        }
+        robot.states[robot.movement_motors[0]] -> value = 0;
+        robot.states[robot.movement_motors[1]] -> value = 0;
+    }
     
 };
 
@@ -639,6 +656,18 @@ public:
 
         return -1;
     }
+
+    void finish(Robot& robot) override {
+        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
+        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
+        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        || robot.movement_motors[0] == robot.movement_motors[1]) {
+            return;
+        }
+        robot.states[robot.movement_motors[0]] -> value = 0;
+        robot.states[robot.movement_motors[1]] -> value = 0;
+    }
 };
 
 class Steer : public Block {
@@ -664,6 +693,19 @@ public:
 
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
+
+    void finish(Robot& robot) override {
+        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
+        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
+        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        || robot.movement_motors[0] == robot.movement_motors[1]
+        || !is_number(value->executeString(robot))) {
+            return;
+        }
+        robot.states[robot.movement_motors[0]] -> value = 0;
+        robot.states[robot.movement_motors[1]] -> value = 0;
+    }
 };
 
 class StartSteer : public Block {
@@ -685,6 +727,18 @@ public:
         robot.states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 + direction->execute(robot)/100, 1.0);
 
         return -1;
+    }
+
+    void finish(Robot& robot) override {
+        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
+        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
+        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        || robot.movement_motors[0] == robot.movement_motors[1]) {
+            return;
+        }
+        robot.states[robot.movement_motors[0]] -> value = 0;
+        robot.states[robot.movement_motors[1]] -> value = 0;
     }
 };
 
@@ -746,30 +800,52 @@ public:
 
 //-------------DISPLAY BLOCKS-----------------
 class DisplayImageForTime : public Block {
-    string image;
+    Block* image;
     double time;
 public:
-    DisplayImageForTime(string image, double time) : Block("Display", "DisplayImageForTime"), image(image), time(time) {}
+    DisplayImageForTime(Block* image, double time) : Block("Display", "DisplayImageForTime"), image(image), time(time) {}
 
     double execute(Robot& robot) override { // TODO : image mora biti Block*
+        string str_image = image->executeString(robot);
+        for(int i = 0; i < 25; ++i){
+            if(i >= str_image.length()){
+                str_image += "0";
+            }
+            if(isdigit(str_image[i])) str_image[i] = '0';
+        }
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
-                robot.pixel_display[i][j] = image[i*5 + j] * 100 * 10 / 9;
+                robot.pixel_display[i][j] = str_image[i*5 + j] * 10 * 10 / 9;
             }
         }
         return time;
     }
+
+    void finish(Robot& robot) override {
+        for(int i = 0; i < 5; ++i){
+            for(int j = 0; j < 5; ++j){
+                robot.pixel_display[i][j] = 0;
+            }
+        }
+    }
 };
 
 class DisplayImage : public Block {
-    string image;
+    Block* image;
 public:
-    DisplayImage(string image) : Block("Display", "DisplayImage"), image(image) {}
+    DisplayImage(Block* image) : Block("Display", "DisplayImage"), image(image) {}
 
     double execute(Robot& robot) override {
+        string str_image = image->executeString(robot);
+        for(int i = 0; i < 25; ++i){
+            if(i >= str_image.length()){
+                str_image += "0";
+            }
+            if(isdigit(str_image[i])) str_image[i] = '0';
+        }
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
-                robot.pixel_display[i][j] = image[i*5 + j] * 100 * 10 / 9;
+                robot.pixel_display[i][j] = str_image[i*5 + j] * 10 * 10 / 9;
             }
         }
         return -1;
@@ -811,14 +887,22 @@ public:
 };
 
 class SetPixel : public Block {
-    int x, y;
-    double brightness;
+    Block* x;
+    Block* y;
+    Block* brightness;
 public:
-    SetPixel(int x, int y, double brightness) : Block("Display", "SetPixel"), x(x), y(y), brightness(brightness) {}
+    SetPixel(Block* x, Block* y, Block* brightness) : Block("Display", "SetPixel"), x(x), y(y), brightness(brightness) {}
 
     double execute(Robot& robot) override {
-        robot.pixel_display[x][y] = brightness;
-        return -1;
+        if(!is_number(x->executeString(robot)) || !is_number(y->executeString(robot))
+        || x->execute(robot) < 1 || x->execute(robot) > 5
+        || y->execute(robot) < 1 || y->execute(robot) > 5
+        || !is_number(brightness->executeString(robot))
+        || brightness->execute(robot) < 0 || brightness->execute(robot) > 100){
+            return 0;
+        }
+        robot.pixel_display[static_cast<int>(x->execute(robot)-1)][static_cast<int>(y->execute(robot)-1)] = min(brightness->execute(robot), 100.0);
+        return 0;
     }
 };
 
@@ -827,32 +911,42 @@ class DisplayRotate : public Block { // TODO
 public:
     DisplayRotate(bool forward) : Block("Display", "DisplayRotate"), forward(forward) {}
     double execute(Robot& robot) override { // TODO
+        if(forward) rotate_matrix_right(robot);
+        else rotate_matrix_left(robot);
         return 0;
     }
 };
 
-class DisplaySetorientation : public Block { // TODO
-    string orientation;
+class DisplaySetorientation : public Block { // TODO : provjeri jer nisam 100% convinced
+    Block* orientation;
 public:
-    DisplaySetorientation(string orientation) : Block("Display", "DisplaySetorientation"), orientation(orientation) {}
-    double execute(Robot& robot) override { // TODO
+    DisplaySetorientation(Block* orientation) : Block("Display", "DisplaySetorientation"), orientation(orientation) {}
+    double execute(Robot& robot) override {
+        if(!is_number(orientation->executeString(robot)) || orientation->execute(robot) < 1 || orientation->execute(robot) > 4){
+            return 0;
+        }
+        while(robot.absolute_image_position != static_cast<int>(orientation->execute(robot)-1)){
+            rotate_matrix_right(robot);
+            robot.absolute_image_position = (robot.absolute_image_position + 1) % 4;
+        }
         return 0;
     }
 };
 
 class CenterButtonLight : public Block {
-    string color;
+    Block* color;
 
 public:
-    CenterButtonLight(string color) : Block("Display", "CenterButtonLight"), color(color) {}
+    CenterButtonLight(Block* color) : Block("Display", "CenterButtonLight"), color(color) {}
 
     double execute(Robot& robot) override {
-        robot.button_color_state = color;
-        return -1;
+        if(!is_number(color->executeString(robot))) robot.button_color = 0;
+        else robot.button_color = color->execute(robot);
+        return 0;
     }
 };
 
-class UltrasonicSensorLight : public Block { // TODO : finish when i know what to do w ports
+class UltrasonicSensorLight : public Block { // TODO : kad budem mogao isprobat
     string color;
     string port;
 
@@ -860,7 +954,7 @@ public:
     UltrasonicSensorLight(string color, string port) : Block("Display", "UltrasonicSensorLight"), color(color), port(port) {}
 
     double execute(Robot& robot) override {
-        return -1;
+        return 0;
     }
 };
 //--------------------------------------------
@@ -896,6 +990,10 @@ public:
     double execute(Robot& robot) override {
         robot.sound_state = "beep" + to_string(frequency);
         return time;
+    }
+
+    void finish(Robot& robot) override {
+        robot.sound_state = "";
     }
 };
 
@@ -1998,14 +2096,14 @@ FunctionMap createFunctionMap() {
     // Display blocks
     functionMap["flipperlight_lightDisplayImageOnForTime"] = [&functionMap](const json& json_object, const string& name) {
         string matrix_name = json_object[name]["inputs"]["MATRIX"][1];
-        string image = json_object[matrix_name]["fields"]["field_flipperlight_matrix-5x5-brightness-image"][0];
+        Block* image = functionMap[json_object[matrix_name]["opcode"]](json_object, matrix_name).release();
         double time = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
         return make_unique<DisplayImageForTime>(image, time);
     };
 
     functionMap["flipperlight_lightDisplayImageOn"] = [&functionMap](const json& json_object, const string& name) {
         string matrix_name = json_object[name]["inputs"]["MATRIX"][1];
-        string image = json_object[matrix_name]["fields"]["field_flipperlight_matrix-5x5-brightness-image"][0];
+        Block* image = functionMap[json_object[matrix_name]["opcode"]](json_object, matrix_name).release();
         return make_unique<DisplayImage>(image);
     };
 
@@ -2026,9 +2124,17 @@ FunctionMap createFunctionMap() {
     functionMap["flipperlight_lightDisplaySetPixel"] = [&functionMap](const json& json_object, const string& name) {
         string x_name = json_object[name]["inputs"]["X"][1];
         string y_name = json_object[name]["inputs"]["Y"][1];
-        int x = stoi(json_object[x_name]["fields"]["field_flipperlight_matrix-pixel-index"][0].get<string>());
-        int y = stoi(json_object[y_name]["fields"]["field_flipperlight_matrix-pixel-index"][0].get<string>());
-        double brightness = stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>());
+        Block* x = functionMap[json_object[x_name]["opcode"]](json_object, x_name).release();
+        Block* y = functionMap[json_object[y_name]["opcode"]](json_object, y_name).release();
+        
+        Block* brightness;
+        if(json_object[name]["inputs"]["BRIGHTNESS"][0] == 1){
+            brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
+        } else {
+            string distance_name = json_object[name]["inputs"]["BRIGHTNESS"][1];
+            brightness = functionMap[json_object[distance_name]["opcode"]](json_object, distance_name).release();
+        }
+
         return make_unique<SetPixel>(x, y, brightness);
     };
 
@@ -2053,13 +2159,13 @@ FunctionMap createFunctionMap() {
 
     functionMap["flipperlight_lightDisplaySetOrientation"] = [&functionMap](const json& json_object, const string& name) {
         string orientation_name = json_object[name]["inputs"]["ORIENTATION"][1];
-        string orientation = json_object[orientation_name]["fields"]["orientation"][0].get<string>();
+        Block* orientation = functionMap[json_object[orientation_name]["opcode"]](json_object, orientation_name).release();
         return make_unique<DisplaySetorientation>(orientation);
     };
 
     functionMap["flipperlight_centerButtonLight"] = [&functionMap](const json& json_object, const string& name) {
         string color_name = json_object[name]["inputs"]["COLOR"][1];
-        string color = json_object[color_name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<string>();
+        Block* color = functionMap[json_object[color_name]["opcode"]](json_object, color_name).release();
         return make_unique<CenterButtonLight>(color);
     };
 
@@ -2547,6 +2653,21 @@ FunctionMap createFunctionMap() {
     functionMap ["flippersensors_custom-tilted"] = [&functionMap](const json& json_object, const string& name) {
         string tilt = json_object[name]["fields"]["field_flippersensors_custom-tilted"][0].get<string>();
         return make_unique<BlankBlockInt>(stoi(tilt));
+    };
+
+    functionMap["flipperlight_matrix-5x5-brightness-image"] = [&functionMap](const json& json_object, const string& name) {
+        string image = json_object[name]["fields"]["field_flipperlight_matrix-5x5-brightness-image"][0].get<string>();
+        return make_unique<BlankBlockString>(image);
+    };
+
+    functionMap["flipperlight_menu_orientation"] = [&functionMap](const json& json_object, const string& name) {
+        string orientation = json_object[name]["fields"]["orientation"][0].get<string>();
+        return make_unique<BlankBlockInt>(stoi(orientation));
+    };
+
+    functionMap["flipperlight_color-selector-vertical"] = [&functionMap](const json& json_object, const string& name) {
+        string color = json_object[name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<string>();
+        return make_unique<BlankBlockInt>(stoi(color));
     };
 
     //TODO : add the rest of the blocks when i know what to do w conditions

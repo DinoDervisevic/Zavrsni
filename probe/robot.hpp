@@ -48,8 +48,10 @@ struct Robot {
     int wheel_radius;
     int movement_speed;
     double volume;
-    string sound_state, button_color_state;
+    string sound_state;
+    int button_color;
     double pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
+    int absolute_image_position = 0;
     map<string, State*> states; // motor name -> motor state
     string movement_motors[2] = {"", ""}; // names of the motors
     pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
