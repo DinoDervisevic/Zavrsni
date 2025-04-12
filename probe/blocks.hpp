@@ -982,14 +982,20 @@ public:
 };
 
 class BeepForTime : public Block {
-    double time;
-    double frequency;
+    Block* time;
+    Block* frequency;
 public:
-    BeepForTime(double time, double frequency) : Block("Sound", "BeepForTime"), time(time), frequency(frequency) {}
+    BeepForTime(Block* time, Block* frequency) : Block("Sound", "BeepForTime"), time(time), frequency(frequency) {}
 
     double execute(Robot& robot) override {
-        robot.sound_state = "beep" + to_string(frequency);
-        return time;
+        if(!is_number(frequency->executeString(robot)) || frequency->execute(robot) < 48 || frequency->execute(robot) > 108){
+            return 0;
+        }
+        if(!is_number(time->executeString(robot)) || time->execute(robot) <= 0){
+            return 0;
+        }
+        robot.sound_state = "beep" + to_string(static_cast<int>(frequency->execute(robot)));
+        return time->execute(robot);
     }
 
     void finish(Robot& robot) override {
@@ -998,12 +1004,15 @@ public:
 };
 
 class Beep : public Block {
-    double frequency;
+    Block* frequency;
 public:
-    Beep(double frequency) : Block("Sound", "Beep"), frequency(frequency) {}
+    Beep(Block* frequency) : Block("Sound", "Beep"), frequency(frequency) {}
 
     double execute(Robot& robot) override {
-        robot.sound_state = "beep" + to_string(frequency);
+        if(!is_number(frequency->executeString(robot)) || frequency->execute(robot) < 48 || frequency->execute(robot) > 108){
+            return 0;
+        }
+        robot.sound_state = "beep" + to_string(static_cast<int>(frequency->execute(robot)));
         return -1;
     }
 };
@@ -1018,7 +1027,7 @@ public:
     }
 };
 
-class ChangeEffectBy : public Block { // TODO
+class ChangeEffectBy : public Block { // TODO : nemam pojma sto ovo tocno radi
     string effect;
     double value;
 public:
@@ -1029,7 +1038,7 @@ public:
     }
 };
 
-class SetEffectTo : public Block { // TODO
+class SetEffectTo : public Block { // TODO : nemam pojma sto ovo tocno radi
     string effect;
     double value;
 public:
@@ -1040,7 +1049,7 @@ public:
     }
 };
 
-class ClearEffects : public Block { // TODO
+class ClearEffects : public Block { // TODO : nemam pojma sto ovo tocno radi
 public:
     ClearEffects() : Block("Sound", "ClearEffects") {}
 
@@ -1049,24 +1058,30 @@ public:
     }
 };
 
-class ChangeVolumeBy : public Block {
-    double value;
+class ChangeVolumeBy : public Block { // TODO : provjeri
+    Block* value;
 public:
-    ChangeVolumeBy(double value) : Block("Sound", "ChangeVolumeBy"), value(value) {}
+    ChangeVolumeBy(Block* value) : Block("Sound", "ChangeVolumeBy"), value(value) {}
 
     double execute(Robot& robot) override {
-        robot.volume += value;
+        if(!is_number(value->executeString(robot))){
+            return 0;
+        }
+        robot.volume += value->execute(robot);
         return 0;
     }
 };
 
-class SetVolumeTo : public Block {
-    double value;
+class SetVolumeTo : public Block {// TODO : provjeri
+    Block* value;
 public:
-    SetVolumeTo(double value) : Block("Sound", "SetVolumeTo"), value(value) {}
+    SetVolumeTo(Block* value) : Block("Sound", "SetVolumeTo"), value(value) {}
 
     double execute(Robot& robot) override {
-        robot.volume = value;
+        if(!is_number(value->executeString(robot))){
+            return 0;
+        }
+        robot.volume = value->execute(robot);
         return 0;
     }
 };
@@ -2199,15 +2214,21 @@ FunctionMap createFunctionMap() {
     };
 
     functionMap["flippersound_beepForTime"] = [&functionMap](const json& json_object, const string& name) {
-        double time = stod(json_object[name]["inputs"]["DURATION"][1][1].get<string>());
+        Block* time;
+        if(json_object[name]["inputs"]["DURATION"][0] == 1){
+            time = new BlankBlockDouble(stod(json_object[name]["inputs"]["DURATION"][1][1].get<string>()));
+        } else {
+            string time_name = json_object[name]["inputs"]["DURATION"][1];
+            time = functionMap[json_object[time_name]["opcode"]](json_object, time_name).release();
+        }
         string frequency_name = json_object[name]["inputs"]["NOTE"][1];
-        double frequency = stod(json_object[frequency_name]["fields"]["field_flippersound_custom-piano"][0].get<string>());
+        Block* frequency = functionMap[json_object[frequency_name]["opcode"]](json_object, frequency_name).release();
         return make_unique<BeepForTime>(time, frequency);
     };
 
     functionMap["flippersound_beep"] = [&functionMap](const json& json_object, const string& name) {
         string frequency_name = json_object[name]["inputs"]["NOTE"][1];
-        double frequency = stod(json_object[frequency_name]["fields"]["field_flippersound_custom-piano"][0].get<string>());
+        Block* frequency = functionMap[json_object[frequency_name]["opcode"]](json_object, frequency_name).release();
         return make_unique<Beep>(frequency);
     };
 
@@ -2232,13 +2253,25 @@ FunctionMap createFunctionMap() {
     };
 
     functionMap["sound_changevolumeby"] = [&functionMap](const json& json_object, const string& name) {
-        double value = stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>());
-        return make_unique<ChangeVolumeBy>(value);
+        Block* volume;
+        if(json_object[name]["inputs"]["VOLUME"][0] == 1){
+            volume = new BlankBlockDouble(stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
+        } else {
+            string volume_name = json_object[name]["inputs"]["VOLUME"][1];
+            volume = functionMap[json_object[volume_name]["opcode"]](json_object, volume_name).release();
+        }
+        return make_unique<ChangeVolumeBy>(volume);
     };
 
     functionMap["sound_setvolumeto"] = [&functionMap](const json& json_object, const string& name) {
-        double value = stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>());
-        return make_unique<SetVolumeTo>(value);
+        Block* volume;
+        if(json_object[name]["inputs"]["VOLUME"][0] == 1){
+            volume = new BlankBlockDouble(stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
+        } else {
+            string volume_name = json_object[name]["inputs"]["VOLUME"][1];
+            volume = functionMap[json_object[volume_name]["opcode"]](json_object, volume_name).release();
+        }
+        return make_unique<SetVolumeTo>(volume);
     };
 
     functionMap ["sound_volume"] = [&functionMap](const json& json_object, const string& name) {
@@ -2668,6 +2701,11 @@ FunctionMap createFunctionMap() {
     functionMap["flipperlight_color-selector-vertical"] = [&functionMap](const json& json_object, const string& name) {
         string color = json_object[name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<string>();
         return make_unique<BlankBlockInt>(stoi(color));
+    };
+
+    functionMap["flippersound_custom-piano"] = [&functionMap](const json& json_object, const string& name) {
+        string note = json_object[name]["fields"]["field_flippersound_custom-piano"][0].get<string>();
+        return make_unique<BlankBlockInt>(stoi(note));
     };
 
     //TODO : add the rest of the blocks when i know what to do w conditions
