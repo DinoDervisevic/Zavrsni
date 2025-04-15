@@ -114,5 +114,45 @@ void rotate_matrix_left(Robot& robot) {
     robot.absolute_image_position = (robot.absolute_image_position + 3) % 4;
 }
 
+string parse_port(Robot& robot, string port, string type){
+    string result = "";
+    string all_ports = "ABCDEF";
+    if(is_number(port)) return result;
+    for (int i = 0; i < all_ports.length(); ++i) {
+        if(port.find(string(1, all_ports[i])) != string::npos){
+            if(type == "motor"){
+                if(robot.motor_states.find(string(1, all_ports[i])) != robot.motor_states.end()){
+                    result += string(1, all_ports[i]);
+                }
+            } else if(type == "color"){
+                if(robot.color_states.find(string(1, all_ports[i])) != robot.color_states.end()){
+                    result += string(1, all_ports[i]);
+                }
+            } else if(type == "distance"){
+                if(robot.distance_states.find(string(1, all_ports[i])) != robot.distance_states.end()){
+                    result += string(1, all_ports[i]);
+                }
+            } else if(type == "force"){
+                if(robot.force_states.find(string(1, all_ports[i])) != robot.force_states.end()){
+                    result += string(1, all_ports[i]);
+                }
+            }
+        }
+    }
+    return result;
+}
+
+bool calculate_direction(Robot& robot, string port, string direction, double position){
+    if(direction == "clockwise") return true;
+    else if(direction == "counterclockwise") return false;
+    else{
+        if(static_cast<int>(position - robot.motor_states[port]->value + 360) % 360 > 180){
+            return true;
+        } else {
+            return false;
+        }	
+    }
+}
+
 
 #endif // FUNCTIONS_H

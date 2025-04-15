@@ -113,9 +113,8 @@ public:
     WhenColor(Block* port, Block* color) : Block("Event", "WhenColor"), port(port), color(color) {}
 
     double execute(Robot& robot) override {
-        if (robot.states.find(port->executeString(robot)) != robot.states.end()
-        && robot.states[port->executeString(robot)]->device_type == "ColorSensor" 
-        && robot.states[port->executeString(robot)]->value == color->execute(robot)) {
+        if (robot.color_states.find(port->executeString(robot)) != robot.color_states.end() 
+        && robot.color_states[port->executeString(robot)]->value == color->execute(robot)) {
             return 1;
         }
         else return 0;
@@ -129,9 +128,8 @@ public:
     WhenPressed(Block* port, string event) : Block("Event", "WhenPressed"), port(port), event(event) {}
 
     double execute(Robot& robot) override {
-        if (robot.states.find(port->executeString(robot)) != robot.states.end()
-        && robot.states[port->executeString(robot)]->device_type == "ForceSensor" 
-        && calculate_pressed_event(static_cast<ForceSensor*>(robot.states[port->executeString(robot)])) == event) {
+        if (robot.force_states.find(port->executeString(robot)) != robot.force_states.end()
+        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port->executeString(robot)])) == event) {
             return 1;
         }
         else return 0;
@@ -147,9 +145,8 @@ public:
     WhenDistance(Block* port, string option, Block* distance, string unit) : Block("Event", "WhenDistance"), port(port), option(option), distance(distance), unit(unit) {}
 
     double execute(Robot& robot) override {
-        if (robot.states.find(port->executeString(robot)) != robot.states.end()
-        && robot.states[port->executeString(robot)]->device_type == "DistanceSensor" 
-        && check_distance(robot.states[port->executeString(robot)]->value == distance->execute(robot), option, distance->execute(robot))) {
+        if (robot.distance_states.find(port->executeString(robot)) != robot.distance_states.end()
+        && check_distance(robot.distance_states[port->executeString(robot)]->value == distance->execute(robot), option, distance->execute(robot))) {
             return 1;
         }
         else return 0;
@@ -596,37 +593,37 @@ public:
     Move(bool forward, Block* value, string unit) : Block("Move", "Move"), forward(forward), value(value), unit(unit) {}
 
     double execute(Robot& robot) override {
-        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
-        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
-        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
-        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
             return 0;
         }
 
         if(forward){ // TODO: check if this is correct
-            robot.states[robot.movement_motors[0]] -> value = robot.movement_speed;
-            robot.states[robot.movement_motors[1]] -> value = -robot.movement_speed;
+            robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed;
+            robot.motor_states[robot.movement_motors[1]] -> value = -robot.movement_speed;
         } else {
-            robot.states[robot.movement_motors[0]] -> value = -robot.movement_speed;
-            robot.states[robot.movement_motors[1]] -> value = robot.movement_speed;
+            robot.motor_states[robot.movement_motors[0]] -> value = -robot.movement_speed;
+            robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed;
         }
 
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
 
     void finish(Robot& robot) override {
-        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
-        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
-        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
-        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
             return;
         }
-        robot.states[robot.movement_motors[0]] -> value = 0;
-        robot.states[robot.movement_motors[1]] -> value = 0;
+        robot.motor_states[robot.movement_motors[0]] -> value = 0;
+        robot.motor_states[robot.movement_motors[1]] -> value = 0;
     }
     
 };
@@ -638,35 +635,35 @@ public:
     StartMove(bool forward) : Block("Move", "StartMove"), forward(forward) {}
 
     double execute(Robot& robot) override {
-        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
-        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
-        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
-        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return 0;
         }
 
         if(forward){ // TODO: check if this is correct
-            robot.states[robot.movement_motors[0]] -> value = robot.movement_speed;
-            robot.states[robot.movement_motors[1]] -> value = -robot.movement_speed;
+            robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed;
+            robot.motor_states[robot.movement_motors[1]] -> value = -robot.movement_speed;
         } else {
-            robot.states[robot.movement_motors[0]] -> value = -robot.movement_speed;
-            robot.states[robot.movement_motors[1]] -> value = robot.movement_speed;
+            robot.motor_states[robot.movement_motors[0]] -> value = -robot.movement_speed;
+            robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed;
         }
 
         return -1;
     }
 
     void finish(Robot& robot) override {
-        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
-        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
-        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
-        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return;
         }
-        robot.states[robot.movement_motors[0]] -> value = 0;
-        robot.states[robot.movement_motors[1]] -> value = 0;
+        robot.motor_states[robot.movement_motors[0]] -> value = 0;
+        robot.motor_states[robot.movement_motors[1]] -> value = 0;
     }
 };
 
@@ -679,32 +676,32 @@ public:
     Steer(Block* direction, Block* value, string unit) : Block("Move", "Steer"), direction(direction), value(value), unit(unit) {}
 
     double execute(Robot& robot) override { // TODO : nemma pojma sto radit s direction --> skuzi i popravi
-        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
-        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
-        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
-        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
             return 0;
         }
 
-        robot.states[robot.movement_motors[0]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/100, 1.0);
-        robot.states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 + direction->execute(robot)/100, 1.0);
+        robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/100, 1.0);
+        robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 + direction->execute(robot)/100, 1.0);
 
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
 
     void finish(Robot& robot) override {
-        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
-        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
-        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
-        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
             return;
         }
-        robot.states[robot.movement_motors[0]] -> value = 0;
-        robot.states[robot.movement_motors[1]] -> value = 0;
+        robot.motor_states[robot.movement_motors[0]] -> value = 0;
+        robot.motor_states[robot.movement_motors[1]] -> value = 0;
     }
 };
 
@@ -715,30 +712,30 @@ public:
     StartSteer(Block* direction) : Block("Move", "StartSteer"), direction(direction) {}
 
     double execute(Robot& robot) override { // TODO : tu isti direction je jedan veliki ?
-        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
-        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
-        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
-        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return 0;
         }
 
-        robot.states[robot.movement_motors[0]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/100, 1.0);
-        robot.states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 + direction->execute(robot)/100, 1.0);
+        robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/100, 1.0);
+        robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 + direction->execute(robot)/100, 1.0);
 
         return -1;
     }
 
     void finish(Robot& robot) override {
-        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
-        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
-        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
-        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return;
         }
-        robot.states[robot.movement_motors[0]] -> value = 0;
-        robot.states[robot.movement_motors[1]] -> value = 0;
+        robot.motor_states[robot.movement_motors[0]] -> value = 0;
+        robot.motor_states[robot.movement_motors[1]] -> value = 0;
     }
 };
 
@@ -747,16 +744,16 @@ public:
     StopMoving() : Block("Move", "StopMoving") {}
 
     double execute(Robot& robot) override {
-        if (robot.states.find(robot.movement_motors[0]) == robot.states.end()
-        || robot.states[robot.movement_motors[0]]->device_type != "Motor" 
-        || robot.states.find(robot.movement_motors[1]) == robot.states.end()
-        || robot.states[robot.movement_motors[1]]->device_type != "Motor" 
+        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
+        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
+        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return 0;
         }
 
-        robot.states[robot.movement_motors[0]] -> value = 0;
-        robot.states[robot.movement_motors[1]] -> value = 0;
+        robot.motor_states[robot.movement_motors[0]] -> value = 0;
+        robot.motor_states[robot.movement_motors[1]] -> value = 0;
 
         return 0;
     }
@@ -782,6 +779,10 @@ public:
             robot.movement_motors[0] = pair->executeString(robot)[0];
             robot.movement_motors[1] = pair->executeString(robot)[1];
         } 
+        else{
+            robot.movement_motors[0] = "A";
+            robot.movement_motors[1] = "B";
+        }
         return 0;
     }
 };
@@ -1099,13 +1100,20 @@ public:
 class MotorTurnForDirection : public Block {
     Block* port;
     bool forward;
-    Block* speed;
+    Block* value;
     string unit;
 public:
-    MotorTurnForDirection(Block* port, Block* speed, bool forward, string unit) : Block("Motor", "MotorTurnForDirection"), port(port), speed(speed), forward(forward), unit(unit) {}
+    MotorTurnForDirection(Block* port, Block* value, bool forward, string unit) : Block("Motor", "MotorTurnForDirection"), port(port), value(value), forward(forward), unit(unit) {}
 
     double execute(Robot& robot) override { //TODO
-        return 0;
+        string good_ports = parse_port(robot, port->executeString(robot), "Motor");
+        if(!is_number(value->executeString(robot))) return 0;
+        for(int i = 0; i < good_ports.length(); ++i){
+            if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
+                robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
+            }
+        }
+        return convert_to_seconds(robot, unit, value->execute(robot));
     }
 };
 
@@ -1117,7 +1125,13 @@ public:
     MotorGoDirectionToPosition(Block* port, string direction, Block* position) : Block("Motor", "MotorGoDirectionToPosition"), port(port), direction(direction), position(position) {}
 
     double execute(Robot& robot) override { //TODO
-        return 0;
+        bool forward = calculate_direction(robot, port->executeString(robot), direction, position->execute(robot));
+        string good_ports = parse_port(robot, port->executeString(robot), "Motor");
+        for(int i = 0; i < good_ports.length(); ++i){
+            if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
+                robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
+            }
+        }
     }
 };
 

@@ -18,6 +18,7 @@ struct State {
 struct MotorState : public State {
     //double duration;
     double position = 0;
+    double speed = 75;
 
     MotorState(double speed) : State("Motor", speed) {}
 };
@@ -46,13 +47,18 @@ struct Robot {
     int angle = 0;
     int wheel_distance;
     int wheel_radius;
-    int movement_speed;
+    int movement_speed = 50;
     double volume;
     string sound_state;
     int button_color;
     double pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
     int absolute_image_position = 0;
-    map<string, State*> states; // motor name -> motor state
+
+    map<string, MotorState*> motor_states; 
+    map<string, ColorSensor*> color_states; 
+    map<string, DistanceSensor*> distance_states; 
+    map<string, ForceSensor*> force_states; 
+
     string movement_motors[2] = {"", ""}; // names of the motors
     pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
 
@@ -61,25 +67,34 @@ struct Robot {
     Robot(string name, int x, int y) : name(name), x(x), y(y) {}
 
     ~Robot() {
-        for (auto& pair : states) {
+        for (auto& pair : motor_states) {
+            delete pair.second;
+        }
+        for (auto& pair : color_states) {
+            delete pair.second;
+        }
+        for (auto& pair : distance_states) {
+            delete pair.second;
+        }
+        for (auto& pair : force_states) {
             delete pair.second;
         }
     }
 
     void addMotorState(const string& key, double speed, double duration) {
-        states[key] = new MotorState(speed);
+        motor_states[key] = new MotorState(speed);
     }
 
     void addColorSensor(const string& key, double value) {
-        states[key] = new ColorSensor( value);
+        color_states[key] = new ColorSensor( value);
     }
 
     void addDistanceSensor(const string& key, double value) {
-        states[key] = new DistanceSensor(value);
+        distance_states[key] = new DistanceSensor(value);
     }
 
     void addForceSensor(const string& key, double value) {
-        states[key] = new ForceSensor(value);
+        force_states[key] = new ForceSensor(value);
     }
 };
 
