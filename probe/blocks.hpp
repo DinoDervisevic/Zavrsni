@@ -31,8 +31,8 @@ class Block {
     
         // changes the state of the robot and returns the number of seconds it took to execute the block (0 in case on instantaneus blocks such as speed change)
         virtual double execute(Robot& robot) = 0; 
-        virtual void finish(Robot& robot){
-            return;
+        virtual double finish(Robot& robot){
+            return 0;
         }
         virtual string executeString(Robot& robot) {
             return to_string(execute(robot));
@@ -613,17 +613,18 @@ public:
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
 
-    void finish(Robot& robot) override {
+    double finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
-            return;
+            return 0;
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
+        return 0;
     }
     
 };
@@ -654,16 +655,17 @@ public:
         return -1;
     }
 
-    void finish(Robot& robot) override {
+    double finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
-            return;
+            return 0;
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
+        return 0;
     }
 };
 
@@ -691,17 +693,18 @@ public:
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
 
-    void finish(Robot& robot) override {
+    double finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
-            return;
+            return 0;
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
+        return 0;
     }
 };
 
@@ -726,16 +729,17 @@ public:
         return -1;
     }
 
-    void finish(Robot& robot) override {
+    double finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
-            return;
+            return 0;
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
+        return 0;
     }
 };
 
@@ -822,12 +826,13 @@ public:
         return time;
     }
 
-    void finish(Robot& robot) override {
+    double finish(Robot& robot) override {
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
                 robot.pixel_display[i][j] = 0;
             }
         }
+        return 0;
     }
 };
 
@@ -999,8 +1004,9 @@ public:
         return time->execute(robot);
     }
 
-    void finish(Robot& robot) override {
+    double finish(Robot& robot) override {
         robot.sound_state = "";
+        return 0;
     }
 };
 
@@ -1105,8 +1111,9 @@ class MotorTurnForDirection : public Block {
 public:
     MotorTurnForDirection(Block* port, Block* value, bool forward, string unit) : Block("Motor", "MotorTurnForDirection"), port(port), value(value), forward(forward), unit(unit) {}
 
-    double execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { 
         string good_ports = parse_port(robot, port->executeString(robot), "Motor");
+        if(good_ports == "") return 0;
         if(!is_number(value->executeString(robot))) return 0;
         for(int i = 0; i < good_ports.length(); ++i){
             if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
@@ -1121,17 +1128,49 @@ class MotorGoDirectionToPosition : public Block {
     Block* port;
     string direction;
     Block* position;
+
+    string good_ports;
+    bool forward;
+
+    bool first_time = true;
 public:
     MotorGoDirectionToPosition(Block* port, string direction, Block* position) : Block("Motor", "MotorGoDirectionToPosition"), port(port), direction(direction), position(position) {}
 
-    double execute(Robot& robot) override { //TODO
-        bool forward = calculate_direction(robot, port->executeString(robot), direction, position->execute(robot));
-        string good_ports = parse_port(robot, port->executeString(robot), "Motor");
+    double execute(Robot& robot) override { 
+        if(first_time){
+            if(port == nullptr || port->executeString(robot) == ""){
+                return 0;
+            }
+            helper(robot);
+            first_time = false;
+        }
+        string good_ports2 = good_ports;
+        if(good_ports == ""){
+            return 0;
+        }
         for(int i = 0; i < good_ports.length(); ++i){
             if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
-                robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
+                if(robot.motor_states[string(1, good_ports[i])]->position < 1.0 || robot.motor_states[string(1, good_ports[i])]->position > 359.0){
+                    robot.motor_states[string(1, good_ports[i])]->value = 0;
+                    good_ports2.erase(i, 1);
+                }
+                else robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
             }
         }
+        if(good_ports2 == ""){
+            return 0;
+        }
+        good_ports = good_ports2;
+        return robot.discrete_time_interval;
+    }
+
+    void helper(Robot& robot) {
+        forward = calculate_direction(robot, port->executeString(robot), direction, position->execute(robot));
+        good_ports = parse_port(robot, port->executeString(robot), "Motor");
+    }
+
+    bool done(){
+        return good_ports == "";
     }
 };
 
@@ -1141,8 +1180,15 @@ class MotorStartDirection : public Block {
 public:
     MotorStartDirection(Block* port, bool forward) : Block("Motor", "MotorStartDirection"), port(port), forward(forward) {}
 
-    double execute(Robot& robot) override { //TODO
-        return 0;
+    double execute(Robot& robot) override { 
+        string good_ports = parse_port(robot, port->executeString(robot), "Motor");
+        if(good_ports == "") return 0;
+        for(int i = 0; i < good_ports.length(); ++i){
+            if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
+                robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
+            }
+        }
+        return -1;
     }
 };
 
@@ -1150,7 +1196,14 @@ class MotorStop : public Block {
     Block* port;
 public:
     MotorStop(Block* port) : Block("Motor", "MotorStop"), port(port) {}
-    double execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override {
+        string good_ports = parse_port(robot, port->executeString(robot), "Motor");
+        if(good_ports == "") return 0;
+        for(int i = 0; i < good_ports.length(); ++i){
+            if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
+                robot.motor_states[string(1, good_ports[i])]->value = 0;
+            }
+        }
         return 0;
     }
 };
@@ -1161,7 +1214,15 @@ class MotorSetSpeed : public Block {
 public:
     MotorSetSpeed(Block* port, Block* speed) : Block("Motor", "MotorSetSpeed"), port(port), speed(speed) {}
 
-    double execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { 
+        string good_ports = parse_port(robot, port->executeString(robot), "Motor");
+        if(good_ports == "") return 0;
+        if(!is_number(speed->executeString(robot))) return 0;
+        for(int i = 0; i < good_ports.length(); ++i){
+            if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
+                robot.motor_states[string(1, good_ports[i])]->speed = speed->execute(robot);
+            }
+        }
         return 0;
     }
 };
@@ -1171,7 +1232,14 @@ class MotorPosition : public Block {
 public:
     MotorPosition(Block* port) : Block("Motor", "MotorPosition"), port(port) {}
 
-    double execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO : provjeri jel ovo i ovo ispod okej
+        string good_ports = parse_port(robot, port->executeString(robot), "Motor");
+        if(good_ports == "") return 0;
+        for(int i = 0; i < good_ports.length(); ++i){
+            if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
+                return robot.motor_states[string(1, good_ports[i])]->position;
+            }
+        }
         return 0;
     }
 };
@@ -1182,6 +1250,13 @@ public:
     MotorSpeed(Block* port) : Block("Motor", "MotorSpeed"), port(port) {}
 
     double execute(Robot& robot) override { //TODO
+        string good_ports = parse_port(robot, port->executeString(robot), "Motor");
+        if(good_ports == "") return 0;
+        for(int i = 0; i < good_ports.length(); ++i){
+            if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
+                return robot.motor_states[string(1, good_ports[i])]->speed;
+            }
+        }
         return 0;
     }
 };

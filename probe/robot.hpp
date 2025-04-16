@@ -62,7 +62,7 @@ struct Robot {
     string movement_motors[2] = {"", ""}; // names of the motors
     pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
 
-    int discrete_time_interval = 0.05; // time in seconds between each simulation step
+    double discrete_time_interval = 0.05; // time in seconds between each simulation step
 
     Robot(string name, int x, int y) : name(name), x(x), y(y) {}
 
@@ -86,7 +86,7 @@ struct Robot {
     }
 
     void addColorSensor(const string& key, double value) {
-        color_states[key] = new ColorSensor( value);
+        color_states[key] = new ColorSensor(value);
     }
 
     void addDistanceSensor(const string& key, double value) {
