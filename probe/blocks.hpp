@@ -31,8 +31,8 @@ class Block {
     
         // changes the state of the robot and returns the number of seconds it took to execute the block (0 in case on instantaneus blocks such as speed change)
         virtual double execute(Robot& robot) = 0; 
-        virtual double finish(Robot& robot){
-            return 0;
+        virtual void finish(Robot& robot){
+            return;
         }
         virtual string executeString(Robot& robot) {
             return to_string(execute(robot));
@@ -613,18 +613,18 @@ public:
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
 
-    double finish(Robot& robot) override {
+    void finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
-            return 0;
+            return;
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
-        return 0;
+        return;
     }
     
 };
@@ -655,17 +655,17 @@ public:
         return -1;
     }
 
-    double finish(Robot& robot) override {
+    void finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
-            return 0;
+            return;
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
-        return 0;
+        return;
     }
 };
 
@@ -693,18 +693,18 @@ public:
         return convert_to_seconds(robot, unit, value->execute(robot));
     }
 
-    double finish(Robot& robot) override {
+    void finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
-            return 0;
+            return;
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
-        return 0;
+        return;
     }
 };
 
@@ -729,17 +729,17 @@ public:
         return -1;
     }
 
-    double finish(Robot& robot) override {
+    void finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
-            return 0;
+            return;
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
-        return 0;
+        return;
     }
 };
 
@@ -826,13 +826,13 @@ public:
         return time;
     }
 
-    double finish(Robot& robot) override {
+    void finish(Robot& robot) override {
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
                 robot.pixel_display[i][j] = 0;
             }
         }
-        return 0;
+        return;
     }
 };
 
@@ -1004,9 +1004,9 @@ public:
         return time->execute(robot);
     }
 
-    double finish(Robot& robot) override {
+    void finish(Robot& robot) override {
         robot.sound_state = "";
-        return 0;
+        return;
     }
 };
 
