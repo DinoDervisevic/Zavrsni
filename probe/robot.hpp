@@ -24,17 +24,18 @@ struct MotorState : public State {
 };
 
 struct ColorSensor : public State {
+    double previous_value = 0;
 
     ColorSensor(double value) : State("ColorSensor", value){}
 };
 
 struct DistanceSensor : public State {
+    double previous_value = 0;
 
     DistanceSensor(double value) : State("DistanceSensor", value){}
 };
 
 struct ForceSensor : public State {
-
     double previous_value = 0;
 
     ForceSensor(double value) : State("ForceSensor", value){}
@@ -45,6 +46,9 @@ struct Robot {
     int x, y;
     double v1 = 0, v2 = 0;
     int angle = 0;
+    int default_yaw_angle = 0; // when calculating yaw angle, this needs to be subtracted from the current angle
+    int pitch_angle = 0;
+    int roll_angle = 0;
     int wheel_distance;
     int wheel_radius;
     int movement_speed = 50;
@@ -54,6 +58,15 @@ struct Robot {
     double pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
     int absolute_image_position = 0;
 
+    int tilt_angle = 0; 
+    string orientation = ""; // "front", "back", "left side", "right side", "top", "bottom"
+    string gesture = ""; // "shaken", "tapped", "falling"
+
+    map<string, string> buttons = {
+        {"left", "released"},
+        {"right", "released"}
+    };
+
     map<string, MotorState*> motor_states; 
     map<string, ColorSensor*> color_states; 
     map<string, DistanceSensor*> distance_states; 
@@ -62,7 +75,11 @@ struct Robot {
     string movement_motors[2] = {"", ""}; // names of the motors
     pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
 
+    double time_since_start = 0; // current time in seconds
     double discrete_time_interval = 0.05; // time in seconds between each simulation step
+
+    vector<string> broadcasts; // list of broadcasted messages
+    vector<string> finished_broadcasts; // list of finished broadcasts
 
     Robot(string name, int x, int y) : name(name), x(x), y(y) {}
 

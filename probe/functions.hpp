@@ -53,15 +53,17 @@ bool is_integer(const std::string& s) {
         return false;
     }
 }
-string calculate_pressed_event(ForceSensor* state){
-    if(state->value > 0 && state->previous_value == 0){
-        state->previous_value = state->value;
-        return "pressed";
-    } else if(state->value == 0 && state->previous_value > 0){
-        state->previous_value = state->value;
-        return "released";
+bool calculate_pressed_event(ForceSensor* state, string event){
+    if(state->value >= 3 && state->previous_value < state->value && event == "pressed"){
+        return true;
+    } else if(state->value == 0 && state->previous_value > 0 && event == "released"){
+        return true;
+    } else if (state->value >= 5 && state->previous_value < state->value && event == "hard-pressed"){
+        return true;
+    } else if(state->value != state->previous_value && event == "pressure changed"){
+        return true;
     } else {
-        return "none";
+        return false;
     }
 }
 

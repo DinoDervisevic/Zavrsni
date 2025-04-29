@@ -38,7 +38,7 @@ class Block {
             return to_string(execute(robot));
         }
         virtual ~Block() = default;
-        virtual bool done() {
+        virtual bool done(Robot& robot) {
             return true;
         }
 };
@@ -58,7 +58,7 @@ public:
         }
         while(time_left == 0 || current_block != nullptr) {
             time_left += current_block->execute(robot);
-            if(current_block->done()) current_block = current_block->next;
+            if(current_block->done(robot)) current_block = current_block->next;
         }
     }
 
@@ -129,7 +129,7 @@ public:
 
     double execute(Robot& robot) override {
         if (robot.force_states.find(port->executeString(robot)) != robot.force_states.end()
-        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port->executeString(robot)])) == event) {
+        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port->executeString(robot)]), event)) {
             return 1;
         }
         else return 0;
@@ -146,6 +146,7 @@ public:
 
     double execute(Robot& robot) override {
         if (robot.distance_states.find(port->executeString(robot)) != robot.distance_states.end()
+        && robot.distance_states[port->executeString(robot)]->value != robot.distance_states[port->executeString(robot)]->previous_value
         && check_distance(robot.distance_states[port->executeString(robot)]->value == distance->execute(robot), option, distance->execute(robot))) {
             return 1;
         }
@@ -159,7 +160,12 @@ public:
     WhenTilted(Block* angle) : Block("Event", "WhenTilted"), angle(angle) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement tilt detection
+        if(is_number(angle->executeString(robot)) && angle->execute(robot) >= 0 && angle->execute(robot) <= 5){
+            if (robot.tilt_angle == stoi(angle->executeString(robot))) {
+                return 1;
+            }
+        }
+        return 0;
     }
 };
 
@@ -169,7 +175,10 @@ public:
     WhenOrientation(string orientation) : Block("Event", "WhenOrientation"), orientation(orientation) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement orientation detection
+        if (robot.orientation == orientation) {
+            return 1;
+        }
+        return 0;
     }
 };
 
@@ -179,7 +188,10 @@ public:
     WhenGesture(string gesture) : Block("Event", "WhenGesture"), gesture(gesture) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement gesture detection
+        if (robot.gesture == gesture) {
+            return 1;
+        }
+        return 0;
     }
 };
 
@@ -190,7 +202,10 @@ public:
     WhenButton(string button, string event) : Block("Event", "WhenButton"), button(button), event(event) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement button event detection
+        if (robot.buttons.find(button) != robot.buttons.end() && robot.buttons[button] == event) {
+            return 1;
+        }
+        return 0;
     }
 };
 
@@ -200,17 +215,27 @@ public:
     WhenTimer(Block* value) : Block("Event", "WhenTimer"), value(value) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement timer event detection
+        if(!is_number(value->executeString(robot)) && value->execute(robot) < 0){
+            return 0;
+        }
+        if(robot.time_since_start > value->execute(robot)){
+            return 1;
+        } else {
+            return 0;
+        }
     }
 };
 
-class WhenBroadcastReceived : public Block {
+class WhenBroadcastReceived : public Block { // TODO: napravi broadcast do kraja sto se tice paralelizma
     string message;
 public:
     WhenBroadcastReceived(string message) : Block("Event", "WhenBroadcastReceived"), message(message) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement broadcast event detection
+        if (find(robot.broadcasts.begin(), robot.broadcasts.end(), message) != robot.broadcasts.end()) {
+            return 1;
+        }
+        return 0;
     }
 };
 
@@ -220,7 +245,13 @@ public:
     Broadcast(Block* message) : Block("Event", "Broadcast"), message(message) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement broadcast sending
+        string str_message = message->executeString(robot);
+        if (str_message.length() > 0) {
+            robot.broadcasts.push_back(str_message);
+            return 0;
+        } else {
+            return 0;
+        }
     }
 };
 
@@ -230,7 +261,17 @@ public:
     BroadcastAndWait(Block* message) : Block("Event", "BroadcastAndWait"), message(message) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement broadcast sending and waiting for response
+        string str_message = message->executeString(robot);
+        if (str_message.length() > 0) robot.broadcasts.push_back(str_message);
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
+        if (find(robot.finished_broadcasts.begin(), robot.finished_broadcasts.end(), message->executeString(robot)) != robot.finished_broadcasts.end()) {
+            return true;
+        } else {
+            return false;
+        }
     }
 };
 //--------------------------------------------
@@ -435,7 +476,7 @@ public:
     Join(Block* value1, Block* value2) : Block("Operator", "Join"), value1(value1), value2(value2) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement string joining
+        return 0;
     }
 
     string executeString(Robot& robot) override {
@@ -450,7 +491,7 @@ public:
     LetterOf(Block* value1, Block* value2) : Block("Operator", "LetterOf"), value1(value1), value2(value2) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement string letter extraction
+        return 0;
     }
 
     string executeString(Robot& robot) override {
@@ -585,7 +626,7 @@ public:
 //--------------------------------------------
 
 //-------------MOVEMENT BLOCKS----------------
-class Move : public Block { // TODO :  on this and every other move block, change speed of motors, not wheels (when you get the robot that is)
+class Move : public Block {
     bool forward;
     Block* value;
     string unit;
@@ -714,7 +755,7 @@ class StartSteer : public Block {
 public:
     StartSteer(Block* direction) : Block("Move", "StartSteer"), direction(direction) {}
 
-    double execute(Robot& robot) override { // TODO : tu isti direction je jedan veliki ?
+    double execute(Robot& robot) override { // TODO : tu isto direction je jedan veliki ?
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
@@ -778,7 +819,7 @@ class SetMovementPair : public Block { // TODO : change so this only marks these
     Block* pair;
 public:
     SetMovementPair(Block* pair) : Block("Move", "SetMovementPair"), pair(pair) {}
-    double execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { 
         if (pair->executeString(robot).length() == 2){
             robot.movement_motors[0] = pair->executeString(robot)[0];
             robot.movement_motors[1] = pair->executeString(robot)[1];
@@ -810,7 +851,7 @@ class DisplayImageForTime : public Block {
 public:
     DisplayImageForTime(Block* image, double time) : Block("Display", "DisplayImageForTime"), image(image), time(time) {}
 
-    double execute(Robot& robot) override { // TODO : image mora biti Block*
+    double execute(Robot& robot) override { 
         string str_image = image->executeString(robot);
         for(int i = 0; i < 25; ++i){
             if(i >= str_image.length()){
@@ -912,11 +953,11 @@ public:
     }
 };
 
-class DisplayRotate : public Block { // TODO
+class DisplayRotate : public Block {
     bool forward;
 public:
     DisplayRotate(bool forward) : Block("Display", "DisplayRotate"), forward(forward) {}
-    double execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO : provjeri
         if(forward) rotate_matrix_right(robot);
         else rotate_matrix_left(robot);
         return 0;
@@ -1129,7 +1170,7 @@ class MotorGoDirectionToPosition : public Block {
     string direction;
     Block* position;
 
-    string good_ports;
+    string good_ports = "";
     bool forward;
 
     bool first_time = true;
@@ -1169,7 +1210,7 @@ public:
         good_ports = parse_port(robot, port->executeString(robot), "Motor");
     }
 
-    bool done(){
+    bool done(Robot& robot){
         return good_ports == "";
     }
 };
@@ -1249,7 +1290,7 @@ class MotorSpeed : public Block {
 public:
     MotorSpeed(Block* port) : Block("Motor", "MotorSpeed"), port(port) {}
 
-    double execute(Robot& robot) override { //TODO
+    double execute(Robot& robot) override { //TODO : provjeri
         string good_ports = parse_port(robot, port->executeString(robot), "Motor");
         if(good_ports == "") return 0;
         for(int i = 0; i < good_ports.length(); ++i){
@@ -1298,7 +1339,7 @@ public:
         return t;
     }
 
-    bool done() override {
+    bool done(Robot& robot) override {
         return when_done;
     }
 };
@@ -1320,7 +1361,7 @@ public:
         return t;
     }
 
-    bool done() override {
+    bool done(Robot& robot) override {
         return false;
     }
 };
@@ -1350,7 +1391,7 @@ public:
         return 0;
     }
 
-    bool done() override {
+    bool done(Robot& robot) override {
         return when_done;
     }
 };
@@ -1384,7 +1425,7 @@ public:
         return t;
     }
 
-    bool done() override {
+    bool done(Robot& robot) override {
         return when_done;
     }
 };
@@ -1403,7 +1444,7 @@ public:
         return -1;
     }
 
-    bool done() override {
+    bool done(Robot& robot) override {
         return when_done;
     }
 };
@@ -1432,7 +1473,7 @@ public:
         return t;
     }
 
-    bool done() override {
+    bool done(Robot& robot) override {
         return when_done;
     }
 };
@@ -1466,9 +1507,20 @@ public:
     IsColor(Block* port, Block* color) : Block("Sensor", "IsColor"), port(port), color(color) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement color detection
+        if (robot.color_states.find(port->executeString(robot)) != robot.color_states.end() 
+        && robot.color_states[port->executeString(robot)]->value == color->execute(robot)) {
+            return 1;
+        }
+        else return 0;
     }
-    //TODO : make the executeString funciton for this and all other boolean-type sensor blocks
+
+    string executeString(Robot& robot) override {
+        if (robot.color_states.find(port->executeString(robot)) != robot.color_states.end() 
+        && robot.color_states[port->executeString(robot)]->value == color->execute(robot)) {
+            return "True";
+        }
+        else return "False";
+    }
 };
 
 class SensorColor : public Block {
@@ -1477,7 +1529,9 @@ public:
     SensorColor(Block* port) : Block("Sensor", "SensorColor"), port(port) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement color detection
+        if (robot.color_states.find(port->executeString(robot)) != robot.color_states.end()){
+            return robot.color_states[port->executeString(robot)]->value;
+        }
     }
 };
 
@@ -1510,7 +1564,19 @@ public:
     IsPressed(Block* port, string operation) : Block("Sensor", "IsPressed"), port(port), operation(operation) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement button press detection
+        if (robot.force_states.find(port->executeString(robot)) != robot.force_states.end()
+        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port->executeString(robot)]), operation)) {
+            return 1;
+        }
+        else return 0;
+    }
+
+    string executeString(Robot& robot) override {
+        if (robot.force_states.find(port->executeString(robot)) != robot.force_states.end()
+        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port->executeString(robot)]), operation)) {
+            return "True";
+        }
+        return "False";
     }
 };
 
@@ -1521,7 +1587,9 @@ public:
     SensorForce(Block* port, string unit) : Block("Sensor", "SensorForce"), port(port), unit(unit) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement force detection
+        if (robot.force_states.find(port->executeString(robot)) != robot.force_states.end()){
+            return robot.force_states[port->executeString(robot)]->value; // TODO: ovdje i gore skuziit sto tocno unti znaci i kako se radi s postotcima
+        }
     }
 };
 
@@ -1534,7 +1602,21 @@ public:
     IsDistance(Block* port, string comparator, Block* value, string unit) : Block("Sensor", "IsDistance"), port(port), comparator(comparator), value(value), unit(unit) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement distance detection
+        if (robot.distance_states.find(port->executeString(robot)) != robot.distance_states.end()
+        && robot.distance_states[port->executeString(robot)]->value != robot.distance_states[port->executeString(robot)]->previous_value
+        && check_distance(robot.distance_states[port->executeString(robot)]->value == value->execute(robot), comparator, value->execute(robot))) {
+            return 1;
+        }
+        else return 0;
+    }
+
+    string executeString(Robot& robot) override {
+        if (robot.distance_states.find(port->executeString(robot)) != robot.distance_states.end()
+        && robot.distance_states[port->executeString(robot)]->value != robot.distance_states[port->executeString(robot)]->previous_value
+        && check_distance(robot.distance_states[port->executeString(robot)]->value == value->execute(robot), comparator, value->execute(robot))) {
+            return "True";
+        }
+        return "False";
     }
 };
 
@@ -1545,7 +1627,9 @@ public:
     SensorDistance(Block* port, string unit) : Block("Sensor", "SensorDistance"), port(port), unit(unit) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement distance detection
+        if (robot.distance_states.find(port->executeString(robot)) != robot.distance_states.end()) {
+            return robot.distance_states[port->executeString(robot)]->value; // TODO: ovdje i gore skuziit sto tocno unti znaci i kako se radi s postotcima
+        }
     }
 };
 
@@ -1555,7 +1639,21 @@ public:
     IsTilted(Block* angle) : Block("Sensor", "IsTilted"), angle(angle) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement tilt detection
+        if(is_number(angle->executeString(robot)) && angle->execute(robot) >= 0 && angle->execute(robot) <= 5){
+            if (robot.tilt_angle == stoi(angle->executeString(robot))) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    string executeString(Robot& robot) override {
+        if(is_number(angle->executeString(robot)) && angle->execute(robot) >= 0 && angle->execute(robot) <= 5){
+            if (robot.tilt_angle == stoi(angle->executeString(robot))) {
+                return "True";
+            }
+        }
+        return "False";
     }
 };
 
@@ -1565,7 +1663,17 @@ public:
     IsOrientation(string orientation) : Block("Sensor", "IsOrientation"), orientation(orientation) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement orientation detection
+        if (robot.orientation == orientation) {
+            return 1;
+        }
+        return 0;
+    }
+
+    string executeString(Robot& robot) override {
+        if (robot.orientation == orientation) {
+            return "True";
+        }
+        return "False";
     }
 };
 
@@ -1575,7 +1683,7 @@ public:
     IsMotion(string motion) : Block("Sensor", "IsMotion"), motion(motion) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement motion detection
+        return 0; // TODO: i don't think i have basically any way of implementing this
     }
 };
 
@@ -1585,7 +1693,9 @@ public:
     OrientationAxis(string axis) : Block("Sensor", "OrientationAxis"), axis(axis) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement orientation axis detection
+        if(axis == "yaw") return robot.angle - robot.default_yaw_angle;
+        else if(axis == "pitch") return robot.pitch_angle;
+        else if(axis == "roll") return robot.roll_angle;
     }
 };
 
@@ -1594,7 +1704,8 @@ public:
     ResetYawAngle() : Block("Sensor", "ResetYawAngle") {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement yaw angle reset
+        robot.default_yaw_angle = robot.angle;
+        return 0;
     }
 };
 
@@ -1605,7 +1716,17 @@ public:
     IsButtonPressed(string button, string event) : Block("Sensor", "IsButtonPressed"), button(button), event(event) {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement button press detection
+        if (robot.buttons.find(button) != robot.buttons.end() && robot.buttons[button] == event) {
+            return 1;
+        }
+        return 0;
+    }
+
+    string executeString(Robot& robot) override {
+        if (robot.buttons.find(button) != robot.buttons.end() && robot.buttons[button] == event) {
+            return "True";
+        }
+        return "False";
     }
 };
 
@@ -1614,7 +1735,7 @@ public:
     Timer() : Block("Sensor", "Timer") {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement timer detection
+        return robot.time_since_start;
     }
 }; 
 
@@ -1623,7 +1744,8 @@ public:
     ResetTimer() : Block("Sensor", "ResetTimer") {}
 
     double execute(Robot& robot) override {
-        return 0; // TODO: implement timer reset
+        robot.time_since_start = 0;
+        return 0;
     }
 };
 //-------------------------------------------
@@ -2797,7 +2919,6 @@ FunctionMap createFunctionMap() {
         return make_unique<BlankBlockInt>(stoi(note));
     };
 
-    //TODO : add the rest of the blocks when i know what to do w conditions
 
     return functionMap;
 }
