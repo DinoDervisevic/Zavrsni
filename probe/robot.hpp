@@ -56,7 +56,10 @@ struct Robot {
     string sound_state;
     int button_color;
     double pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
+    double pixel_display_brightness = 100; // brightness of the display
     int absolute_image_position = 0;
+
+    string sound_playing = "";
 
     int tilt_angle = 0; 
     string orientation = ""; // "front", "back", "left side", "right side", "top", "bottom"

@@ -862,7 +862,7 @@ public:
         }
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
-                robot.pixel_display[i][j] = str_image[i*5 + j] * 10 * 10 / 9;
+                robot.pixel_display[i][j] = str_image[i*5 + j] * robot.pixel_display_brightness / 9;
             }
         }
         return time;
@@ -893,20 +893,20 @@ public:
         }
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
-                robot.pixel_display[i][j] = str_image[i*5 + j] * 10 * 10 / 9;
+                robot.pixel_display[i][j] = str_image[i*5 + j] * robot.pixel_display_brightness / 9;
             }
         }
         return -1;
     }
 };
 
-class DisplayText : public Block { // TODO
+class DisplayText : public Block {
     Block* text;
     int letter_counter = 0;
     int word_counter = 0;
 public:
     DisplayText(Block* text) : Block("Display", "DisplayText"), text(text) {}
-    double execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override { // TODO: provjeri jel sve okej
         string str_text = text->executeString(robot);
 
         for (int i = 0; i < 5; ++i) {
@@ -922,7 +922,7 @@ public:
         if(str_text.length() == 1){
             for (int i = 0; i < 5; ++i) {
                 for (int j = 0; j < 5; ++j) {
-                    robot.pixel_display[i][j] = letter_matrices.at(str_text[0]).at(i).at(j);
+                    robot.pixel_display[i][j] = letter_matrices.at(str_text[0]).at(i).at(j) * robot.pixel_display_brightness;
                 }
             }
             word_counter++;
@@ -933,7 +933,7 @@ public:
             for (int i = 0; i < 5; ++i) {
                 for (int j = 0; j < 5; ++j) {
                     if(j == 4){
-                        robot.pixel_display[i][j] = letter_matrices.at(str_text[word_counter]).at(i).at(letter_counter);
+                        robot.pixel_display[i][j] = letter_matrices.at(str_text[word_counter]).at(i).at(letter_counter) * robot.pixel_display_brightness;
                     }
                     else robot.pixel_display[i][j] = robot.pixel_display[i][j+1];
                 }
@@ -975,13 +975,19 @@ public:
     }
 };
 
-class SetPixelbrightness : public Block { // TODO
-    double brightness;
+class SetPixelbrightness : public Block {
+    Block* brightness;
 public:
-    SetPixelbrightness(double brightness) : Block("Display", "SetPixelbrightness"), brightness(brightness) {}
+    SetPixelbrightness(Block* brightness) : Block("Display", "SetPixelbrightness"), brightness(brightness) {}
 
-    double execute(Robot& robot) override { // TODO
-        
+    double execute(Robot& robot) override {
+        if(!is_number(brightness->executeString(robot))){
+            return 0;
+        }
+        double b = brightness->execute(robot);
+        b = min(b, 100.0);
+        b = max(b, 0.0);
+        robot.pixel_display_brightness = b;
         return 0;
     }
 };
@@ -1061,23 +1067,24 @@ public:
 
 
 //-------------SOUND BLOCKS-------------------
-class PlayUntilDone : public Block { // TODO : finish
-    string sound_name;
-    string sound_location;
+//TODO : playing sounds ne znam kako napraviti jos
+class PlayUntilDone : public Block {
+    Block* sound_name;
 public:
-    PlayUntilDone(string sound, string sound_location) : Block("Sound", "PlayUntilDone"), sound_name(sound_name), sound_location(sound_location) {};
-    double execute(Robot& robot) override { // TODO
+    PlayUntilDone(Block* sound) : Block("Sound", "PlayUntilDone"), sound_name(sound_name){};
+    double execute(Robot& robot) override {
+        robot.sound_playing = sound_name->executeString(robot);
         return 0;
     }
 };
 
-class Play : public Block { // TODO : finish
-    string sound_name;
-    string sound_location;
+class Play : public Block {
+    Block* sound_name;
 public:
-    Play(string sound, string sound_location) : Block("Sound", "Play"), sound_name(sound_name), sound_location(sound_location) {};
-    double execute(Robot& robot) override { // TODO
-        return 0;
+    Play(Block* sound) : Block("Sound", "Play"), sound_name(sound_name){};
+    double execute(Robot& robot) override {
+        robot.sound_playing = sound_name->executeString(robot);
+        return -1;
     }
 };
 
@@ -1130,22 +1137,22 @@ public:
 
 class ChangeEffectBy : public Block { // TODO : nemam pojma sto ovo tocno radi
     string effect;
-    double value;
+    Block* value;
 public:
-    ChangeEffectBy(string effect, double value) : Block("Sound", "ChangeEffectBy"), effect(effect), value(value) {}
+    ChangeEffectBy(string effect, Block* value) : Block("Sound", "ChangeEffectBy"), effect(effect), value(value) {}
 
-    double execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override {
         return 0;
     }
 };
 
 class SetEffectTo : public Block { // TODO : nemam pojma sto ovo tocno radi
     string effect;
-    double value;
+    Block* value;
 public:
-    SetEffectTo(string effect, double value) : Block("Sound", "SetEffectTo"), effect(effect), value(value) {}
+    SetEffectTo(string effect, Block* value) : Block("Sound", "SetEffectTo"), effect(effect), value(value) {}
 
-    double execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override {
         return 0;
     }
 };
@@ -2402,7 +2409,13 @@ FunctionMap createFunctionMap() {
     };
 
     functionMap["flipperlight_lightDisplaySetBrightness"] = [&functionMap](const json& json_object, const string& name) {
-        double brightness = stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>());
+        Block*brightness;
+        if(json_object[name]["inputs"]["BRIGHTNESS"][0] == 1){
+            string brightness_name = json_object[name]["inputs"]["BRIGHTNESS"][1];
+            brightness = functionMap[json_object[brightness_name]["opcode"]](json_object, brightness_name).release();
+        } else {
+            brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
+        }
         return make_unique<SetPixelbrightness>(brightness);
     };
 
@@ -2464,23 +2477,29 @@ FunctionMap createFunctionMap() {
     //--------------------------------------------
     // Sound blocks
     functionMap["flippersound_playSoundUntilDone"] = [&functionMap](const json& json_object, const string& name) {
-        string sound_name = json_object[name]["inputs"]["SOUND"][1];
+        /*string sound_name = json_object[name]["inputs"]["SOUND"][1];
         string sound_string = json_object[sound_name]["fields"]["field_flippersound_sound-selector"][0].get<string>();
         json sound_json = json::parse(sound_string);
         string sound = sound_json["name"].get<string>();
-        string sound_location = sound_json["location"].get<string>();
+        string sound_location = sound_json["location"].get<string>();*/
 
-        return make_unique<PlayUntilDone>(sound, sound_location);
+        string sound_name = json_object[name]["inputs"]["SOUND"][1];
+        Block* sound = functionMap[json_object[sound_name]["opcode"]](json_object, sound_name).release();
+
+        return make_unique<PlayUntilDone>(sound);
     };
 
     functionMap["flippersound_playSound"] = [&functionMap](const json& json_object, const string& name) {
-        string sound_name_name = json_object[name]["inputs"]["SOUND"][1];
+        /*string sound_name_name = json_object[name]["inputs"]["SOUND"][1];
         string sound_string = json_object[sound_name_name]["fields"]["field_flippersound_sound-selector"][0].get<string>();
         json sound_json = json::parse(sound_string);
         string sound_name = sound_json["name"].get<string>();
-        string sound_location = sound_json["location"].get<string>();
+        string sound_location = sound_json["location"].get<string>();*/
 
-        return make_unique<Play>(sound_name, sound_location);
+        string sound_name = json_object[name]["inputs"]["SOUND"][1];
+        Block* sound = functionMap[json_object[sound_name]["opcode"]](json_object, sound_name).release();
+
+        return make_unique<Play>(sound);
     };
 
     functionMap["flippersound_beepForTime"] = [&functionMap](const json& json_object, const string& name) {
@@ -2508,13 +2527,25 @@ FunctionMap createFunctionMap() {
 
     functionMap["sound_changeeffectby"] = [&functionMap](const json& json_object, const string& name) {
         string effect = json_object[name]["fields"]["EFFECT"][1].get<string>();
-        double value = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
+        Block* value;
+        if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            string value_name = json_object[name]["inputs"]["VALUE"][1];
+            value = functionMap[json_object[value_name]["opcode"]](json_object, value_name).release();
+        } else {
+            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        }
         return make_unique<ChangeEffectBy>(effect, value);
     };
 
     functionMap["sound_seteffectto"] = [&functionMap](const json& json_object, const string& name) {
         string effect = json_object[name]["fields"]["EFFECT"][1].get<string>();
-        double value = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
+        Block* value;
+        if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            string value_name = json_object[name]["inputs"]["VALUE"][1];
+            value = functionMap[json_object[value_name]["opcode"]](json_object, value_name).release();
+        } else {
+            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        }
         return make_unique<SetEffectTo>(effect, value);
     };
 
