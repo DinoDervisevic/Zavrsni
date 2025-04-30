@@ -15,6 +15,7 @@
 #include "json.hpp"
 #include "robot.hpp"
 #include "functions.hpp"
+#include "display_letters.hpp"
 
 using namespace std;
 
@@ -815,7 +816,7 @@ public:
     }
 };
 
-class SetMovementPair : public Block { // TODO : change so this only marks these two ports as wheels, not the wheels as being on these two ports
+class SetMovementPair : public Block {
     Block* pair;
 public:
     SetMovementPair(Block* pair) : Block("Move", "SetMovementPair"), pair(pair) {}
@@ -832,13 +833,13 @@ public:
     }
 };
 
-class SetMotorRotation : public Block { // TODO : pravo da kazem jako sam zbunjen oko toga sto tocno ovo radi
+class SetMotorRotation : public Block { // TODO : ja sam nekih 80% siguran da ovo radi doslovno nista
     string unit;
     Block* value;
 public:
     SetMotorRotation(string unit, Block* value) : Block("Move", "SetMotorRotation"), unit(unit), value(value) {}
 
-    double execute(Robot& robot) override { // TODO
+    double execute(Robot& robot) override {
         return 0;
     }
 };
@@ -900,11 +901,63 @@ public:
 };
 
 class DisplayText : public Block { // TODO
-    string text;
+    Block* text;
+    int letter_counter = 0;
+    int word_counter = 0;
 public:
-    DisplayText(string text) : Block("Display", "DisplayText"), text(text) {}
+    DisplayText(Block* text) : Block("Display", "DisplayText"), text(text) {}
     double execute(Robot& robot) override { // TODO
-        return 0;
+        string str_text = text->executeString(robot);
+
+        for (int i = 0; i < 5; ++i) {
+            for (int j = 0; j < 5; ++j) {
+                robot.pixel_display[i][j] = 0;
+            }
+        }
+
+        if(str_text.length() == 0){
+            return 0;
+        }
+
+        if(str_text.length() == 1){
+            for (int i = 0; i < 5; ++i) {
+                for (int j = 0; j < 5; ++j) {
+                    robot.pixel_display[i][j] = letter_matrices.at(str_text[0]).at(i).at(j);
+                }
+            }
+            word_counter++;
+            return 0.5;
+        }
+
+        else{
+            for (int i = 0; i < 5; ++i) {
+                for (int j = 0; j < 5; ++j) {
+                    if(j == 4){
+                        robot.pixel_display[i][j] = letter_matrices.at(str_text[word_counter]).at(i).at(letter_counter);
+                    }
+                    else robot.pixel_display[i][j] = robot.pixel_display[i][j+1];
+                }
+            }
+            letter_counter++;	
+            if (letter_counter >= 5) {
+                letter_counter = 0;
+                word_counter++;
+            }
+            return 0.1067;
+        }
+    }
+
+    bool done(Robot& robot) override {
+        if (word_counter >= text->executeString(robot).length()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    void finish(Robot& robot) override {
+        word_counter = 0;
+        letter_counter = 0;
     }
 };
 
@@ -2334,7 +2387,13 @@ FunctionMap createFunctionMap() {
     };
 
     functionMap["flipperlight_lightDisplayText"] = [&functionMap](const json& json_object, const string& name) {
-        string text = json_object[name]["inputs"]["TEXT"][1][1].get<string>();
+        Block* text;
+        if(json_object[name]["inputs"]["TEXT"][0] == 1){
+            text = new BlankBlockString(json_object[name]["inputs"]["TEXT"][1][1].get<string>());
+        } else {
+            string text_name = json_object[name]["inputs"]["TEXT"][1];
+            text = functionMap[json_object[text_name]["opcode"]](json_object, text_name).release();
+        }
         return make_unique<DisplayText>(text);
     };
 
