@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <cctype>
 #include <memory>
 #include <functional>
 #include <algorithm>
@@ -103,7 +104,7 @@ public:
     WhenProgramStarts() : Block("Event", "WhenProgramStarts") {}
 
     double execute(Robot& robot) override {
-        return 1;
+        return robot.time_since_start == 0 ? 1 : 0;
     }
 };
 
@@ -114,8 +115,10 @@ public:
     WhenColor(Block* port, Block* color) : Block("Event", "WhenColor"), port(port), color(color) {}
 
     double execute(Robot& robot) override {
-        if (robot.color_states.find(port->executeString(robot)) != robot.color_states.end() 
-        && robot.color_states[port->executeString(robot)]->value == color->execute(robot)) {
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.color_states.find(port_name) != robot.color_states.end() 
+        && is_number(color->executeString(robot))
+        && robot.color_states[port_name]->value == color->execute(robot)) {
             return 1;
         }
         else return 0;
@@ -129,8 +132,9 @@ public:
     WhenPressed(Block* port, string event) : Block("Event", "WhenPressed"), port(port), event(event) {}
 
     double execute(Robot& robot) override {
-        if (robot.force_states.find(port->executeString(robot)) != robot.force_states.end()
-        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port->executeString(robot)]), event)) {
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.force_states.find(port_name) != robot.force_states.end()
+        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port_name]), event)) {
             return 1;
         }
         else return 0;
@@ -146,9 +150,11 @@ public:
     WhenDistance(Block* port, string option, Block* distance, string unit) : Block("Event", "WhenDistance"), port(port), option(option), distance(distance), unit(unit) {}
 
     double execute(Robot& robot) override {
-        if (robot.distance_states.find(port->executeString(robot)) != robot.distance_states.end()
-        && robot.distance_states[port->executeString(robot)]->value != robot.distance_states[port->executeString(robot)]->previous_value
-        && check_distance(robot.distance_states[port->executeString(robot)]->value == distance->execute(robot), option, distance->execute(robot))) {
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.distance_states.find(port_name) != robot.distance_states.end()
+        && is_number(distance->executeString(robot))
+        && robot.distance_states[port_name]->value != robot.distance_states[port_name]->previous_value
+        && check_distance(robot.distance_states[port_name]->value == distance->execute(robot), option, distance->execute(robot))) {
             return 1;
         }
         else return 0;
@@ -162,7 +168,7 @@ public:
 
     double execute(Robot& robot) override {
         if(is_number(angle->executeString(robot)) && angle->execute(robot) >= 0 && angle->execute(robot) <= 5){
-            if (robot.tilt_angle == stoi(angle->executeString(robot))) {
+            if (robot.tilt_angle == stod(angle->executeString(robot))) {
                 return 1;
             }
         }
@@ -216,7 +222,7 @@ public:
     WhenTimer(Block* value) : Block("Event", "WhenTimer"), value(value) {}
 
     double execute(Robot& robot) override {
-        if(!is_number(value->executeString(robot)) && value->execute(robot) < 0){
+        if(!is_number(value->executeString(robot)) || value->execute(robot) < 0){
             return 0;
         }
         if(robot.time_since_start > value->execute(robot)){
@@ -224,6 +230,19 @@ public:
         } else {
             return 0;
         }
+    }
+};
+
+class WhenCondition : public Block {
+    Block* condition;
+public:
+    WhenCondition(Block* condition) : Block("Event", "WhenCondition"), condition(condition) {}
+
+    double execute(Robot& robot) override {
+        if (condition->execute(robot)) {
+            return 1;
+        }
+        return 0;
     }
 };
 
@@ -336,7 +355,7 @@ public:
     }
 };
 
-//Some of these return a binary value, and some a number or string, depending on the context in which they are used
+//Some of these return a binary value, some a number or string, depending on the context in which they are used
 class LessThan : public Block {
     Block* value1;
     Block* value2;
@@ -1899,6 +1918,14 @@ FunctionMap createFunctionMap() {
         }
         
         return make_unique<WhenTimer>(value);
+    };
+
+    functionMap["flipperevents_whenCondition"] = [&functionMap](const json& json_object, const string& name) {
+        Block* condition;
+        string from_name = json_object[name]["inputs"]["CONDITION"][1];
+        condition = functionMap[json_object[from_name]["opcode"]](json_object, from_name).release();
+        
+        return make_unique<WhenCondition>(condition);
     };
 
     functionMap["event_whenbroadcastreceived"] = [&functionMap](const json& json_object, const string& name) {
