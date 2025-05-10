@@ -119,6 +119,7 @@ public:
     WhenColor(Block* port, Block* color) : Block("Event", "WhenColor"), port(port), color(color) {}
 
     double execute(Robot& robot) override {
+        if(port->executeString(robot).length() < 1) return 0;
         string port_name = string(1, toupper(port->executeString(robot)[0]));
         if (robot.color_states.find(port_name) != robot.color_states.end() 
         && is_number(color->executeString(robot))
@@ -136,6 +137,7 @@ public:
     WhenPressed(Block* port, string event) : Block("Event", "WhenPressed"), port(port), event(event) {}
 
     double execute(Robot& robot) override {
+        if(port->executeString(robot).length() < 1) return 0;
         string port_name = string(1, toupper(port->executeString(robot)[0]));
         if (robot.force_states.find(port_name) != robot.force_states.end()
         && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port_name]), event)) {
@@ -154,6 +156,7 @@ public:
     WhenDistance(Block* port, string option, Block* distance, string unit) : Block("Event", "WhenDistance"), port(port), option(option), distance(distance), unit(unit) {}
 
     double execute(Robot& robot) override {
+        if(port->executeString(robot).length() < 1) return 0;
         string port_name = string(1, toupper(port->executeString(robot)[0]));
         if (robot.distance_states.find(port_name) != robot.distance_states.end()
         && is_number(distance->executeString(robot))
@@ -1698,16 +1701,20 @@ public:
     IsColor(Block* port, Block* color) : Block("Sensor", "IsColor"), port(port), color(color) {}
 
     double execute(Robot& robot) override {
-        if (robot.color_states.find(port->executeString(robot)) != robot.color_states.end() 
-        && robot.color_states[port->executeString(robot)]->value == color->execute(robot)) {
+        if(port->executeString(robot).length() < 1) return 0;
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.color_states.find(port_name) != robot.color_states.end() 
+        && robot.color_states[port_name]->value == color->execute(robot)) {
             return 1;
         }
         else return 0;
     }
 
     string executeString(Robot& robot) override {
-        if (robot.color_states.find(port->executeString(robot)) != robot.color_states.end() 
-        && robot.color_states[port->executeString(robot)]->value == color->execute(robot)) {
+        if(port->executeString(robot).length() < 1) return 0;
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.color_states.find(port_name) != robot.color_states.end() 
+        && robot.color_states[port_name]->value == color->execute(robot)) {
             return "True";
         }
         else return "False";
@@ -1720,8 +1727,10 @@ public:
     SensorColor(Block* port) : Block("Sensor", "SensorColor"), port(port) {}
 
     double execute(Robot& robot) override {
-        if (robot.color_states.find(port->executeString(robot)) != robot.color_states.end()){
-            return robot.color_states[port->executeString(robot)]->value;
+        if(port->executeString(robot).length() < 1) return 0;
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.color_states.find(port_name) != robot.color_states.end()){
+            return robot.color_states[port_name]->value;
         }
     }
 };
@@ -1755,16 +1764,20 @@ public:
     IsPressed(Block* port, string operation) : Block("Sensor", "IsPressed"), port(port), operation(operation) {}
 
     double execute(Robot& robot) override {
-        if (robot.force_states.find(port->executeString(robot)) != robot.force_states.end()
-        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port->executeString(robot)]), operation)) {
+        if(port->executeString(robot).length() < 1) return 0;
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.force_states.find(port_name) != robot.force_states.end()
+        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port_name]), operation)) {
             return 1;
         }
         else return 0;
     }
 
     string executeString(Robot& robot) override {
-        if (robot.force_states.find(port->executeString(robot)) != robot.force_states.end()
-        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port->executeString(robot)]), operation)) {
+        if(port->executeString(robot).length() < 1) return 0;
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.force_states.find(port_name) != robot.force_states.end()
+        && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port_name]), operation)) {
             return "True";
         }
         return "False";
@@ -1778,8 +1791,10 @@ public:
     SensorForce(Block* port, string unit) : Block("Sensor", "SensorForce"), port(port), unit(unit) {}
 
     double execute(Robot& robot) override {
-        if (robot.force_states.find(port->executeString(robot)) != robot.force_states.end()){
-            return robot.force_states[port->executeString(robot)]->value; // TODO: ovdje i gore skuziit sto tocno unti znaci i kako se radi s postotcima
+        if(port->executeString(robot).length() < 1) return 0;
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.force_states.find(port_name) != robot.force_states.end()){
+            return robot.force_states[port_name]->value * (unit == "%" ? 100 : 1); 
         }
     }
 };
@@ -1793,18 +1808,22 @@ public:
     IsDistance(Block* port, string comparator, Block* value, string unit) : Block("Sensor", "IsDistance"), port(port), comparator(comparator), value(value), unit(unit) {}
 
     double execute(Robot& robot) override {
-        if (robot.distance_states.find(port->executeString(robot)) != robot.distance_states.end()
-        && robot.distance_states[port->executeString(robot)]->value != robot.distance_states[port->executeString(robot)]->previous_value
-        && check_distance(robot.distance_states[port->executeString(robot)]->value == value->execute(robot), comparator, value->execute(robot))) {
+        if(port->executeString(robot).length() < 1) return 0;
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.distance_states.find(port_name) != robot.distance_states.end()
+        && robot.distance_states[port_name]->value != robot.distance_states[port->executeString(robot)]->previous_value
+        && check_distance(robot.distance_states[port_name]->value == value->execute(robot), comparator, value->execute(robot))) {
             return 1;
         }
         else return 0;
     }
 
     string executeString(Robot& robot) override {
-        if (robot.distance_states.find(port->executeString(robot)) != robot.distance_states.end()
-        && robot.distance_states[port->executeString(robot)]->value != robot.distance_states[port->executeString(robot)]->previous_value
-        && check_distance(robot.distance_states[port->executeString(robot)]->value == value->execute(robot), comparator, value->execute(robot))) {
+        if(port->executeString(robot).length() < 1) return 0;
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.distance_states.find(port_name) != robot.distance_states.end()
+        && robot.distance_states[port_name]->value != robot.distance_states[port->executeString(robot)]->previous_value
+        && check_distance(robot.distance_states[port_name]->value == value->execute(robot), comparator, value->execute(robot))) {
             return "True";
         }
         return "False";
@@ -1818,8 +1837,10 @@ public:
     SensorDistance(Block* port, string unit) : Block("Sensor", "SensorDistance"), port(port), unit(unit) {}
 
     double execute(Robot& robot) override {
-        if (robot.distance_states.find(port->executeString(robot)) != robot.distance_states.end()) {
-            return robot.distance_states[port->executeString(robot)]->value; // TODO: ovdje i gore skuziit sto tocno unti znaci i kako se radi s postotcima
+        if(port->executeString(robot).length() < 1) return 0;
+        string port_name = string(1, toupper(port->executeString(robot)[0]));
+        if (robot.distance_states.find(port_name) != robot.distance_states.end()) {
+            return robot.distance_states[port_name]->value; // TODO: ovdje i gore skuziit sto tocno unti znaci i kako se radi s postotcima
         }
     }
 };
