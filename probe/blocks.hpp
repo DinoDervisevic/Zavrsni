@@ -655,30 +655,26 @@ public:
 
     double execute(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
             return 0;
         }
 
         if(forward){ // TODO: check if this is correct
-            robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed;
-            robot.motor_states[robot.movement_motors[1]] -> value = -robot.movement_speed;
-        } else {
             robot.motor_states[robot.movement_motors[0]] -> value = -robot.movement_speed;
             robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed;
+        } else {
+            robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed;
+            robot.motor_states[robot.movement_motors[1]] -> value = -robot.movement_speed;
         }
 
-        return convert_to_seconds(robot, unit, value->execute(robot));
+        return convert_to_seconds_movement(robot, unit, value->execute(robot));
     }
 
     void finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
             return;
@@ -698,9 +694,7 @@ public:
 
     double execute(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return 0;
         }
@@ -718,9 +712,7 @@ public:
 
     void finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return;
         }
@@ -740,25 +732,22 @@ public:
 
     double execute(Robot& robot) override { // TODO : nemma pojma sto radit s direction --> skuzi i popravi
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
-        || !is_number(value->executeString(robot))) {
+        || !is_number(value->executeString(robot))
+        || !is_number(direction->executeString(robot))) {
             return 0;
         }
 
-        robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/100, 1.0);
-        robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 + direction->execute(robot)/100, 1.0);
+        robot.motor_states[robot.movement_motors[0]] -> value = (-1) * robot.movement_speed * min(1 + direction->execute(robot)/50, 1.0);
+        robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/50, 1.0);
 
-        return convert_to_seconds(robot, unit, value->execute(robot));
+        return convert_to_seconds_movement(robot, unit, value->execute(robot));
     }
 
     void finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]
         || !is_number(value->executeString(robot))) {
             return;
@@ -777,24 +766,20 @@ public:
 
     double execute(Robot& robot) override { // TODO : tu isto direction je jedan veliki ?
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return 0;
         }
 
-        robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/100, 1.0);
-        robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 + direction->execute(robot)/100, 1.0);
+        robot.motor_states[robot.movement_motors[0]] -> value = (-1) * robot.movement_speed * min(1 + direction->execute(robot)/50, 1.0);
+        robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/50, 1.0);
 
         return -1;
     }
 
     void finish(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return;
         }
@@ -810,9 +795,7 @@ public:
 
     double execute(Robot& robot) override {
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[0]]->device_type != "Motor" 
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.motor_states[robot.movement_motors[1]]->device_type != "Motor" 
         || robot.movement_motors[0] == robot.movement_motors[1]) {
             return 0;
         }
@@ -852,7 +835,7 @@ public:
     }
 };
 
-class SetMotorRotation : public Block { // TODO : ja sam nekih 80% siguran da ovo radi doslovno nista
+class SetMotorRotation : public Block { // TODO : ja sam nekih 90% siguran da ovo radi doslovno nista
     string unit;
     Block* value;
 public:
@@ -1240,7 +1223,7 @@ public:
                 robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
             }
         }
-        return convert_to_seconds(robot, unit, value->execute(robot));
+        return convert_to_seconds_motor(robot, unit, value->execute(robot));
     }
 };
 
