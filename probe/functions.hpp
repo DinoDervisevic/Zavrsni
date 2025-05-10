@@ -34,23 +34,14 @@ int convert_to_seconds_movement(Robot& robot, string unit, double value) {
 }  
 
 //TODO
-int convert_to_seconds_motor(Robot& robot, string unit, double value) {
+int convert_to_seconds_motor(Robot& robot, string unit, double value, string port) {
     if(unit == "s") return value;
-    if(unit == "cm"){
-        value = value / (2*3.24159*robot.wheel_radius);
-        //it takes 0.39 seconds to make 1 rotation, and the acceleration and deceleration take about 0.35 seconds when recahing max speed
-        return value * 0.39 * robot.movement_speed + (min(0.35, 0.35 * value)) * robot.movement_speed;
-    }
-    if(unit == "in"){
-        value = value*2.54 / (2*3.24159*robot.wheel_radius);
-        return value * 0.39 * robot.movement_speed + (min(0.35, 0.35 * value)) * robot.movement_speed;
-    }
     if(unit == "rotations"){
-        return value * 0.39 * robot.movement_speed + (min(0.35, 0.35 * value)) * robot.movement_speed;
+        return value * 0.39 * robot.motor_states[port]->speed + (min(0.35, 0.35 * value)) * robot.motor_states[port]->speed;
     }
     if(unit == "degrees"){
         value = value/360;
-        return value * 0.39 * robot.movement_speed + (min(0.35, 0.35 * value)) * robot.movement_speed;
+        return value * 0.39 * robot.motor_states[port]->speed + (min(0.35, 0.35 * value)) * robot.motor_states[port]->speed;
     }
     return 0;
 }  
@@ -147,19 +138,19 @@ string parse_port(Robot& robot, string port, string type){
     if(is_number(port)) return result;
     for (int i = 0; i < all_ports.length(); ++i) {
         if(port.find(string(1, all_ports[i])) != string::npos){
-            if(type == "motor"){
+            if(type == "Motor"){
                 if(robot.motor_states.find(string(1, all_ports[i])) != robot.motor_states.end()){
                     result += string(1, all_ports[i]);
                 }
-            } else if(type == "color"){
+            } else if(type == "Color"){
                 if(robot.color_states.find(string(1, all_ports[i])) != robot.color_states.end()){
                     result += string(1, all_ports[i]);
                 }
-            } else if(type == "distance"){
+            } else if(type == "Distance"){
                 if(robot.distance_states.find(string(1, all_ports[i])) != robot.distance_states.end()){
                     result += string(1, all_ports[i]);
                 }
-            } else if(type == "force"){
+            } else if(type == "Force"){
                 if(robot.force_states.find(string(1, all_ports[i])) != robot.force_states.end()){
                     result += string(1, all_ports[i]);
                 }
