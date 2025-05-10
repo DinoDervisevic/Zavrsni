@@ -60,11 +60,15 @@ public:
         }
         while(time_left == 0 || current_block != nullptr) {
             time_left += current_block->execute(robot);
-            if(current_block->done(robot)) current_block = current_block->next;
+            if(current_block != nullptr && current_block->done(robot)){
+                current_block->finish(robot);
+                current_block = current_block->next;
+            };
         }
     }
 
-    void reset() {
+    void reset(Robot& robot) {
+        current_block->finish(robot);
         current_block = starting_block;
         time_left = 0;
     }
@@ -867,6 +871,7 @@ public:
                 robot.pixel_display[i][j] = str_image[i*5 + j] * robot.pixel_display_brightness / 9;
             }
         }
+        robot.is_permanent_display = false;
         return time;
     }
 
@@ -895,9 +900,10 @@ public:
         }
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
-                robot.pixel_display[i][j] = str_image[i*5 + j] * robot.pixel_display_brightness / 9;
+                robot.permanent_pixel_display[i][j] = str_image[i*5 + j] * robot.pixel_display_brightness / 9;
             }
         }
+        robot.is_permanent_display = true;
         return -1;
     }
 };
@@ -945,6 +951,7 @@ public:
                 letter_counter = 0;
                 word_counter++;
             }
+            robot.is_permanent_display = false;
             return 0.1067;
         }
     }
@@ -973,6 +980,7 @@ public:
                 robot.pixel_display[i][j] = 0;
             }
         }
+        robot.is_permanent_display = false;
         return 0;
     }
 };
@@ -990,6 +998,7 @@ public:
         b = min(b, 100.0);
         b = max(b, 0.0);
         robot.pixel_display_brightness = b;
+
         return 0;
     }
 };
@@ -1010,6 +1019,8 @@ public:
             return 0;
         }
         robot.pixel_display[static_cast<int>(x->execute(robot)-1)][static_cast<int>(y->execute(robot)-1)] = min(brightness->execute(robot), 100.0);
+        robot.permanent_pixel_display[static_cast<int>(x->execute(robot)-1)][static_cast<int>(y->execute(robot)-1)] = min(brightness->execute(robot), 100.0);
+        
         return 0;
     }
 };
@@ -1235,7 +1246,7 @@ public:
         for(int i = 0; i < good_ports.length(); ++i){
             if(motor_times[string(1, good_ports[i])] <= 0){
                 robot.motor_states[string(1, good_ports[i])]->value = 0;
-                good_ports2.erase(i, 1);
+                good_ports2.erase(remove(good_ports2.begin(), good_ports2.end(), good_ports[i]), good_ports2.end());
             }
             else motor_times[string(1, good_ports[i])] -= robot.discrete_time_interval;
         }
@@ -1256,6 +1267,12 @@ public:
                 motor_times[string(1, good_ports[i])] = convert_to_seconds_motor(robot, unit, value->execute(robot), string (1, good_ports[i]));
             }
         }
+    }
+
+    void finish(Robot& robot) override {
+        first_time = true;
+        good_ports = "";
+        motor_times.clear();
     }
 
     bool done(Robot& robot){
@@ -1290,7 +1307,7 @@ public:
             if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
                 if(abs(robot.motor_states[string(1, good_ports[i])]->position - position->execute(robot)) < 1.0){
                     robot.motor_states[string(1, good_ports[i])]->value = 0;
-                    good_ports2.erase(i, 1);
+                    good_ports2.erase(remove(good_ports2.begin(), good_ports2.end(), good_ports[i]), good_ports2.end());
                 }
             }
         }
@@ -1312,6 +1329,11 @@ public:
                 robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
             }
         }
+    }
+
+    void finish(Robot& robot) override {
+        first_time = true;
+        good_ports = "";
     }
 
     bool done(Robot& robot){
@@ -1416,7 +1438,9 @@ public:
 };
 
 class Repeat : public Block {
-    Block* times; // TODO: check if this needs to be calculated only once or every time
+    Block* times;
+    int claculated_times;
+    bool first_time = true;
     BlockSequence* block_sequence;
     int counter;
     bool when_done = false;
@@ -1427,18 +1451,33 @@ public:
         if (block_sequence == nullptr) {
             return 0;
         }
-        if (block_sequence->get_current_block()->next == nullptr) {
-            counter++;
-            block_sequence->reset();
+        if (first_time) {
+            block_sequence->reset(robot);
+            claculated_times = std::ceil(times->execute(robot));
+            first_time = false;
         }
-        if(counter == times->execute(robot)){
+        
+        if(counter >= claculated_times){
             when_done = true;
             return 0;
         }
+
         block_sequence->execute(robot);
         int t = block_sequence->get_time_left();
         block_sequence->set_time_left(0);
+
+        if (block_sequence->get_current_block() == nullptr) {
+            counter++;
+            block_sequence->reset(robot);
+        }
+
         return t;
+    }
+
+    void finish(Robot& robot) override {
+        first_time = true;
+        counter = 0;
+        when_done = false;
     }
 
     bool done(Robot& robot) override {
@@ -1455,11 +1494,13 @@ public:
         if (block_sequence == nullptr) {
             return 0;
         }
-        if (block_sequence->get_current_block()->next == nullptr) block_sequence->reset();
-
+        
         block_sequence->execute(robot);
         int t = block_sequence->get_time_left();
         block_sequence->set_time_left(0);
+
+        if (block_sequence->get_current_block() == nullptr) block_sequence->reset(robot);
+
         return t;
     }
 
@@ -1476,21 +1517,26 @@ public:
     If(BlockSequence* block_sequence, Block* condition) : Block("Control", "If"), block_sequence(block_sequence), condition(condition) {}
 
     double execute(Robot& robot) override {
-        if((condition->execute(robot) && !condition_checked) || condition_checked){
-            if(block_sequence->get_current_block()->next == nullptr){
-                when_done = true;
-                block_sequence->reset();
-            }
+        if(condition_checked || condition->execute(robot)){
             condition_checked = true;
             block_sequence->execute(robot);
             int t = block_sequence->get_time_left();
             block_sequence->set_time_left(0);
+            if (block_sequence->get_current_block() == nullptr) {
+                when_done = true;
+                block_sequence->reset(robot);
+            }
             return t;
         }
         else{
             when_done = true;
         }
         return 0;
+    }
+
+    void finish(Robot& robot) override {
+        condition_checked = false;
+        when_done = false;
     }
 
     bool done(Robot& robot) override {
@@ -1508,7 +1554,7 @@ public:
 
     double execute(Robot& robot) override {
         int t = 0;
-        if((condition->execute(robot) && !condition_checked && !else_checked) || condition_checked){
+        if(condition_checked || (!condition_checked && !else_checked && condition->execute(robot))){
             condition_checked = true;
             block_sequence1->execute(robot);
             t = block_sequence1->get_time_left();
@@ -1519,12 +1565,18 @@ public:
             t = block_sequence2->get_time_left();
             block_sequence2->set_time_left(0);
         }
-        if((block_sequence1->get_current_block()->next == nullptr && condition_checked) || (block_sequence2->get_current_block()->next == nullptr && else_checked)){
+        if((block_sequence1->get_current_block() == nullptr && condition_checked) || (block_sequence2->get_current_block() == nullptr && else_checked)){
             when_done = true;
-            block_sequence1->reset();
-            block_sequence2->reset();
+            block_sequence1->reset(robot);
+            block_sequence2->reset(robot);
         }
         return t;
+    }
+
+    void finish(Robot& robot) override {
+        condition_checked = false;
+        else_checked = false;
+        when_done = false;
     }
 
     bool done(Robot& robot) override {
@@ -1539,11 +1591,15 @@ public:
     WaitUntil(Block* condition) : Block("Control", "WaitUntil"), condition(condition) {}
 
     double execute(Robot& robot) override {
-        if(condition->execute(robot) == 1){
+        if(condition->execute(robot)){
             when_done = true;
             return 0;
         }
-        return -1;
+        return robot.discrete_time_interval;
+    }
+
+    void finish(Robot& robot) override {
+        when_done = false;
     }
 
     bool done(Robot& robot) override {
@@ -1562,17 +1618,26 @@ public:
         if (block_sequence == nullptr) {
             return 0;
         }
-        if (block_sequence->get_current_block()->next == nullptr) {
-            block_sequence->reset();
+
+        if (block_sequence->get_current_block() == nullptr) {
+            block_sequence->reset(robot);
         }
-        if(block_sequence->get_current_block() == block_sequence->get_starting_block() && condition->execute(robot) == 1){
+
+        if(block_sequence->get_current_block() == block_sequence->get_starting_block() && condition->execute(robot)){
             when_done = true;
+            block_sequence->reset(robot);
             return 0;
         }
+
         block_sequence->execute(robot);
         int t = block_sequence->get_time_left();
         block_sequence->set_time_left(0);
+
         return t;
+    }
+
+    void finish(Robot& robot) override {
+        when_done = false;
     }
 
     bool done(Robot& robot) override {
@@ -1585,6 +1650,11 @@ public:
     StopOtherStacks() : Block("Control", "StopOtherStacks") {}
 
     double execute(Robot& robot) override {
+        for (auto& stack : robot.block_sequences) {
+            if(stack->get_current_block() != nullptr && stack->get_current_block() != this) stack->reset(robot);
+        }
+
+        robot.reset();
         return 0;
     }
 };
@@ -1595,6 +1665,25 @@ public:
     ControlStop(string option) : Block("Control", "ControlStop"), option(option) {}
 
     double execute(Robot& robot) override {
+        if(option == "all"){
+            for (auto& stack : robot.block_sequences) {
+                if(stack->get_current_block() != nullptr && stack->get_current_block() != this) stack->reset(robot);
+            }
+            
+            for (auto& stack : robot.block_sequences) {
+                if(stack->get_current_block() != nullptr && stack->get_current_block() == this) stack->reset(robot);
+            }
+
+            robot.reset();
+        }
+        else if(option == "this stack"){
+            for (auto& stack : robot.block_sequences) {
+                if(stack->get_current_block() != nullptr && stack->get_current_block() == this) stack->reset(robot);
+            }
+        }
+        else if(option == "and exit program"){
+            return -404;
+        }
         return 0;
     }
 };
@@ -3076,7 +3165,7 @@ inline BlockSequence* processBlock(const json& blocks, string key) {
     BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
 
     while (true) {
-        if (!blocks.contains(curr_block["next"]) || curr_block["next"].is_null()) {
+        if (curr_block["next"].is_null() || !blocks.contains(curr_block["next"])) {
             break;
         }
         auto next_block = blocks[curr_block["next"]];

@@ -55,7 +55,10 @@ struct Robot {
     double volume;
     string sound_state;
     int button_color;
+
     double pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
+    double permanent_pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
+    bool is_permanent_display = false; // if true, the display will not be reset when the robot is reset
     double pixel_display_brightness = 100; // brightness of the display
     int absolute_image_position = 0;
 
@@ -84,6 +87,8 @@ struct Robot {
     vector<string> broadcasts; // list of broadcasted messages
     vector<string> finished_broadcasts; // list of finished broadcasts
 
+    vector<BlockSequence*> block_sequences; // list of all block sequences
+
     Robot(string name, int x, int y) : name(name), x(x), y(y) {}
 
     ~Robot() {
@@ -99,6 +104,22 @@ struct Robot {
         for (auto& pair : force_states) {
             delete pair.second;
         }
+    }
+
+    void reset() {
+        for (auto& pair : motor_states) {
+            pair.second->value = 0;
+        }
+
+        //TODO: This works fine, but only if the display is not permanent, if it is, then reseting the robot should not turn it off
+        for (int i = 0; i < 5; ++i) {
+            for (int j = 0; j < 5; ++j) {
+                pixel_display[i][j] = 0;
+            }
+        }
+
+        sound_playing = "";
+        sound_state = "";
     }
 
     void addMotorState(const string& key, double speed, double duration) {

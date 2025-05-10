@@ -110,6 +110,20 @@ void rotate_matrix_right(Robot& robot){
         }
     }
 
+
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            temp[j][i] = robot.permanent_pixel_display[i][j];
+        }
+    }
+
+    // Preokreni redoslijed stupaca
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            robot.permanent_pixel_display[i][j] = temp[i][4 - j];
+        }
+    }
+
     robot.absolute_image_position = (robot.absolute_image_position + 1) % 4;
 }
 
@@ -129,6 +143,21 @@ void rotate_matrix_left(Robot& robot) {
             robot.pixel_display[i][j] = temp[4 - i][j];
         }
     }
+
+
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            temp[j][i] = robot.permanent_pixel_display[i][j];
+        }
+    }
+
+    // Preokreni redoslijed redaka
+    for (int i = 0; i < 5; ++i) {
+        for (int j = 0; j < 5; ++j) {
+            robot.permanent_pixel_display[i][j] = temp[4 - i][j];
+        }
+    }
+    
     robot.absolute_image_position = (robot.absolute_image_position + 3) % 4;
 }
 
