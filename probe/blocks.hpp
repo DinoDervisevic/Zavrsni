@@ -13,6 +13,7 @@
 #include <random>
 #include <cctype>
 #include <cmath>
+
 #include "json.hpp"
 #include "robot.hpp"
 #include "functions.hpp"
@@ -54,10 +55,6 @@ public:
     BlockSequence(Block* first_block) : current_block(first_block), starting_block(first_block),  time_left(0) {}
 
     void execute(Robot& robot) {
-        if(time_left != 0){
-            time_left -= robot.discrete_time_interval;
-            time_left = max(time_left, 0.0);
-        }
         while(time_left == 0 || current_block != nullptr) {
             time_left += current_block->execute(robot);
             if(current_block != nullptr && current_block->done(robot)){
@@ -65,10 +62,19 @@ public:
                 current_block = current_block->next;
             };
         }
+        if(time_left != 0){
+            time_left -= robot.discrete_time_interval;
+            time_left = max(time_left, 0.0);
+        }
     }
 
     void reset(Robot& robot) {
         current_block->finish(robot);
+        current_block = starting_block;
+        time_left = 0;
+    }
+
+    void stop(Robot& robot) {
         current_block = starting_block;
         time_left = 0;
     }
@@ -108,8 +114,16 @@ public:
     WhenProgramStarts() : Block("Event", "WhenProgramStarts") {}
 
     double execute(Robot& robot) override {
-        return robot.time_since_start == 0 ? 1 : 0;
+        return robot.discrete_time_interval;
     }
+
+    bool done(Robot& robot) override {
+        if(robot.time_since_start == 0){
+            return true;
+        }
+        return false;
+    }
+
 };
 
 class WhenColor : public Block {
@@ -119,14 +133,18 @@ public:
     WhenColor(Block* port, Block* color) : Block("Event", "WhenColor"), port(port), color(color) {}
 
     double execute(Robot& robot) override {
-        if(port->executeString(robot).length() < 1) return 0;
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
+        if(port->executeString(robot).length() < 1) return false;
         string port_name = string(1, toupper(port->executeString(robot)[0]));
         if (robot.color_states.find(port_name) != robot.color_states.end() 
         && is_number(color->executeString(robot))
         && robot.color_states[port_name]->value == color->execute(robot)) {
-            return 1;
+            return true;
         }
-        else return 0;
+        else return false;
     }
 };
 
@@ -137,13 +155,17 @@ public:
     WhenPressed(Block* port, string event) : Block("Event", "WhenPressed"), port(port), event(event) {}
 
     double execute(Robot& robot) override {
-        if(port->executeString(robot).length() < 1) return 0;
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
+        if(port->executeString(robot).length() < 1) return false;
         string port_name = string(1, toupper(port->executeString(robot)[0]));
         if (robot.force_states.find(port_name) != robot.force_states.end()
         && calculate_pressed_event(static_cast<ForceSensor*>(robot.force_states[port_name]), event)) {
-            return 1;
+            return true;
         }
-        else return 0;
+        else return false;
     }
 };
 
@@ -156,15 +178,19 @@ public:
     WhenDistance(Block* port, string option, Block* distance, string unit) : Block("Event", "WhenDistance"), port(port), option(option), distance(distance), unit(unit) {}
 
     double execute(Robot& robot) override {
-        if(port->executeString(robot).length() < 1) return 0;
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
+        if(port->executeString(robot).length() < 1) return false;
         string port_name = string(1, toupper(port->executeString(robot)[0]));
         if (robot.distance_states.find(port_name) != robot.distance_states.end()
         && is_number(distance->executeString(robot))
         && robot.distance_states[port_name]->value != robot.distance_states[port_name]->previous_value
         && check_distance(robot.distance_states[port_name]->value == distance->execute(robot), option, distance->execute(robot))) {
-            return 1;
+            return true;
         }
-        else return 0;
+        else return false;
     }
 };
 
@@ -174,12 +200,16 @@ public:
     WhenTilted(Block* angle) : Block("Event", "WhenTilted"), angle(angle) {}
 
     double execute(Robot& robot) override {
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
         if(is_number(angle->executeString(robot)) && angle->execute(robot) >= 0 && angle->execute(robot) <= 5){
             if (robot.tilt_angle == stod(angle->executeString(robot))) {
-                return 1;
+                return true;
             }
         }
-        return 0;
+        return false;
     }
 };
 
@@ -189,10 +219,14 @@ public:
     WhenOrientation(string orientation) : Block("Event", "WhenOrientation"), orientation(orientation) {}
 
     double execute(Robot& robot) override {
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
         if (robot.orientation == orientation) {
-            return 1;
+            return true;
         }
-        return 0;
+        return false;
     }
 };
 
@@ -202,10 +236,14 @@ public:
     WhenGesture(string gesture) : Block("Event", "WhenGesture"), gesture(gesture) {}
 
     double execute(Robot& robot) override {
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
         if (robot.gesture == gesture) {
-            return 1;
+            return true;
         }
-        return 0;
+        return false;
     }
 };
 
@@ -216,10 +254,14 @@ public:
     WhenButton(string button, string event) : Block("Event", "WhenButton"), button(button), event(event) {}
 
     double execute(Robot& robot) override {
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
         if (robot.buttons.find(button) != robot.buttons.end() && robot.buttons[button] == event) {
-            return 1;
+            return true;
         }
-        return 0;
+        return false;
     }
 };
 
@@ -229,13 +271,17 @@ public:
     WhenTimer(Block* value) : Block("Event", "WhenTimer"), value(value) {}
 
     double execute(Robot& robot) override {
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
         if(!is_number(value->executeString(robot)) || value->execute(robot) < 0){
-            return 0;
+            return false;
         }
         if(robot.time_since_start > value->execute(robot)){
-            return 1;
+            return true;
         } else {
-            return 0;
+            return false;
         }
     }
 };
@@ -246,10 +292,14 @@ public:
     WhenCondition(Block* condition) : Block("Event", "WhenCondition"), condition(condition) {}
 
     double execute(Robot& robot) override {
+        return robot.discrete_time_interval;
+    }
+
+    bool done(Robot& robot) override {
         if (condition->execute(robot)) {
-            return 1;
+            return true;
         }
-        return 0;
+        return false;
     }
 };
 
@@ -259,10 +309,14 @@ public:
     WhenBroadcastReceived(string message) : Block("Event", "WhenBroadcastReceived"), message(message) {}
 
     double execute(Robot& robot) override {
-        if (find(robot.broadcasts.begin(), robot.broadcasts.end(), message) != robot.broadcasts.end()) {
-            return 1;
-        }
         return 0;
+    }
+
+    bool done(Robot& robot) override {
+        if (find(robot.broadcasts.begin(), robot.broadcasts.end(), message) != robot.broadcasts.end()) {
+            return true;
+        }
+        return false;
     }
 };
 

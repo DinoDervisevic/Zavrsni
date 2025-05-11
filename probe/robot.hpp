@@ -89,7 +89,7 @@ struct Robot {
 
     vector<BlockSequence*> block_sequences; // list of all block sequences
 
-    Robot(string name, int x, int y) : name(name), x(x), y(y) {}
+    Robot(string name, int x, int y, vector<BlockSequence*> block_sequences) : name(name), x(x), y(y), block_sequences(block_sequences) {}
 
     ~Robot() {
         for (auto& pair : motor_states) {
@@ -120,6 +120,10 @@ struct Robot {
 
         sound_playing = "";
         sound_state = "";
+    }
+
+    void changeDiscreteTimeInterval(double new_time_interval) {
+        discrete_time_interval = new_time_interval;
     }
 
     void addMotorState(const string& key, double speed, double duration) {

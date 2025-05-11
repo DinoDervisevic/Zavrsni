@@ -18,22 +18,15 @@ using namespace std;
 
 using json = nlohmann::json;
 
-double time_since_start = 0; // current time in seconds
-
 using FunctionMap = map<string, function<unique_ptr<Block>(json, string)>>;
 
 
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
     while (true){
         for(auto sequence : sequences){ //TODO: make the logic for paralel block sequence interpretation
-            if(sequence->get_current_block()->type == "Event" && sequence->get_current_block()->execute(robot)){
-                sequence->set_is_running(true);
-            }
-            if(sequence->get_is_running()){
-                sequence->execute(robot);
-            }
+            sequence->execute(robot);
         }
-        time_since_start += robot.discrete_time_interval;
+        robot.time_since_start += robot.discrete_time_interval;
     }
 }
 
@@ -64,8 +57,6 @@ int main() {
     file >> j;
     auto blocks = j["targets"][1]["blocks"];
 
-    Robot robot("robot", 0, 0);
-
     vector<BlockSequence*> sequences;
     for(auto it = blocks.begin(); it != blocks.end(); ++it){
         if (it.value()["topLevel"]) {
@@ -73,8 +64,9 @@ int main() {
             sequences.push_back(block_sequence);
         }
     }
-    
 
+    Robot robot("robot", 0, 0, sequences);
+    
     print_sequences(sequences, robot);
 
     return 0;
