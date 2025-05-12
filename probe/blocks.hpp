@@ -44,6 +44,15 @@ class Block {
         virtual bool done(Robot& robot) {
             return true;
         }
+
+        virtual void deal_with_interference(Robot& robot, BlockSequence* sequence) {
+            return;
+        }
+
+        //Only for teh first two motor blocks
+        virtual void stop_motors(Robot& robot, string port) {
+            return;
+        }
 };
 
 class BlockSequence {
@@ -56,15 +65,23 @@ public:
 
     void execute(Robot& robot) {
         while(time_left == 0 || current_block != nullptr) {
+            check_interferences(robot);
             time_left += current_block->execute(robot);
-            if(current_block != nullptr && current_block->done(robot)){
-                current_block->finish(robot);
-                current_block = current_block->next;
-            };
         }
         if(time_left != 0){
             time_left -= robot.discrete_time_interval;
             time_left = max(time_left, 0.0);
+            if(time_left == 0 && current_block != nullptr && current_block->done(robot)){
+                current_block->finish(robot);
+                current_block = current_block->next;
+            };
+        }
+    }
+
+    void check_interferences(Robot& robot) {
+        for(auto& sequence : robot.block_sequences){
+            if(sequence == this) continue;
+            this->current_block->deal_with_interference(robot, sequence);
         }
     }
 
@@ -730,10 +747,12 @@ public:
             robot.motor_states[robot.movement_motors[1]] -> value = -robot.movement_speed;
         }
 
+        robot.movement_block_in_effect = true;
         return convert_to_seconds_movement(robot, unit, value->execute(robot));
     }
 
     void finish(Robot& robot) override {
+        robot.movement_block_in_effect = false;
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.movement_motors[0] == robot.movement_motors[1]
@@ -743,6 +762,18 @@ public:
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
         return;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "Move" || block->name == "Steer") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
+        if (block->name == "MotorTurnForDirection" || block->name == "MotorGoDirectionToPosition"){
+            block->stop_motors(robot, robot.movement_motors[0]);
+            block->stop_motors(robot, robot.movement_motors[1]);
+        }
     }
     
 };
@@ -767,11 +798,12 @@ public:
             robot.motor_states[robot.movement_motors[0]] -> value = -robot.movement_speed;
             robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed;
         }
-
-        return -1;
+        robot.movement_block_in_effect = true;
+        return 0;
     }
 
     void finish(Robot& robot) override {
+        robot.movement_block_in_effect = false;
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.movement_motors[0] == robot.movement_motors[1]) {
@@ -780,6 +812,18 @@ public:
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
         return;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "Move" || block->name == "Steer") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
+        if (block->name == "MotorTurnForDirection" || block->name == "MotorGoDirectionToPosition"){
+            block->stop_motors(robot, robot.movement_motors[0]);
+            block->stop_motors(robot, robot.movement_motors[1]);
+        }
     }
 };
 
@@ -802,11 +846,13 @@ public:
 
         robot.motor_states[robot.movement_motors[0]] -> value = (-1) * robot.movement_speed * min(1 + direction->execute(robot)/50, 1.0);
         robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/50, 1.0);
-
+        
+        robot.movement_block_in_effect = true;
         return convert_to_seconds_movement(robot, unit, value->execute(robot));
     }
 
     void finish(Robot& robot) override {
+        robot.movement_block_in_effect = false;
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.movement_motors[0] == robot.movement_motors[1]
@@ -816,6 +862,18 @@ public:
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
         return;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "Move" || block->name == "Steer") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
+        if (block->name == "MotorTurnForDirection" || block->name == "MotorGoDirectionToPosition"){
+            block->stop_motors(robot, robot.movement_motors[0]);
+            block->stop_motors(robot, robot.movement_motors[1]);
+        }
     }
 };
 
@@ -835,10 +893,12 @@ public:
         robot.motor_states[robot.movement_motors[0]] -> value = (-1) * robot.movement_speed * min(1 + direction->execute(robot)/50, 1.0);
         robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/50, 1.0);
 
-        return -1;
+        robot.movement_block_in_effect = true;
+        return 0;
     }
 
     void finish(Robot& robot) override {
+        robot.movement_block_in_effect = false;
         if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
         || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
         || robot.movement_motors[0] == robot.movement_motors[1]) {
@@ -847,6 +907,18 @@ public:
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
         return;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "Move" || block->name == "Steer") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
+        if (block->name == "MotorTurnForDirection" || block->name == "MotorGoDirectionToPosition"){
+            block->stop_motors(robot, robot.movement_motors[0]);
+            block->stop_motors(robot, robot.movement_motors[1]);
+        }
     }
 };
 
@@ -865,6 +937,22 @@ public:
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
 
         return 0;
+    }
+
+    void finish(Robot& robot) override {
+        robot.movement_block_in_effect = false;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "Move" || block->name == "Steer") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
+        if (block->name == "MotorTurnForDirection" || block->name == "MotorGoDirectionToPosition"){
+            block->stop_motors(robot, robot.movement_motors[0]);
+            block->stop_motors(robot, robot.movement_motors[1]);
+        }
     }
 };
 
@@ -940,6 +1028,14 @@ public:
         }
         return;
     }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "DisplayImageForTime" || block->name == "DisplayText") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
+    }
 };
 
 class DisplayImage : public Block {
@@ -961,7 +1057,15 @@ public:
             }
         }
         robot.is_permanent_display = true;
-        return -1;
+        return 0;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "DisplayImageForTime" || block->name == "DisplayText") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
     }
 };
 
@@ -1025,6 +1129,14 @@ public:
         word_counter = 0;
         letter_counter = 0;
     }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "DisplayImageForTime" || block->name == "DisplayText") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
+    }
 };
 
 class DisplayOff : public Block {
@@ -1039,6 +1151,14 @@ public:
         }
         robot.is_permanent_display = false;
         return 0;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "DisplayImageForTime" || block->name == "DisplayText") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
     }
 };
 
@@ -1146,6 +1266,14 @@ public:
         robot.sound_playing = sound_name->executeString(robot);
         return 0;
     }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "BeepForTime" || block->name == "PlayUntilDone") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
+    }
 };
 
 class Play : public Block {
@@ -1154,7 +1282,15 @@ public:
     Play(Block* sound) : Block("Sound", "Play"), sound_name(sound_name){};
     double execute(Robot& robot) override {
         robot.sound_playing = sound_name->executeString(robot);
-        return -1;
+        return 0;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "BeepForTime" || block->name == "PlayUntilDone") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
     }
 };
 
@@ -1179,6 +1315,14 @@ public:
         robot.sound_state = "";
         return;
     }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "BeepForTime" || block->name == "PlayUntilDone") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
+    }
 };
 
 class Beep : public Block {
@@ -1191,7 +1335,15 @@ public:
             return 0;
         }
         robot.sound_state = "beep" + to_string(static_cast<int>(frequency->execute(robot)));
-        return -1;
+        return 0;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "BeepForTime" || block->name == "PlayUntilDone") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
     }
 };
 
@@ -1202,6 +1354,14 @@ public:
     double execute(Robot& robot) override {
         robot.sound_state = "";
         return 0;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        if (block->name == "BeepForTime" || block->name == "PlayUntilDone") {
+            block->finish(robot);
+            sequence->set_time_left(0);
+        }
     }
 };
 
@@ -1335,6 +1495,38 @@ public:
     bool done(Robot& robot){
         return good_ports == "";
     }
+
+    void stop_motors(Robot& robot, string port) override{
+        for(int i = 0; i < port.length(); ++i){
+            good_ports.erase(remove(good_ports.begin(), good_ports.end(), port[i]), good_ports.end());
+        }
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        string good_ports_help = parse_port(robot, port->executeString(robot), "Motor");
+        if (block->name == "Move" || block->name == "Steer") {
+            for (int i = 0; i < good_ports_help.length(); ++i){
+                if(good_ports_help[i] == robot.movement_motors[0][0] || good_ports_help[i] == robot.movement_motors[1][0]){
+                    block->finish(robot);
+                    sequence->set_time_left(0);
+                    break;
+                }
+            }
+        }
+        if (block->name == "MotorTurnForDirection" || block->name == "MotorGoDirectionToPosition"){
+            block->stop_motors(robot, good_ports_help);
+        }
+        if (robot.movement_block_in_effect){
+            for (int i = 0; i < good_ports_help.length(); ++i){
+                if(good_ports_help[i] == robot.movement_motors[0][0] || good_ports_help[i] == robot.movement_motors[1][0]){
+                    robot.movement_block_in_effect = false;
+                    robot.reset_movement_motors();
+                    break;
+                }
+            }
+        }
+    }
 };
 
 class MotorGoDirectionToPosition : public Block {
@@ -1396,6 +1588,38 @@ public:
     bool done(Robot& robot){
         return good_ports == "";
     }
+
+    void stop_motors(Robot& robot, string port) override{
+        for(int i = 0; i < port.length(); ++i){
+            good_ports.erase(remove(good_ports.begin(), good_ports.end(), port[i]), good_ports.end());
+        }
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        string good_ports_help = parse_port(robot, port->executeString(robot), "Motor");
+        if (block->name == "Move" || block->name == "Steer") {
+            for (int i = 0; i < good_ports_help.length(); ++i){
+                if(good_ports_help[i] == robot.movement_motors[0][0] || good_ports_help[i] == robot.movement_motors[1][0]){
+                    block->finish(robot);
+                    sequence->set_time_left(0);
+                    break;
+                }
+            }
+        }
+        if (block->name == "MotorTurnForDirection" || block->name == "MotorGoDirectionToPosition"){
+            block->stop_motors(robot, good_ports_help);
+        }
+        if (robot.movement_block_in_effect){
+            for (int i = 0; i < good_ports_help.length(); ++i){
+                if(good_ports_help[i] == robot.movement_motors[0][0] || good_ports_help[i] == robot.movement_motors[1][0]){
+                    robot.movement_block_in_effect = false;
+                    robot.reset_movement_motors();
+                    break;
+                }
+            }
+        }
+    }
 };
 
 class MotorStartDirection : public Block {
@@ -1412,7 +1636,33 @@ public:
                 robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
             }
         }
-        return -1;
+        return 0;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        string good_ports_help = parse_port(robot, port->executeString(robot), "Motor");
+        if (block->name == "Move" || block->name == "Steer") {
+            for (int i = 0; i < good_ports_help.length(); ++i){
+                if(good_ports_help[i] == robot.movement_motors[0][0] || good_ports_help[i] == robot.movement_motors[1][0]){
+                    block->finish(robot);
+                    sequence->set_time_left(0);
+                    break;
+                }
+            }
+        }
+        if (block->name == "MotorTurnForDirection" || block->name == "MotorGoDirectionToPosition"){
+            block->stop_motors(robot, good_ports_help);
+        }
+        if (robot.movement_block_in_effect){
+            for (int i = 0; i < good_ports_help.length(); ++i){
+                if(good_ports_help[i] == robot.movement_motors[0][0] || good_ports_help[i] == robot.movement_motors[1][0]){
+                    robot.movement_block_in_effect = false;
+                    robot.reset_movement_motors();
+                    break;
+                }
+            }
+        }
     }
 };
 
@@ -1429,6 +1679,32 @@ public:
             }
         }
         return 0;
+    }
+
+    void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
+        Block* block = sequence->get_current_block();
+        string good_ports_help = parse_port(robot, port->executeString(robot), "Motor");
+        if (block->name == "Move" || block->name == "Steer") {
+            for (int i = 0; i < good_ports_help.length(); ++i){
+                if(good_ports_help[i] == robot.movement_motors[0][0] || good_ports_help[i] == robot.movement_motors[1][0]){
+                    block->finish(robot);
+                    sequence->set_time_left(0);
+                    break;
+                }
+            }
+        }
+        if (block->name == "MotorTurnForDirection" || block->name == "MotorGoDirectionToPosition"){
+            block->stop_motors(robot, good_ports_help);
+        }
+        if (robot.movement_block_in_effect){
+            for (int i = 0; i < good_ports_help.length(); ++i){
+                if(good_ports_help[i] == robot.movement_motors[0][0] || good_ports_help[i] == robot.movement_motors[1][0]){
+                    robot.movement_block_in_effect = false;
+                    robot.reset_movement_motors();
+                    break;
+                }
+            }
+        }
     }
 };
 

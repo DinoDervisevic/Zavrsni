@@ -79,6 +79,8 @@ struct Robot {
     map<string, ForceSensor*> force_states; 
 
     string movement_motors[2] = {"", ""}; // names of the motors
+    bool movement_block_in_effect = false; // keeps track of wether the robot is moving due to the movement block or motor block(s)
+
     pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
 
     double time_since_start = 0; // current time in seconds
@@ -103,6 +105,12 @@ struct Robot {
         }
         for (auto& pair : force_states) {
             delete pair.second;
+        }
+    }
+
+    void reset_movement_motors() {
+        for (int i = 0; i < 2; ++i) {
+            motor_states[movement_motors[i]]->value = 0;
         }
     }
 
