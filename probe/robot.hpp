@@ -41,6 +41,13 @@ struct ForceSensor : public State {
     ForceSensor(double value) : State("ForceSensor", value){}
 };
 
+struct MotionVector {
+    double linear_velocity;
+    double angular_velocity;
+
+    MotionVector(double linear_velocity, double angular_velocity) : linear_velocity(linear_velocity), angular_velocity(angular_velocity) {}
+};
+
 struct Robot {
     string name;
     int x, y;
@@ -51,7 +58,7 @@ struct Robot {
     int roll_angle = 0;
     int wheel_distance;
     int wheel_radius;
-    int movement_speed = 50;
+    double movement_speed = 50;
     double volume;
     string sound_state;
     int button_color;
@@ -90,6 +97,18 @@ struct Robot {
     vector<string> finished_broadcasts; // list of finished broadcasts
 
     vector<BlockSequence*> block_sequences; // list of all block sequences
+
+    MotionVector motion_vector = {0, 0}; // linear and angular velocity
+
+    double calculate_wheel_speed(string port){
+        double speed = 0;
+        if(movement_block_in_effect && (port == movement_motors[0] || port == movement_motors[1])){
+            speed = movement_speed * 0.39; // it takes 0.39 seconds to make 1 wheel rotation
+        } else if (motor_states.find(port) != motor_states.end()) {
+            speed = motor_states[port]->speed * 0.39;	
+        }
+        return wheel_radius * 2 * 3.14259 * speed;
+    }
 
     Robot(string name, int x, int y, vector<BlockSequence*> block_sequences) : name(name), x(x), y(y), block_sequences(block_sequences) {}
 
@@ -148,6 +167,37 @@ struct Robot {
 
     void addForceSensor(const string& key, double value) {
         force_states[key] = new ForceSensor(value);
+    }
+
+
+
+
+    void print_position() {
+        cout << "Robot position: (" << x << ", " << y << "), angle: " << angle << endl;
+    }
+
+    void print_display() {
+        cout << "Pixel display: " << endl;
+        if(is_permanent_display){
+            for (int i = 0; i < 5; ++i) {
+                for (int j = 0; j < 5; ++j) {
+                    cout << permanent_pixel_display[i][j] << " ";
+                }
+                cout << endl;
+            }
+        }
+        else{
+            for (int i = 0; i < 5; ++i) {
+                for (int j = 0; j < 5; ++j) {
+                    cout << pixel_display[i][j] << " ";
+                }
+                cout << endl;
+            }
+        }
+    }
+
+    void print_sound() {
+        cout << "Sound: " << sound_playing << endl;
     }
 };
 

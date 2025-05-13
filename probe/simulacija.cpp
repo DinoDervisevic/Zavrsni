@@ -9,10 +9,12 @@
 #include <set>
 #include <queue>
 #include <sstream>
+
 #include "json.hpp"
 #include "robot.hpp"
 #include "blocks.hpp"
 #include "functions.hpp"
+#include "motion_simulation.hpp"
 
 using namespace std;
 
@@ -26,7 +28,10 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
         for(auto sequence : sequences){ //TODO: make the logic for paralel block sequence interpretation
             sequence->execute(robot);
         }
+        run_robot(robot);
         robot.time_since_start += robot.discrete_time_interval;
+
+        print_robot_state(robot);
     }
 }
 
@@ -40,6 +45,13 @@ void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
         }
         cout << "End of sequence" << endl;
     }
+}
+
+void print_robot_state(Robot& robot) {
+    cout << robot.time_since_start << endl;
+    robot.print_position();
+    //robot.print_display();
+    //robot.print_sound();
 }
 
 
