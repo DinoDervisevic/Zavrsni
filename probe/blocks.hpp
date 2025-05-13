@@ -2823,7 +2823,7 @@ FunctionMap createFunctionMap() {
 
     functionMap["flippermove_rotation-wheel"] = [&functionMap](const json& json_object, const string& name) {
         string direction = json_object[name]["fields"]["field_flippermove_rotation-wheel"][0];
-        int value = stoi(direction.substr(0, direction.find(" ")));
+        int value = stoi(direction.substr(direction.find(" ") + 1));
         return make_unique<BlankBlockInt>(value);
     };
 
