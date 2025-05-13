@@ -14,7 +14,6 @@ void one_motor_two_wheel_robot(Robot& robot){
     double right_wheel_speed = robot.calculate_wheel_speed("A"); // hardcoded; the right wheel has to be here
     double left_wheel_speed = right_wheel_speed; // hardcoded; the left wheel has to be here
     robot.motion_vector.linear_velocity = (right_wheel_speed + left_wheel_speed) / 2;
-    //cout << "linear velocity: " << robot.motion_vector.linear_velocity << endl;
     robot.motion_vector.angular_velocity = (right_wheel_speed - left_wheel_speed) / robot.wheel_distance;
     //cout << "angular velocity: " << robot.motion_vector.angular_velocity << endl;
 }

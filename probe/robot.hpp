@@ -60,7 +60,7 @@ struct Robot {
     int pitch_angle = 0;
     int roll_angle = 0;
     double wheel_distance = 6.8; // distance between the wheels in cm
-    double wheel_radius = 5.3/2; // radius of the wheel in cm
+    double wheel_radius = 5.5/2; // radius of the wheel in cm
     double movement_speed = 50;
     double volume;
     string sound_state;
@@ -106,9 +106,9 @@ struct Robot {
     double calculate_wheel_speed(string port){
         double speed = 0;
         if(movement_block_in_effect && (port == movement_motors[0] || port == movement_motors[1])){
-            speed = movement_speed * 0.39 / 100; // it takes 0.39 seconds to make 1 wheel rotation
+            speed = movement_speed / 100 / 0.39; // it takes 0.39 seconds to make 1 wheel rotation
         } else if (motor_states.find(port) != motor_states.end()) {
-            speed = motor_states[port]->speed * 0.39 / 100;	
+            speed = motor_states[port]->speed / 100 / 0.39;	
         }
         return wheel_radius * 2 * 3.14159265358979323846 * speed;
     }

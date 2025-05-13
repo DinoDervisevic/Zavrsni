@@ -81,7 +81,6 @@ int main() {
 
     vector<BlockSequence*> sequences;
     for(auto it = blocks.begin(); it != blocks.end(); ++it){
-        cout << "WW" << endl;
         if (it.value()["topLevel"]) {
             BlockSequence* block_sequence = processBlock(blocks, it.key());
             sequences.push_back(block_sequence);
@@ -95,7 +94,6 @@ int main() {
     robot.addForceSensor("C", 0);
     robot.addColorSensor("D", 0);
 
-    cout << sequences.size() << endl;
     
     start_simulation(robot, sequences);
     for (auto& sequence : sequences) {

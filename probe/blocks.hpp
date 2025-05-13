@@ -2775,7 +2775,6 @@ FunctionMap createFunctionMap() {
     functionMap["flippermove_move"] = [&functionMap](const json& json_object, const string& name) {
         bool forward;
         int args = json_object[name]["inputs"]["DIRECTION"][0];
-        cout << args << endl;
         if(args != 1){
             forward = true;
         }
