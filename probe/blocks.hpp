@@ -13,6 +13,7 @@
 #include <random>
 #include <cctype>
 #include <cmath>
+#include <iomanip>
 
 #include "json.hpp"
 #include "robot.hpp"
@@ -58,24 +59,36 @@ class Block {
 class BlockSequence {
     Block* current_block;
     Block* starting_block;
-    double time_left;
+    double time_left = 0;
     bool is_running = false;
 public:
     BlockSequence(Block* first_block) : current_block(first_block), starting_block(first_block),  time_left(0) {}
 
     void execute(Robot& robot) {
-        while(time_left == 0 || current_block != nullptr) {
-            check_interferences(robot);
-            time_left += current_block->execute(robot);
-        }
-        if(time_left != 0){
-            time_left -= robot.discrete_time_interval;
-            time_left = max(time_left, 0.0);
-            if(time_left == 0 && current_block != nullptr && current_block->done(robot)){
+        while(true) {
+            
+            if(current_block == nullptr) break;
+            if(time_left != 0.0){
+                //cout<< fixed << setprecision(15) << time_left << endl;
+                time_left -= robot.discrete_time_interval;
+                time_left = max(time_left, 0.0);
+                //cout<< fixed << setprecision(15) << time_left << endl;
+                break;
+            }
+            if(current_block->done(robot)){
                 current_block->finish(robot);
                 current_block = current_block->next;
-            };
+            } else {
+                break;
+            }
+            check_interferences(robot);
+            time_left += current_block->execute(robot);
+            
         }
+        /*if(current_block == nullptr) {
+            current_block = starting_block;
+            time_left = 0;
+        }*/
     }
 
     void check_interferences(Robot& robot) {
@@ -131,7 +144,7 @@ public:
     WhenProgramStarts() : Block("Event", "WhenProgramStarts") {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -150,7 +163,7 @@ public:
     WhenColor(Block* port, Block* color) : Block("Event", "WhenColor"), port(port), color(color) {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -172,7 +185,7 @@ public:
     WhenPressed(Block* port, string event) : Block("Event", "WhenPressed"), port(port), event(event) {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -195,7 +208,7 @@ public:
     WhenDistance(Block* port, string option, Block* distance, string unit) : Block("Event", "WhenDistance"), port(port), option(option), distance(distance), unit(unit) {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -217,7 +230,7 @@ public:
     WhenTilted(Block* angle) : Block("Event", "WhenTilted"), angle(angle) {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -236,7 +249,7 @@ public:
     WhenOrientation(string orientation) : Block("Event", "WhenOrientation"), orientation(orientation) {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -253,7 +266,7 @@ public:
     WhenGesture(string gesture) : Block("Event", "WhenGesture"), gesture(gesture) {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -271,7 +284,7 @@ public:
     WhenButton(string button, string event) : Block("Event", "WhenButton"), button(button), event(event) {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -288,7 +301,7 @@ public:
     WhenTimer(Block* value) : Block("Event", "WhenTimer"), value(value) {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -309,7 +322,7 @@ public:
     WhenCondition(Block* condition) : Block("Event", "WhenCondition"), condition(condition) {}
 
     double execute(Robot& robot) override {
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -361,7 +374,7 @@ public:
     double execute(Robot& robot) override {
         string str_message = message->executeString(robot);
         if (str_message.length() > 0) robot.broadcasts.push_back(str_message);
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     bool done(Robot& robot) override {
@@ -1084,7 +1097,7 @@ public:
             }
         }
 
-        if(str_text.length() == 0){
+        if (word_counter >= text->executeString(robot).length()) {
             return 0;
         }
 
@@ -1472,7 +1485,7 @@ public:
         if(good_ports2 == ""){
             return 0;
         }
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     void helper(Robot& robot) {
@@ -1566,7 +1579,7 @@ public:
         if(good_ports2 == ""){
             return 0;
         }
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     void helper(Robot& robot) {
@@ -1928,7 +1941,7 @@ public:
             when_done = true;
             return 0;
         }
-        return robot.discrete_time_interval;
+        return 0;
     }
 
     void finish(Robot& robot) override {
@@ -2761,7 +2774,8 @@ FunctionMap createFunctionMap() {
     // Movement blocks
     functionMap["flippermove_move"] = [&functionMap](const json& json_object, const string& name) {
         bool forward;
-        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        int args = json_object[name]["inputs"]["DIRECTION"][0];
+        cout << args << endl;
         if(args != 1){
             forward = true;
         }
@@ -2791,7 +2805,7 @@ FunctionMap createFunctionMap() {
 
     functionMap["flippermove_startMove"] = [&functionMap](const json& json_object, const string& name) {
         bool forward;
-        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        int args = json_object[name]["inputs"]["DIRECTION"][0];
         if(args != 1){
             forward = true;
         }
@@ -3511,10 +3525,9 @@ inline BlockSequence* processBlock(const json& blocks, string key) {
     if (!curr_block.contains("opcode")) {
         cerr << "Error: Block is missing 'opcode'!" << endl;
         return nullptr;
-    }
+    };
     auto curr_sequence_block = functionMap[curr_block["opcode"]](blocks, key).release();
     BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
-
     while (true) {
         if (curr_block["next"].is_null() || !blocks.contains(curr_block["next"])) {
             break;
@@ -3524,6 +3537,7 @@ inline BlockSequence* processBlock(const json& blocks, string key) {
             cerr << "Error: Block is missing 'opcode'!" << endl;
             return nullptr;
         }
+        //cout << next_block["opcode"] << endl << curr_block["next"] << endl;
         auto next_sequence_block = functionMap[next_block["opcode"]](blocks, curr_block["next"]).release();
         curr_sequence_block->next = next_sequence_block;
         next_sequence_block->parent = curr_sequence_block;

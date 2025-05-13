@@ -23,15 +23,31 @@ using json = nlohmann::json;
 using FunctionMap = map<string, function<unique_ptr<Block>(json, string)>>;
 
 
+void print_robot_state(Robot& robot) {
+    cout << robot.time_since_start << endl;
+    robot.print_position();
+    //robot.print_display();
+    //robot.print_sound();
+}
+
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
+    bool done = false;
     while (true){
-        for(auto sequence : sequences){ //TODO: make the logic for paralel block sequence interpretation
+        done = true;
+        for(auto sequence : sequences){ //TODO: make the logic for parallel block sequence interpretation
             sequence->execute(robot);
+            if(sequence->get_current_block() != nullptr){
+                done = false;
+            }
         }
         run_robot(robot);
         robot.time_since_start += robot.discrete_time_interval;
 
         print_robot_state(robot);
+
+        if(done){
+            break;
+        }
     }
 }
 
@@ -47,16 +63,10 @@ void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
     }
 }
 
-void print_robot_state(Robot& robot) {
-    cout << robot.time_since_start << endl;
-    robot.print_position();
-    //robot.print_display();
-    //robot.print_sound();
-}
-
 
 
 int main() {
+    cout << "Starting simulation..." << endl;
     string json_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/project.json";
 
     ifstream file(json_file_path);
@@ -71,6 +81,7 @@ int main() {
 
     vector<BlockSequence*> sequences;
     for(auto it = blocks.begin(); it != blocks.end(); ++it){
+        cout << "WW" << endl;
         if (it.value()["topLevel"]) {
             BlockSequence* block_sequence = processBlock(blocks, it.key());
             sequences.push_back(block_sequence);
@@ -78,8 +89,20 @@ int main() {
     }
 
     Robot robot("robot", 0, 0, sequences);
+
+    robot.addMotorState("A", 75, 0);
+    robot.addMotorState("B", 75, 0);
+    robot.addForceSensor("C", 0);
+    robot.addColorSensor("D", 0);
+
+    cout << sequences.size() << endl;
     
-    print_sequences(sequences, robot);
+    start_simulation(robot, sequences);
+    for (auto& sequence : sequences) {
+        delete sequence;
+    }
+
+    cout << "Simulation finished." << endl;
 
     return 0;
 

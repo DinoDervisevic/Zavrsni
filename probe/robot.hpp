@@ -3,8 +3,11 @@
 
 #include <string>
 #include <map>
+#include <cmath>
 
 using namespace std;
+
+class BlockSequence;
 
 struct State {
     string device_type;
@@ -50,14 +53,14 @@ struct MotionVector {
 
 struct Robot {
     string name;
-    int x, y;
+    double x, y = 0;
     double v1 = 0, v2 = 0;
     int angle = 0;
     int default_yaw_angle = 0; // when calculating yaw angle, this needs to be subtracted from the current angle
     int pitch_angle = 0;
     int roll_angle = 0;
-    int wheel_distance;
-    int wheel_radius;
+    double wheel_distance = 6.8; // distance between the wheels in cm
+    double wheel_radius = 5.3/2; // radius of the wheel in cm
     double movement_speed = 50;
     double volume;
     string sound_state;
@@ -85,13 +88,13 @@ struct Robot {
     map<string, DistanceSensor*> distance_states; 
     map<string, ForceSensor*> force_states; 
 
-    string movement_motors[2] = {"", ""}; // names of the motors
+    string movement_motors[2] = {"A", "B"}; // names of the motors
     bool movement_block_in_effect = false; // keeps track of wether the robot is moving due to the movement block or motor block(s)
 
     pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
 
     double time_since_start = 0; // current time in seconds
-    double discrete_time_interval = 0.05; // time in seconds between each simulation step
+    double discrete_time_interval = 0.05; // time in miliseconds between each simulation step
 
     vector<string> broadcasts; // list of broadcasted messages
     vector<string> finished_broadcasts; // list of finished broadcasts
@@ -103,11 +106,11 @@ struct Robot {
     double calculate_wheel_speed(string port){
         double speed = 0;
         if(movement_block_in_effect && (port == movement_motors[0] || port == movement_motors[1])){
-            speed = movement_speed * 0.39; // it takes 0.39 seconds to make 1 wheel rotation
+            speed = movement_speed * 0.39 / 100; // it takes 0.39 seconds to make 1 wheel rotation
         } else if (motor_states.find(port) != motor_states.end()) {
-            speed = motor_states[port]->speed * 0.39;	
+            speed = motor_states[port]->speed * 0.39 / 100;	
         }
-        return wheel_radius * 2 * 3.14259 * speed;
+        return wheel_radius * 2 * 3.14159265358979323846 * speed;
     }
 
     Robot(string name, int x, int y, vector<BlockSequence*> block_sequences) : name(name), x(x), y(y), block_sequences(block_sequences) {}
