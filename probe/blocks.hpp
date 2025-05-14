@@ -1819,7 +1819,7 @@ public:
         }
         
         block_sequence->execute(robot);
-        int t = block_sequence->get_time_left();
+        double t = block_sequence->get_time_left();
         block_sequence->set_time_left(0);
 
         if (block_sequence->get_current_block() == nullptr) block_sequence->reset(robot);
@@ -1843,7 +1843,7 @@ public:
         if(condition_checked || condition->execute(robot)){
             condition_checked = true;
             block_sequence->execute(robot);
-            int t = block_sequence->get_time_left();
+            double t = block_sequence->get_time_left();
             block_sequence->set_time_left(0);
             if (block_sequence->get_current_block() == nullptr) {
                 when_done = true;
@@ -1876,7 +1876,7 @@ public:
     IfElse(BlockSequence* block_sequence1, BlockSequence* block_sequence2, Block* condition) : Block("Control", "IfElse"), block_sequence1(block_sequence1), block_sequence2(block_sequence2), condition(condition) {}
 
     double execute(Robot& robot) override {
-        int t = 0;
+        double t = 0;
         if(condition_checked || (!condition_checked && !else_checked && condition->execute(robot))){
             condition_checked = true;
             block_sequence1->execute(robot);
@@ -3195,7 +3195,7 @@ FunctionMap createFunctionMap() {
         BlockSequence* block_sequence = nullptr;
         if (json_object[name]["inputs"].contains("SUBSTACK")) {
             string key = json_object[name]["inputs"]["SUBSTACK"][1];
-            BlockSequence* block_sequence = processBlock(json_object, key);
+            block_sequence = processBlock(json_object, key);
         }
 
         return make_unique<Forever>(block_sequence);
@@ -3211,7 +3211,7 @@ FunctionMap createFunctionMap() {
         BlockSequence* block_sequence = nullptr;
         if (json_object[name]["inputs"].contains("SUBSTACK")) {
             string key = json_object[name]["inputs"]["SUBSTACK"][1];
-            BlockSequence* block_sequence = processBlock(json_object, key);
+            block_sequence = processBlock(json_object, key);
         }
 
         return make_unique<If>(block_sequence, condition);
@@ -3227,13 +3227,13 @@ FunctionMap createFunctionMap() {
         BlockSequence* block_sequence = nullptr;
         if (json_object[name]["inputs"].contains("SUBSTACK")) {
             string key = json_object[name]["inputs"]["SUBSTACK"][1];
-            BlockSequence* block_sequence = processBlock(json_object, key);
+            block_sequence = processBlock(json_object, key);
         }
 
         BlockSequence* else_block_sequence = nullptr;
         if (json_object[name]["inputs"].contains("SUBSTACK2")) {
             string key = json_object[name]["inputs"]["SUBSTACK2"][1];
-            BlockSequence* else_block_sequence = processBlock(json_object, key);
+            else_block_sequence = processBlock(json_object, key);
         }
 
         return make_unique<IfElse>(block_sequence, else_block_sequence, condition);
@@ -3259,7 +3259,7 @@ FunctionMap createFunctionMap() {
         BlockSequence* block_sequence = nullptr;
         if (json_object[name]["inputs"].contains("SUBSTACK")) {
             string key = json_object[name]["inputs"]["SUBSTACK"][1];
-            BlockSequence* block_sequence = processBlock(json_object, key);
+            block_sequence = processBlock(json_object, key);
         }
 
         return make_unique<RepeatUntil>(condition, block_sequence);
