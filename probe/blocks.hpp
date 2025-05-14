@@ -60,36 +60,40 @@ class BlockSequence {
     Block* current_block;
     Block* starting_block;
     double time_left = 0;
-    bool is_running = false;
+    bool can_execute = true;
 public:
     BlockSequence(Block* first_block) : current_block(first_block), starting_block(first_block),  time_left(0) {}
 
     void execute(Robot& robot) {
+        
         while(true) {
-            
-            if(current_block == nullptr) break;
             if(time_left != 0.0){
-                //cout<< fixed << setprecision(15) << time_left << endl;
                 time_left -= robot.discrete_time_interval;
                 time_left = max(time_left, 0.0);
-                //cout<< fixed << setprecision(15) << time_left << endl;
                 break;
             }
+
+            if(current_block == nullptr) {
+                time_left += robot.discrete_time_interval;
+                break;   
+            }
+
+            if(can_execute){
+                time_left += current_block->execute(robot);
+                can_execute = false;
+                continue;
+            }
+
             if(current_block->done(robot)){
                 current_block->finish(robot);
                 current_block = current_block->next;
-            } else {
-                time_left += current_block->execute(robot);
-                break;
+                can_execute = true;
+                continue;
             }
-            check_interferences(robot);
-            time_left += current_block->execute(robot);
-            
+            else can_execute = true;
+
+            break;
         }
-        /*if(current_block == nullptr) {
-            current_block = starting_block;
-            time_left = 0;
-        }*/
     }
 
     void check_interferences(Robot& robot) {
@@ -100,7 +104,7 @@ public:
     }
 
     void reset(Robot& robot) {
-        current_block->finish(robot);
+        if(current_block != nullptr) current_block->finish(robot);
         current_block = starting_block;
         time_left = 0;
     }
@@ -124,14 +128,6 @@ public:
 
     Block* get_starting_block() const {
         return starting_block;
-    }
-
-    void set_is_running(bool is_running) {
-        this->is_running = is_running;
-    }
-
-    bool get_is_running() {
-        return is_running;
     }
 };
 
@@ -806,26 +802,14 @@ public:
         }
 
         if(forward){ // TODO: check if this is correct
-            robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed;
-            robot.motor_states[robot.movement_motors[1]] -> value = -robot.movement_speed;
-        } else {
             robot.motor_states[robot.movement_motors[0]] -> value = -robot.movement_speed;
             robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed;
+        } else {
+            robot.motor_states[robot.movement_motors[0]] -> value = robot.movement_speed;
+            robot.motor_states[robot.movement_motors[1]] -> value = -robot.movement_speed;
         }
         robot.movement_block_in_effect = true;
         return 0;
-    }
-
-    void finish(Robot& robot) override {
-        robot.movement_block_in_effect = false;
-        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.movement_motors[0] == robot.movement_motors[1]) {
-            return;
-        }
-        robot.motor_states[robot.movement_motors[0]] -> value = 0;
-        robot.motor_states[robot.movement_motors[1]] -> value = 0;
-        return;
     }
 
     void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
@@ -909,18 +893,6 @@ public:
 
         robot.movement_block_in_effect = true;
         return 0;
-    }
-
-    void finish(Robot& robot) override {
-        robot.movement_block_in_effect = false;
-        if (robot.motor_states.find(robot.movement_motors[0]) == robot.motor_states.end()
-        || robot.motor_states.find(robot.movement_motors[1]) == robot.motor_states.end()
-        || robot.movement_motors[0] == robot.movement_motors[1]) {
-            return;
-        }
-        robot.motor_states[robot.movement_motors[0]] -> value = 0;
-        robot.motor_states[robot.movement_motors[1]] -> value = 0;
-        return;
     }
 
     void deal_with_interference(Robot& robot, BlockSequence* sequence) override {
@@ -1023,11 +995,11 @@ public:
             if(i >= str_image.length()){
                 str_image += "0";
             }
-            if(isdigit(str_image[i])) str_image[i] = '0';
+            if(!isdigit(str_image[i])) str_image[i] = '0';
         }
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
-                robot.pixel_display[i][j] = str_image[i*5 + j] * robot.pixel_display_brightness / 9;
+                robot.pixel_display[i][j] = stoi(string(1, str_image[i*5 + j])) * robot.pixel_display_brightness / 9;
             }
         }
         robot.is_permanent_display = false;
@@ -1063,11 +1035,11 @@ public:
             if(i >= str_image.length()){
                 str_image += "0";
             }
-            if(isdigit(str_image[i])) str_image[i] = '0';
+            if(!isdigit(str_image[i])) str_image[i] = '0';
         }
         for(int i = 0; i < 5; ++i){
             for(int j = 0; j < 5; ++j){
-                robot.permanent_pixel_display[i][j] = str_image[i*5 + j] * robot.pixel_display_brightness / 9;
+                robot.permanent_pixel_display[i][j] = stoi(string(1, str_image[i*5 + j]))* robot.pixel_display_brightness / 9;
             }
         }
         robot.is_permanent_display = true;
@@ -1789,7 +1761,7 @@ class Repeat : public Block {
     int claculated_times;
     bool first_time = true;
     BlockSequence* block_sequence;
-    int counter;
+    int counter = 0;
     bool when_done = false;
 public:
     Repeat(Block* times, BlockSequence* block_sequence) : Block("Control", "Repeat"), times(times), block_sequence(block_sequence), counter(0) {}
@@ -1810,14 +1782,18 @@ public:
         }
 
         block_sequence->execute(robot);
-        int t = block_sequence->get_time_left();
+        double t = block_sequence->get_time_left();
         block_sequence->set_time_left(0);
 
         if (block_sequence->get_current_block() == nullptr) {
             counter++;
+            cout << "Counter: " << counter << endl;
             block_sequence->reset(robot);
+            cout << "Counter: " << counter << endl;
         }
 
+        cout << t << endl;
+        cout << "Counter: " << counter << endl;
         return t;
     }
 
@@ -1977,7 +1953,7 @@ public:
         }
 
         block_sequence->execute(robot);
-        int t = block_sequence->get_time_left();
+        double t = block_sequence->get_time_left();
         block_sequence->set_time_left(0);
 
         return t;
@@ -3209,7 +3185,7 @@ FunctionMap createFunctionMap() {
         BlockSequence* block_sequence = nullptr;
         if (json_object[name]["inputs"].contains("SUBSTACK")) {
             string key = json_object[name]["inputs"]["SUBSTACK"][1];
-            BlockSequence* block_sequence = processBlock(json_object, key);
+            block_sequence = processBlock(json_object, key);
         }
 
         return make_unique<Repeat>(times, block_sequence);
@@ -3527,6 +3503,7 @@ inline BlockSequence* processBlock(const json& blocks, string key) {
         return nullptr;
     };
     auto curr_sequence_block = functionMap[curr_block["opcode"]](blocks, key).release();
+
     BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
     while (true) {
         if (curr_block["next"].is_null() || !blocks.contains(curr_block["next"])) {

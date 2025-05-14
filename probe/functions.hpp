@@ -13,24 +13,23 @@ using namespace std;
 
 //converts the value of units to seconds
 double convert_to_seconds_movement(Robot& robot, string unit, double value) {
-    cout << "unit: " << unit << endl;
-    cout << "value: " << value << endl;
     if(unit == "seconds") return value;
     if(unit == "cm"){
         value = value / (2*3.14159265358979323846*robot.wheel_radius);
         //it takes 0.39 seconds to make 1 rotation, and the acceleration and deceleration take about 0.35 seconds when recahing max speed
-        return value * 0.39 / (robot.movement_speed / 100) + (min(0.35, 0.35 * value)) * (robot.movement_speed / 100) * (robot.movement_speed / 100);
+        return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
     }
     if(unit == "in"){
         value = value*2.54 / (2*3.14159265358979323846*robot.wheel_radius);
-        return value * 0.39 / (robot.movement_speed / 100) + (min(0.35, 0.35 * value)) * (robot.movement_speed / 100) * (robot.movement_speed / 100);
+        return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
     }
     if(unit == "rotations"){
-        return value * 0.39 / (robot.movement_speed / 100) + (min(0.35, 0.35 * value)) * (robot.movement_speed / 100) * (robot.movement_speed / 100);
+        cout << value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100) << endl;
+        return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
     }
     if(unit == "degrees"){
         value = value/360;
-        return value * 0.39 / (robot.movement_speed / 100) + (min(0.35, 0.35 * value)) * (robot.movement_speed / 100) * (robot.movement_speed / 100);
+        return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
     }
     return 0;
 }  
@@ -39,11 +38,11 @@ double convert_to_seconds_movement(Robot& robot, string unit, double value) {
 double convert_to_seconds_motor(Robot& robot, string unit, double value, string port) {
     if(unit == "s") return value;
     if(unit == "rotations"){
-        return value * 0.39 / (robot.motor_states[port]->speed / 100) + (min(0.35, 0.35 * value)) * (robot.motor_states[port]->speed / 100) * (robot.motor_states[port]->speed / 100);
+        return value * 0.393 / (robot.motor_states[port]->speed / 100) + (min(0.4, 0.4 * value)) * (robot.motor_states[port]->speed / 100) * (robot.motor_states[port]->speed / 100);
     }
     if(unit == "degrees"){
         value = value/360;
-        return value * 0.39 / (robot.motor_states[port]->speed / 100) + (min(0.35, 0.35 * value)) * (robot.motor_states[port]->speed / 100) * (robot.motor_states[port]->speed / 100);
+        return value * 0.393 / (robot.motor_states[port]->speed / 100) + (min(0.4, 0.4 * value)) * (robot.motor_states[port]->speed / 100) * (robot.motor_states[port]->speed / 100);
     }
     return 0;
 }  

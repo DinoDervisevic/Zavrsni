@@ -13,8 +13,26 @@ using namespace std;
 void one_motor_two_wheel_robot(Robot& robot){
     double right_wheel_speed = -robot.calculate_wheel_speed("A"); // hardcoded; the right wheel has to be here
     double left_wheel_speed = right_wheel_speed; // hardcoded; the left wheel has to be here
-    robot.motion_vector.linear_velocity = (right_wheel_speed + left_wheel_speed) / 2;
-    robot.motion_vector.angular_velocity = (right_wheel_speed - left_wheel_speed) / robot.wheel_distance;
+    
+    double target_speed = (right_wheel_speed + left_wheel_speed) / 2;
+    double target_angular_speed = (right_wheel_speed - left_wheel_speed) / robot.wheel_distance;
+
+    if(robot.motion_vector.linear_velocity < target_speed){
+        robot.motion_vector.linear_velocity += robot.motion_vector.acceleration * robot.discrete_time_interval;
+        robot.motion_vector.linear_velocity = min(robot.motion_vector.linear_velocity, target_speed);
+    } 
+    else if(robot.motion_vector.linear_velocity > target_speed){
+        robot.motion_vector.linear_velocity = target_speed;
+    }
+    
+    if(robot.motion_vector.angular_velocity > target_angular_speed){
+        robot.motion_vector.angular_velocity -= robot.motion_vector.acceleration * robot.discrete_time_interval;
+        robot.motion_vector.angular_velocity = max(robot.motion_vector.angular_velocity, target_angular_speed);
+    } 
+    else if(robot.motion_vector.angular_velocity < target_angular_speed){
+        robot.motion_vector.angular_velocity = target_angular_speed;
+    }
+
     //cout << "angular velocity: " << robot.motion_vector.angular_velocity << endl;
 }
 

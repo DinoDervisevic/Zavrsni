@@ -22,8 +22,11 @@ struct MotorState : public State {
     //double duration;
     double position = 0;
     double speed = 75;
+    double current_speed = 0;
 
-    MotorState(double speed) : State("Motor", speed) {}
+    MotorState(double speed) : State("Motor", speed) {
+        this->value = 0;
+    }
 };
 
 struct ColorSensor : public State {
@@ -47,6 +50,8 @@ struct ForceSensor : public State {
 struct MotionVector {
     double linear_velocity;
     double angular_velocity;
+
+    double acceleration = 65.0; // cm/s^2
 
     MotionVector(double linear_velocity, double angular_velocity) : linear_velocity(linear_velocity), angular_velocity(angular_velocity) {}
 };
@@ -106,9 +111,9 @@ struct Robot {
     double calculate_wheel_speed(string port){
         double speed = 0;
         if(movement_block_in_effect && (port == movement_motors[0] || port == movement_motors[1])){
-            speed = motor_states[port]->value / 100 / 0.39; // it takes 0.39 seconds to make 1 wheel rotation
+            speed = motor_states[port]->value / 100 / 0.382;
         } else if (motor_states.find(port) != motor_states.end()) {
-            speed = motor_states[port]->value / 100 / 0.39;	
+            speed = motor_states[port]->value / 100 / 0.382;	
         }
         return wheel_radius * 2 * 3.14159265358979323846 * speed;
     }
