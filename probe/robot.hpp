@@ -94,7 +94,7 @@ struct Robot {
     pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
 
     double time_since_start = 0; // current time in seconds
-    double discrete_time_interval = 0.05; // time in miliseconds between each simulation step
+    double discrete_time_interval = 0.01; // time in seconds between each simulation step
 
     vector<string> broadcasts; // list of broadcasted messages
     vector<string> finished_broadcasts; // list of finished broadcasts
@@ -111,6 +111,17 @@ struct Robot {
             speed = motor_states[port]->value / 100 / 0.39;	
         }
         return wheel_radius * 2 * 3.14159265358979323846 * speed;
+    }
+
+    void calculate_motor_position(string port){
+        if(motor_states.find(port) != motor_states.end()){
+            motor_states[port]->position += 360 * discrete_time_interval * (motor_states[port]->value / 100) / 0.39;
+            if(motor_states[port]->position >= 360){
+                motor_states[port]->position -= 360;
+            } else if(motor_states[port]->position < 0){
+                motor_states[port]->position += 360;
+            }
+        }
     }
 
     Robot(string name, int x, int y, vector<BlockSequence*> block_sequences) : name(name), x(x), y(y), block_sequences(block_sequences) {}
@@ -156,7 +167,7 @@ struct Robot {
         discrete_time_interval = new_time_interval;
     }
 
-    void addMotorState(const string& key, double speed, double duration) {
+    void addMotorState(const string& key, double speed) {
         motor_states[key] = new MotorState(speed);
     }
 

@@ -89,8 +89,8 @@ int main() {
 
     Robot robot("robot", 0, 0, sequences);
 
-    robot.addMotorState("A", 75, 0);
-    robot.addMotorState("B", 75, 0);
+    robot.addMotorState("A", 75);
+    robot.addMotorState("B", 75);
     robot.addForceSensor("C", 0);
     robot.addColorSensor("D", 0);
 

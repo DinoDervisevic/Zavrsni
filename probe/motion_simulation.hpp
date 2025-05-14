@@ -40,6 +40,10 @@ void calculate_position(Robot& robot){
 void run_robot(Robot& robot){
     one_motor_two_wheel_robot(robot);
     calculate_position(robot);
+
+    for(auto i : "ABCDEF"){
+        robot.calculate_motor_position(string(1, i));
+    }
 }
 
 #endif

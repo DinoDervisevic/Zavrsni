@@ -79,6 +79,7 @@ public:
                 current_block->finish(robot);
                 current_block = current_block->next;
             } else {
+                time_left += current_block->execute(robot);
                 break;
             }
             check_interferences(robot);
@@ -2941,7 +2942,7 @@ FunctionMap createFunctionMap() {
 
     functionMap["flipperlight_lightDisplayRotate"] = [&functionMap](const json& json_object, const string& name) {
         bool forward;
-        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        int args = json_object[name]["inputs"]["DIRECTION"][0];
         if(args != 1){
             forward = true;
         }
@@ -3086,7 +3087,7 @@ FunctionMap createFunctionMap() {
     //Motor blocks
     functionMap["flippermotor_motorTurnForDirection"] = [&functionMap](const json& json_object, const string& name) {
         bool forward;
-        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        int args = json_object[name]["inputs"]["DIRECTION"][0];
         if(args != 1){
             forward = true;
         }
@@ -3131,7 +3132,7 @@ FunctionMap createFunctionMap() {
         Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
 
         bool forward;
-        int args = json_object[name]["inputs"]["DIRECTION"][1];
+        int args = json_object[name]["inputs"]["DIRECTION"][0];
         if(args != 1){
             forward = true;
         }
@@ -3438,8 +3439,8 @@ FunctionMap createFunctionMap() {
     };
 
     functionMap["flippermotor_custom-angle"] = [&functionMap](const json& json_object, const string& name) {
-        string angle = json_object[name]["fields"]["field_flippermotor_custom-angle"][0].get<string>();
-        return make_unique<BlankBlockInt>(stoi(angle));
+        int angle = json_object[name]["fields"]["field_flippermotor_custom-angle"][0].get<int>();
+        return make_unique<BlankBlockInt>(angle);
     };
 
     functionMap ["flipperevents_color-selector"] = [&functionMap](const json& json_object, const string& name) {
