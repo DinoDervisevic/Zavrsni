@@ -23,6 +23,7 @@ struct MotorState : public State {
     double position = 0;
     double speed = 75;
     double current_speed = 0;
+    double time_left = 0;
 
     MotorState(double speed) : State("Motor", speed) {
         this->value = 0;
@@ -51,7 +52,7 @@ struct MotionVector {
     double linear_velocity;
     double angular_velocity;
 
-    double acceleration = 65.0; // cm/s^2
+    double acceleration = 6.42;
 
     MotionVector(double linear_velocity, double angular_velocity) : linear_velocity(linear_velocity), angular_velocity(angular_velocity) {}
 };
@@ -65,7 +66,7 @@ struct Robot {
     int pitch_angle = 0;
     int roll_angle = 0;
     double wheel_distance = 6.8; // distance between the wheels in cm
-    double wheel_radius = 5.5/2; // radius of the wheel in cm
+    double wheel_radius = 5.55/2; // radius of the wheel in cm
     double movement_speed = 50;
     double volume;
     string sound_state;
@@ -99,7 +100,7 @@ struct Robot {
     pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
 
     double time_since_start = 0; // current time in seconds
-    double discrete_time_interval = 0.01; // time in seconds between each simulation step
+    double discrete_time_interval = 0.005; // time in seconds between each simulation step
 
     vector<string> broadcasts; // list of broadcasted messages
     vector<string> finished_broadcasts; // list of finished broadcasts
@@ -111,16 +112,17 @@ struct Robot {
     double calculate_wheel_speed(string port){
         double speed = 0;
         if(movement_block_in_effect && (port == movement_motors[0] || port == movement_motors[1])){
-            speed = motor_states[port]->value / 100 / 0.382;
+            speed = motor_states[port]->current_speed / 100 / 0.387;
         } else if (motor_states.find(port) != motor_states.end()) {
-            speed = motor_states[port]->value / 100 / 0.382;	
+            speed = motor_states[port]->current_speed / 100 / 0.387;	
         }
+        cout << "Speed: " << wheel_radius * 2 * 3.14159265358979323846 * speed << endl;
         return wheel_radius * 2 * 3.14159265358979323846 * speed;
     }
 
     void calculate_motor_position(string port){
         if(motor_states.find(port) != motor_states.end()){
-            motor_states[port]->position += 360 * discrete_time_interval * (motor_states[port]->value / 100) / 0.39;
+            motor_states[port]->position += 360 * discrete_time_interval * (motor_states[port]->current_speed / 100) / 0.39;
             if(motor_states[port]->position >= 360){
                 motor_states[port]->position -= 360;
             } else if(motor_states[port]->position < 0){
@@ -149,12 +151,14 @@ struct Robot {
     void reset_movement_motors() {
         for (int i = 0; i < 2; ++i) {
             motor_states[movement_motors[i]]->value = 0;
+            motor_states[movement_motors[i]]->time_left = 0;
         }
     }
 
     void reset() {
         for (auto& pair : motor_states) {
             pair.second->value = 0;
+            pair.second->time_left = 0;
         }
 
         //TODO: This works fine, but only if the display is not permanent, if it is, then reseting the robot should not turn it off

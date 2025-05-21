@@ -758,7 +758,10 @@ public:
         }
 
         robot.movement_block_in_effect = true;
-        return convert_to_seconds_movement(robot, unit, value->execute(robot));
+        double time = convert_to_seconds_movement(robot, unit, value->execute(robot));
+        robot.motor_states[robot.movement_motors[0]] -> time_left = time;
+        robot.motor_states[robot.movement_motors[1]] -> time_left = time;
+        return time;
     }
 
     void finish(Robot& robot) override {
@@ -771,6 +774,8 @@ public:
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
+        robot.motor_states[robot.movement_motors[0]] -> time_left = 0;
+        robot.motor_states[robot.movement_motors[1]] -> time_left = 0;
         return;
     }
 
@@ -809,6 +814,8 @@ public:
             robot.motor_states[robot.movement_motors[1]] -> value = -robot.movement_speed;
         }
         robot.movement_block_in_effect = true;
+        robot.motor_states[robot.movement_motors[0]]->time_left = 31536000; // the motors will run for a year
+        robot.motor_states[robot.movement_motors[1]]->time_left = 31536000; // the motors will run for a year
         return 0;
     }
 
@@ -846,7 +853,10 @@ public:
         robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/50, 1.0);
         
         robot.movement_block_in_effect = true;
-        return convert_to_seconds_movement(robot, unit, value->execute(robot));
+        double time = convert_to_seconds_movement(robot, unit, value->execute(robot));
+        robot.motor_states[robot.movement_motors[0]] -> time_left = time;
+        robot.motor_states[robot.movement_motors[1]] -> time_left = time;
+        return time;
     }
 
     void finish(Robot& robot) override {
@@ -859,6 +869,8 @@ public:
         }
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
+        robot.motor_states[robot.movement_motors[0]] -> time_left = 0;
+        robot.motor_states[robot.movement_motors[1]] -> time_left = 0;
         return;
     }
 
@@ -891,6 +903,9 @@ public:
         robot.motor_states[robot.movement_motors[0]] -> value = (-1) * robot.movement_speed * min(1 + direction->execute(robot)/50, 1.0);
         robot.motor_states[robot.movement_motors[1]] -> value = robot.movement_speed * min(1 - direction->execute(robot)/50, 1.0);
 
+        robot.motor_states[robot.movement_motors[0]]->time_left = 31536000; // the motors will run for a year
+        robot.motor_states[robot.movement_motors[1]]->time_left = 31536000; // the motors will run for a year
+
         robot.movement_block_in_effect = true;
         return 0;
     }
@@ -921,6 +936,9 @@ public:
 
         robot.motor_states[robot.movement_motors[0]] -> value = 0;
         robot.motor_states[robot.movement_motors[1]] -> value = 0;
+
+        robot.motor_states[robot.movement_motors[0]] -> time_left = 0;
+        robot.motor_states[robot.movement_motors[1]] -> time_left = 0;
 
         return 0;
     }
@@ -1467,7 +1485,10 @@ public:
         for(int i = 0; i < good_ports.length(); ++i){
             if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
                 robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
-                motor_times[string(1, good_ports[i])] = convert_to_seconds_motor(robot, unit, value->execute(robot), string (1, good_ports[i]));
+
+                double time = convert_to_seconds_motor(robot, unit, value->execute(robot), string(1, good_ports[i]));
+                motor_times[string(1, good_ports[i])] = time;
+                robot.motor_states[string(1, good_ports[i])]->time_left = time;
             }
         }
     }
@@ -1562,6 +1583,7 @@ public:
             if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
                 bool forward = calculate_direction(robot, string(1, good_ports[i]), direction, position->execute(robot));
                 robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
+                robot.motor_states[string(1, good_ports[i])]->time_left = 31536000; // the motors will run for a year
             }
         }
     }
@@ -1620,6 +1642,7 @@ public:
         for(int i = 0; i < good_ports.length(); ++i){
             if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
                 robot.motor_states[string(1, good_ports[i])]->value = robot.motor_states[string(1, good_ports[i])]->speed * (forward ? 1 : -1);
+                robot.motor_states[string(1, good_ports[i])]->time_left = 31536000; // the motors will run for a year
             }
         }
         return 0;
@@ -1662,6 +1685,7 @@ public:
         for(int i = 0; i < good_ports.length(); ++i){
             if(robot.motor_states.find(string(1, good_ports[i])) != robot.motor_states.end()){
                 robot.motor_states[string(1, good_ports[i])]->value = 0;
+                robot.motor_states[string(1, good_ports[i])]->time_left = 0;
             }
         }
         return 0;

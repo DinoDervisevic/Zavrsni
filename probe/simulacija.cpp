@@ -26,18 +26,18 @@ using FunctionMap = map<string, function<unique_ptr<Block>(json, string)>>;
 void print_robot_state(Robot& robot) {
     cout << robot.time_since_start << endl;
     robot.print_position();
-    robot.print_display();
+    //robot.print_display();
     //robot.print_sound();
 }
 
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
     bool done = false;
     while (true){
-        if(robot.time_since_start >= 10.0){
+        if(robot.time_since_start >= 5.0){
             break;
         }
         
-        for(auto sequence : sequences){ //TODO: make the logic for parallel block sequence interpretation
+        for(auto sequence : sequences){
             sequence->execute(robot);
             if(sequence->get_current_block() != nullptr){
                 done = false;

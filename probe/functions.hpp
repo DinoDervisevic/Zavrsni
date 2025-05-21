@@ -13,25 +13,42 @@ using namespace std;
 
 //converts the value of units to seconds
 double convert_to_seconds_movement(Robot& robot, string unit, double value) {
+    cout << "Unit: " << unit << endl;
+    cout << "Value: " << value << endl;
     if(unit == "seconds") return value;
-    if(unit == "cm"){
+    else if(unit == "cm"){
         value = value / (2*3.14159265358979323846*robot.wheel_radius);
         //it takes 0.39 seconds to make 1 rotation, and the acceleration and deceleration take about 0.35 seconds when recahing max speed
-        return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
+        //return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
     }
-    if(unit == "in"){
+    else if(unit == "in"){
         value = value*2.54 / (2*3.14159265358979323846*robot.wheel_radius);
-        return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
+        //return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
     }
-    if(unit == "rotations"){
-        cout << value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100) << endl;
-        return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
+    else if(unit == "rotations"){
+        value = value;
+        //cout << value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100) << endl;
+        //return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
     }
-    if(unit == "degrees"){
+    else if(unit == "degrees"){
         value = value/360;
-        return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
+        //return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
     }
-    return 0;
+    else value = 0;
+    cout << "Value: " << value << endl;
+    double v_max = (robot.movement_speed / 100) / 0.387;
+    double s_acc = v_max * v_max / (2 * robot.motion_vector.acceleration);
+
+    double t_total = 0;
+    if (value > 2 * s_acc) {
+        // Trapezni profil (ima dio s max brzinom)
+        t_total = 2 * (v_max / robot.motion_vector.acceleration) + (value - 2 * s_acc) / v_max;
+    } else {
+        // Trokutasti profil (nikad ne dosegne max brzinu)
+        t_total = 2 * sqrt(value / robot.motion_vector.acceleration);
+    }
+    cout << "Time: " << t_total << endl;
+    return t_total;
 }  
 
 //TODO
