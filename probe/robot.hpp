@@ -116,7 +116,6 @@ struct Robot {
         } else if (motor_states.find(port) != motor_states.end()) {
             speed = motor_states[port]->current_speed / 100 / 0.387;	
         }
-        cout << "Speed: " << wheel_radius * 2 * 3.14159265358979323846 * speed << endl;
         return wheel_radius * 2 * 3.14159265358979323846 * speed;
     }
 

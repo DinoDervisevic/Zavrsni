@@ -113,7 +113,7 @@ bool check_distance(double distance, string option, double value){ //TODO: check
     }
 }
 
-void rotate_matrix_right(Robot& robot){
+void rotate_matrix_left(Robot& robot){
     double temp[5][5];
     for (int i = 0; i < 5; ++i) {
         for (int j = 0; j < 5; ++j) {
@@ -142,10 +142,10 @@ void rotate_matrix_right(Robot& robot){
         }
     }
 
-    robot.absolute_image_position = (robot.absolute_image_position + 1) % 4;
+    robot.absolute_image_position = (robot.absolute_image_position + 3) % 4;
 }
 
-void rotate_matrix_left(Robot& robot) {
+void rotate_matrix_right(Robot& robot) {
     double temp[5][5];
 
     // Transponiraj matricu
@@ -176,7 +176,7 @@ void rotate_matrix_left(Robot& robot) {
         }
     }
     
-    robot.absolute_image_position = (robot.absolute_image_position + 3) % 4;
+    robot.absolute_image_position = (robot.absolute_image_position + 1) % 4;
 }
 
 string parse_port(Robot& robot, string port, string type){

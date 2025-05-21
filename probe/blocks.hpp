@@ -1199,8 +1199,8 @@ public:
         || brightness->execute(robot) < 0 || brightness->execute(robot) > 100){
             return 0;
         }
-        robot.pixel_display[static_cast<int>(x->execute(robot)-1)][static_cast<int>(y->execute(robot)-1)] = min(brightness->execute(robot), 100.0);
-        robot.permanent_pixel_display[static_cast<int>(x->execute(robot)-1)][static_cast<int>(y->execute(robot)-1)] = min(brightness->execute(robot), 100.0);
+        robot.pixel_display[static_cast<int>(y->execute(robot)-1)][static_cast<int>(x->execute(robot)-1)] = min(brightness->execute(robot), 100.0);
+        robot.permanent_pixel_display[static_cast<int>(y->execute(robot)-1)][static_cast<int>(x->execute(robot)-1)] = min(brightness->execute(robot), 100.0);
         
         return 0;
     }
@@ -1227,7 +1227,6 @@ public:
         }
         while(robot.absolute_image_position != static_cast<int>(orientation->execute(robot)-1)){
             rotate_matrix_right(robot);
-            robot.absolute_image_position = (robot.absolute_image_position + 1) % 4;
         }
         return 0;
     }
@@ -1247,11 +1246,11 @@ public:
 };
 
 class UltrasonicSensorLight : public Block { // TODO : kad budem mogao isprobat
-    string color;
-    string port;
+    Block* color;
+    Block* port;
 
 public:
-    UltrasonicSensorLight(string color, string port) : Block("Display", "UltrasonicSensorLight"), color(color), port(port) {}
+    UltrasonicSensorLight(Block* color, Block* port) : Block("Display", "UltrasonicSensorLight"), color(color), port(port) {}
 
     double execute(Robot& robot) override {
         return 0;
@@ -1265,7 +1264,7 @@ public:
 class PlayUntilDone : public Block {
     Block* sound_name;
 public:
-    PlayUntilDone(Block* sound) : Block("Sound", "PlayUntilDone"), sound_name(sound_name){};
+    PlayUntilDone(Block* sound_name) : Block("Sound", "PlayUntilDone"), sound_name(sound_name){};
     double execute(Robot& robot) override {
         robot.sound_playing = sound_name->executeString(robot);
         return 0;
@@ -1283,7 +1282,7 @@ public:
 class Play : public Block {
     Block* sound_name;
 public:
-    Play(Block* sound) : Block("Sound", "Play"), sound_name(sound_name){};
+    Play(Block* sound_name) : Block("Sound", "Play"), sound_name(sound_name){};
     double execute(Robot& robot) override {
         robot.sound_playing = sound_name->executeString(robot);
         return 0;
@@ -1311,12 +1310,12 @@ public:
         if(!is_number(time->executeString(robot)) || time->execute(robot) <= 0){
             return 0;
         }
-        robot.sound_state = "beep" + to_string(static_cast<int>(frequency->execute(robot)));
+        robot.sound_playing = "beep " + to_string(static_cast<int>(frequency->execute(robot)));
         return time->execute(robot);
     }
 
     void finish(Robot& robot) override {
-        robot.sound_state = "";
+        robot.sound_playing = "";
         return;
     }
 
@@ -1338,7 +1337,7 @@ public:
         if(!is_number(frequency->executeString(robot)) || frequency->execute(robot) < 48 || frequency->execute(robot) > 108){
             return 0;
         }
-        robot.sound_state = "beep" + to_string(static_cast<int>(frequency->execute(robot)));
+        robot.sound_playing = "beep " + to_string(static_cast<int>(frequency->execute(robot)));
         return 0;
     }
 
@@ -1356,7 +1355,7 @@ public:
     StopSound() : Block("Sound", "StopSound") {}
 
     double execute(Robot& robot) override {
-        robot.sound_state = "";
+        robot.sound_playing = "";
         return 0;
     }
 
@@ -2915,10 +2914,10 @@ FunctionMap createFunctionMap() {
     functionMap["flipperlight_lightDisplaySetBrightness"] = [&functionMap](const json& json_object, const string& name) {
         Block*brightness;
         if(json_object[name]["inputs"]["BRIGHTNESS"][0] == 1){
+            brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
+        } else {
             string brightness_name = json_object[name]["inputs"]["BRIGHTNESS"][1];
             brightness = functionMap[json_object[brightness_name]["opcode"]](json_object, brightness_name).release();
-        } else {
-            brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
         }
         return make_unique<SetPixelbrightness>(brightness);
     };
@@ -2948,7 +2947,7 @@ FunctionMap createFunctionMap() {
         }
         else{
             string direction_name = json_object[name]["inputs"]["DIRECTION"][1];
-            string fwd = json_object[direction_name]["fields"]["field_flippermotor_custom-icon-direction"][0];
+            string fwd = json_object[direction_name]["fields"]["field_flipperlight_custom-icon-direction"][0];
             
             if(fwd == "counterclockwise") {
                 forward = true;
@@ -2974,9 +2973,9 @@ FunctionMap createFunctionMap() {
     functionMap["flipperlight_ultrasonicLightUp"] = [&functionMap](const json& json_object, const string& name) {
         string port_name = json_object[name]["inputs"]["PORT"][1];
         string value_name = json_object[name]["inputs"]["VALUE"][1];
-        string color = json_object[value_name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<string>();
-        string port = json_object[port_name]["fields"]["field_flipperlight_led-selector"][0].get<string>();
-        return make_unique<UltrasonicSensorLight>(color, port);
+        Block* value = functionMap[json_object[value_name]["opcode"]](json_object, value_name).release();
+        Block* port = functionMap[json_object[port_name]["opcode"]](json_object, port_name).release();
+        return make_unique<UltrasonicSensorLight>(value, port);
     };
     //--------------------------------------------
     // Sound blocks
@@ -3030,25 +3029,25 @@ FunctionMap createFunctionMap() {
     };
 
     functionMap["sound_changeeffectby"] = [&functionMap](const json& json_object, const string& name) {
-        string effect = json_object[name]["fields"]["EFFECT"][1].get<string>();
+        string effect = json_object[name]["fields"]["EFFECT"][0].get<string>();
         Block* value;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        } else {
             string value_name = json_object[name]["inputs"]["VALUE"][1];
             value = functionMap[json_object[value_name]["opcode"]](json_object, value_name).release();
-        } else {
-            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         }
         return make_unique<ChangeEffectBy>(effect, value);
     };
 
     functionMap["sound_seteffectto"] = [&functionMap](const json& json_object, const string& name) {
-        string effect = json_object[name]["fields"]["EFFECT"][1].get<string>();
+        string effect = json_object[name]["fields"]["EFFECT"][0].get<string>();
         Block* value;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
+            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+        } else {
             string value_name = json_object[name]["inputs"]["VALUE"][1];
             value = functionMap[json_object[value_name]["opcode"]](json_object, value_name).release();
-        } else {
-            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         }
         return make_unique<SetEffectTo>(effect, value);
     };
@@ -3509,8 +3508,37 @@ FunctionMap createFunctionMap() {
     };
 
     functionMap["flippersound_custom-piano"] = [&functionMap](const json& json_object, const string& name) {
-        string note = json_object[name]["fields"]["field_flippersound_custom-piano"][0].get<string>();
-        return make_unique<BlankBlockInt>(stoi(note));
+        //Scratch can send either an integer or a string here
+        auto& note_json = json_object[name]["fields"]["field_flippersound_custom-piano"][0];
+        int note = 0;
+        if (note_json.is_string()) {
+            note = stoi(note_json.get<string>());
+        } else if (note_json.is_number_integer()) {
+            note = note_json.get<int>();
+        } else {
+            cerr << "Unknown type for piano note!" << endl;
+        }
+        return make_unique<BlankBlockInt>(note);
+    };
+
+    functionMap["flipperlight_matrix-pixel-index"] = [&functionMap](const json& json_object, const string& name) {
+        string index = json_object[name]["fields"]["field_flipperlight_matrix-pixel-index"][0].get<string>();
+        return make_unique<BlankBlockInt>(stoi(index));
+    };
+
+    functionMap["flipperlight_distance-sensor-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string distance = json_object[name]["fields"]["field_flipperlight_distance-sensor-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(distance);
+    };
+
+    functionMap["flipperlight_led-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string led = json_object[name]["fields"]["field_flipperlight_led-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(led);
+    };
+
+    functionMap["flippersound_sound-selector"] = [&functionMap](const json& json_object, const string& name) {
+        string sound = json_object[name]["fields"]["field_flippersound_sound-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(sound);
     };
 
 
