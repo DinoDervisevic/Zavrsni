@@ -13,7 +13,8 @@ def extract_llsp(file_path, output_dir):
     with zipfile.ZipFile(file_path, 'r') as zip_ref:
         zip_ref.extractall(output_dir)
 
-def extract_sb3(file_path, output_dir):
+def extract_sb3(file_dir, file_name, output_dir):
+    file_path = os.path.join(file_dir, file_name)
     with zipfile.ZipFile(file_path, 'r') as zip_ref:
         zip_ref.extractall(output_dir)
 
@@ -89,16 +90,13 @@ def find_latest_snapshot_in_period(snapshots, start, end):
 
 
 # Putanja do .llsp datoteke
-llsp_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/Project 3.llsp3"
+llsp_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshots"
 
-output_dir = 'C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE'
+output_dir = 'C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data'
 
-sb3_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/scratch.sb3"
+sb3_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data"
 
 # Ekstraktiraj .llsp datoteku
-extract_sb3(llsp_file_path, output_dir)
-
-extract_sb3(sb3_path, output_dir)
 
 all_snapshots = get_all_snapshots()
 for ts, fname in sorted(all_snapshots.items()):
@@ -115,7 +113,17 @@ for task, periods in task_periods.items():
         final_file = find_latest_snapshot_in_period(all_snapshots, start, end)
         if final_file:
             ts, fname = final_file
+
+            extract_sb3(llsp_file_path, fname, output_dir)
+            extract_sb3(sb3_path, fname, output_dir)
+
             print(f"Task {task} ({start} - {end}): {fname}")
+            result = subprocess.run(
+                ["simulacija.exe", str(task)],
+                capture_output=True, text=True
+            )
+            is_correct = result.stdout.strip() == "1"
+            print(f"  -> Task solved: {is_correct}")
         else:
             print(f"Task {task} ({start} - {end}): NEMA SNAPSHOTA U PERIODU")
 

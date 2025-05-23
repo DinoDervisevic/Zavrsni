@@ -13,8 +13,6 @@ using namespace std;
 
 //converts the value of units to seconds
 double convert_to_seconds_movement(Robot& robot, string unit, double value) {
-    cout << "Unit: " << unit << endl;
-    cout << "Value: " << value << endl;
     if(unit == "seconds") return value;
     else if(unit == "cm"){
         value = value / (2*3.14159265358979323846*robot.wheel_radius);

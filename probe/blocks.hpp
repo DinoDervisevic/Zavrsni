@@ -1811,13 +1811,11 @@ public:
 
         if (block_sequence->get_current_block() == nullptr) {
             counter++;
-            cout << "Counter: " << counter << endl;
+            //cout << "Counter: " << counter << endl;
             block_sequence->reset(robot);
-            cout << "Counter: " << counter << endl;
+            //cout << "Counter: " << counter << endl;
         }
 
-        cout << t << endl;
-        cout << "Counter: " << counter << endl;
         return t;
     }
 
