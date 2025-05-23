@@ -15,11 +15,11 @@ using namespace std;
 #define MARGIN_OF_ERROR_UPPER 1.05
 #define EPSILON 0.01
 
-#define ROZA_SPREMNIK 20.0
-#define PLAVI_SPREMNIK 40.0
-#define CRNI_SPREMNIK 60.0
-#define CRVENI_SPREMNIK 80.0
-#define ZUTI_SPREMNIK 100.0
+#define ROZA_SPREMNIK 17.436*2
+#define PLAVI_SPREMNIK 17.436*3
+#define CRNI_SPREMNIK 17.436*3
+#define CRVENI_SPREMNIK 17.436*4
+#define ZUTI_SPREMNIK 17.436*5
 
 #define KOSARICA_OTVARANJE 15
 #define KOSARICA_MAX 50
@@ -31,7 +31,7 @@ bool check_task_0(Robot& robot){
 bool check_task_1(Robot& robot){
     bool reached_target = false;
     for(int i = 0; i < robot.robot_states.size(); i++){
-        if(robot.robot_states[i].x >= 17.43*MARGIN_OF_ERROR_LOWER && robot.robot_states[i].x <= 17.43*MARGIN_OF_ERROR_UPPER){
+        if(-robot.robot_states[i].x >= 17.436*MARGIN_OF_ERROR_LOWER && -robot.robot_states[i].x <= 17.43*MARGIN_OF_ERROR_UPPER){
             reached_target = true;
         }
         else if(reached_target) return false;
@@ -43,7 +43,7 @@ bool check_task_1(Robot& robot){
 bool check_task_2(Robot& robot){
     bool reached_target = false;
     for(int i = 0; i < robot.robot_states.size(); i++){
-        if(robot.robot_states[i].x <= -17.43*MARGIN_OF_ERROR_LOWER && robot.robot_states[i].x >= -17.43*MARGIN_OF_ERROR_UPPER){
+        if(-robot.robot_states[i].x <= -17.436*MARGIN_OF_ERROR_LOWER && -robot.robot_states[i].x >= -17.43*MARGIN_OF_ERROR_UPPER){
             reached_target = true;
         }
         else if(reached_target) return false;
@@ -69,7 +69,7 @@ bool check_task_3(Robot& robot){
     // 1. Pronađi trenutak kad je robot stigao do roza spremnika
     int idx_reach = -1;
     for (int i = start_idx; i < robot.robot_states.size(); ++i) {
-        double x = robot.robot_states[i].x;
+        double x = -robot.robot_states[i].x;
         if (x >= ROZA_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= ROZA_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             idx_reach = i;
             break;
@@ -80,7 +80,7 @@ bool check_task_3(Robot& robot){
     // 2. Pronađi trenutak kad se vratio u bazu (x ≈ 0)
     int idx_return = -1;
     for (int i = idx_reach; i < robot.robot_states.size(); ++i) {
-        double x = robot.robot_states[i].x;
+        double x = -robot.robot_states[i].x;
         if (fabs(x) < EPSILON) {
             idx_return = i;
             break;
@@ -134,7 +134,7 @@ bool check_task_6(Robot& robot){
 
     // 1. Pronađi dolazak do plavog spremnika
     for (int i = 0; i < robot.robot_states.size(); ++i) {
-        double x = robot.robot_states[i].x;
+        double x = -robot.robot_states[i].x;
         if (!reached_spremnik && x >= PLAVI_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= PLAVI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             reached_spremnik = true;
         }
@@ -161,7 +161,7 @@ bool check_task_7(Robot& robot){
 
     // 1. Pronađi dolazak do plavog spremnika
     for (int i = 0; i < robot.robot_states.size(); ++i) {
-        double x = robot.robot_states[i].x;
+        double x = -robot.robot_states[i].x;
         if (!reached_spremnik && x >= PLAVI_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= PLAVI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             reached_spremnik = true;
         }
@@ -213,7 +213,7 @@ bool check_task_11(Robot& robot){
 
     // 1. Pronađi dolazak do plavog spremnika
     for (int i = start_idx; i < robot.robot_states.size(); ++i) {
-        double x = robot.robot_states[i].x;
+        double x = -robot.robot_states[i].x;
         if (!reached_spremnik && x >= PLAVI_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= PLAVI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             reached_spremnik = true;
         }
@@ -235,10 +235,10 @@ bool check_task_11(Robot& robot){
 
 void outside_interference_task_11(Robot& robot){
     if(robot.time_since_start >= 2.0){
-        robot.force_states["D"]->value = color_names.at("blue");
+        robot.color_states["D"]->value = color_names.at("blue");
     }
     if(robot.time_since_start >= 2.1){
-        robot.force_states["D"]->value = color_names.at("none");
+        robot.color_states["D"]->value = color_names.at("none");
     }
 }
 
@@ -259,10 +259,9 @@ bool check_task_12(Robot& robot){
         }
     }
     if (start_idx == -1) return false;
-
     // 1. Pronađi dolazak do plavog spremnika
     for (int i = start_idx; i < robot.robot_states.size(); ++i) {
-        double x = robot.robot_states[i].x;
+        double x = -robot.robot_states[i].x;
         if (!reached_spremnik && x >= CRNI_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= CRNI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             reached_spremnik = true;
         }
@@ -284,10 +283,10 @@ bool check_task_12(Robot& robot){
 
 void outside_interference_task_12(Robot& robot){
     if(robot.time_since_start >= 2.0){
-        robot.force_states["D"]->value = color_names.at("black");
+        robot.color_states["D"]->value = color_names.at("black");
     }
     if(robot.time_since_start >= 2.1){
-        robot.force_states["D"]->value = color_names.at("none");
+        robot.color_states["D"]->value = color_names.at("none");
     }
 }
 
@@ -314,10 +313,9 @@ bool check_task_13(Robot& robot){
             }
         }
         if (start_idx == -1) return false;
-
         // 1. Pronađi dolazak do spremnika
         for (int i = start_idx; i < robot.robot_states.size(); ++i) {
-            double x = robot.robot_states[i].x;
+            double x = -robot.robot_states[i].x;
             if (!reached_spremnik && x >= spremnici[k] * MARGIN_OF_ERROR_LOWER && x <= spremnici[k] * MARGIN_OF_ERROR_UPPER) {
                 reached_spremnik = true;
             }
@@ -328,37 +326,40 @@ bool check_task_13(Robot& robot){
             // 3. Zatvaranje košarice nakon otvaranja
             if (opened && !closed && fabs(robot.robot_states[i].motor_states.at("B")) < EPSILON) {
                 closed = true;
+
             }
             // 4. Povratak u bazu nakon zatvaranja
             if (closed && fabs(x) < EPSILON) {
                 cn++;
                 time = robot.robot_states[i].t + robot.discrete_time_interval;
                 starting_index = i+1;
+                break;
             }
         }
     }
+    
     if(cn == 3) return true;
     else return false;
 }
 
 void outside_interference_task_13(Robot& robot){
     if(robot.time_since_start >= 2.0){
-        robot.force_states["D"]->value = color_names.at("red");
+        robot.color_states["D"]->value = color_names.at("red");
     }
     if(robot.time_since_start >= 2.1){
-        robot.force_states["D"]->value = color_names.at("none");
+        robot.color_states["D"]->value = color_names.at("none");
     }
     if(robot.time_since_start >= 12.0){
-        robot.force_states["D"]->value = color_names.at("blue");
+        robot.color_states["D"]->value = color_names.at("blue");
     }
     if(robot.time_since_start >= 12.1){
-        robot.force_states["D"]->value = color_names.at("none");
+        robot.color_states["D"]->value = color_names.at("none");
     }
     if(robot.time_since_start >= 22.0){
-        robot.force_states["D"]->value = color_names.at("yellow");
+        robot.color_states["D"]->value = color_names.at("yellow");
     }
     if(robot.time_since_start >= 22.1){
-        robot.force_states["D"]->value = color_names.at("none");
+        robot.color_states["D"]->value = color_names.at("none");
     }
 }
 

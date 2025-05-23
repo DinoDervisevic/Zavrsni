@@ -52,15 +52,14 @@ double convert_to_seconds_movement(Robot& robot, string unit, double value) {
 double convert_to_seconds_motor(Robot& robot, string unit, double value, string port) {
     if(unit == "s") return value;
     else if(unit == "rotations"){
-        return value * 0.393 / (robot.motor_states[port]->speed / 100) + (min(0.4, 0.4 * value)) * (robot.motor_states[port]->speed / 100) * (robot.motor_states[port]->speed / 100);
+        value = value;
     }
     else if(unit == "degrees"){
         value = value/360;
-        return value * 0.393 / (robot.motor_states[port]->speed / 100) + (min(0.4, 0.4 * value)) * (robot.motor_states[port]->speed / 100) * (robot.motor_states[port]->speed / 100);
     }
     else value = 0;
-    //cout << "Value: " << value << endl;
-    double v_max = (robot.motor_states[port]->current_speed / 100) / 0.387;
+
+    double v_max = (robot.motor_states[port]->speed / 100) / 0.387;
     double s_acc = v_max * v_max / (2 * robot.motion_vector.acceleration);
 
     double t_total = 0;
@@ -71,7 +70,7 @@ double convert_to_seconds_motor(Robot& robot, string unit, double value, string 
         // Trokutasti profil (nikad ne dosegne max brzinu)
         t_total = 2 * sqrt(value / robot.motion_vector.acceleration);
     }
-    //cout << "Time: " << t_total << endl;
+
     return t_total;
 }  
 

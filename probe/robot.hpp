@@ -31,7 +31,7 @@ struct MotorState : public State {
 };
 
 struct ColorSensor : public State {
-    double previous_value = 0;
+    double previous_value = -1;
 
     ColorSensor(double value) : State("ColorSensor", value){}
 };

@@ -28,13 +28,32 @@ void print_robot_state(Robot& robot) {
     cout << robot.time_since_start << endl;
     robot.print_position();
     robot.print_display();
-    robot.print_sound();
+    //robot.print_sound();
+}
+
+void run_interference(Robot& robot, int taskId){
+    switch (taskId) {
+        case 1:  outside_interference_task_3(robot); break;
+        case 2:  outside_interference_task_3(robot); break;
+        case 3:  outside_interference_task_3(robot); break;
+        case 4:  outside_interference_task_3(robot); break;
+        case 5:  outside_interference_task_3(robot); break;
+        case 6:  outside_interference_task_3(robot); break;
+        case 7:  outside_interference_task_3(robot); break;
+        case 8:  outside_interference_task_3(robot); break;
+        case 9:  outside_interference_task_3(robot); break;
+        case 10: outside_interference_task_3(robot); break;
+        case 11: outside_interference_task_11(robot); break;
+        case 12: outside_interference_task_12(robot); break;
+        case 13: outside_interference_task_13(robot); break;
+        default: return;
+    }
 }
 
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId) {
     bool done = false;
     while (true){
-        if(robot.time_since_start >= 5.0){
+        if(robot.time_since_start >= 40.0){
             break;
         }
         
@@ -50,6 +69,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
         run_robot(robot);
         robot.save_state();
         //print_robot_state(robot);
+        //cout << robot.force_states["C"]->value << endl;
 
         adjust_trash_can(robot); // only for workshop
         run_interference(robot, taskId); // only for workshop
@@ -79,15 +99,6 @@ bool check_if_correct(Robot& robot, int taskId){
     }
 }
 
-void run_interference(Robot& robot, int taskId){
-    switch (taskId) {
-        case 3:  outside_interference_task_3(robot);
-        case 11: outside_interference_task_11(robot);
-        case 12: outside_interference_task_12(robot);
-        case 13: outside_interference_task_13(robot);
-        default: return;
-    }
-}
 
 void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
     for (const auto& sequence : sequences) {
@@ -105,7 +116,7 @@ void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
 
 int main(int argc, char* argv[]) {
     //cout << "Starting simulation..." << endl;
-    string json_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshots/project.json";
+    string json_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data/project.json";
 
     ifstream file(json_file_path);
     if (!file.is_open()) {
@@ -130,7 +141,7 @@ int main(int argc, char* argv[]) {
     robot.addMotorState("A", 75);
     robot.addMotorState("B", 75);
     robot.addForceSensor("C", 0);
-    robot.addColorSensor("D", 0);
+    robot.addColorSensor("D", -1);
 
     int taskId = std::stoi(argv[1]);
     

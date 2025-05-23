@@ -111,12 +111,12 @@ for task, periods in task_periods.items():
 for task, periods in task_periods.items():
     for start, end in periods:
         final_file = find_latest_snapshot_in_period(all_snapshots, start, end)
+        #if(task == 2):
+        #   exit()
         if final_file:
             ts, fname = final_file
-
             extract_sb3(llsp_file_path, fname, output_dir)
-            extract_sb3(sb3_path, fname, output_dir)
-
+            extract_sb3(sb3_path, "scratch.sb3", output_dir)
             print(f"Task {task} ({start} - {end}): {fname}")
             result = subprocess.run(
                 ["simulacija.exe", str(task)],
