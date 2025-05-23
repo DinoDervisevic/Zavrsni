@@ -35,7 +35,7 @@ double convert_to_seconds_movement(Robot& robot, string unit, double value) {
         //return value * 0.393 / (robot.movement_speed / 100) + (min(0.34, 0.34 * value / (robot.movement_speed / 100))) * (robot.movement_speed / 100);
     }
     else value = 0;
-    cout << "Value: " << value << endl;
+    //cout << "Value: " << value << endl;
     double v_max = (robot.movement_speed / 100) / 0.387;
     double s_acc = v_max * v_max / (2 * robot.motion_vector.acceleration);
 
@@ -47,21 +47,34 @@ double convert_to_seconds_movement(Robot& robot, string unit, double value) {
         // Trokutasti profil (nikad ne dosegne max brzinu)
         t_total = 2 * sqrt(value / robot.motion_vector.acceleration);
     }
-    cout << "Time: " << t_total << endl;
+    //cout << "Time: " << t_total << endl;
     return t_total;
 }  
 
-//TODO
 double convert_to_seconds_motor(Robot& robot, string unit, double value, string port) {
     if(unit == "s") return value;
-    if(unit == "rotations"){
+    else if(unit == "rotations"){
         return value * 0.393 / (robot.motor_states[port]->speed / 100) + (min(0.4, 0.4 * value)) * (robot.motor_states[port]->speed / 100) * (robot.motor_states[port]->speed / 100);
     }
-    if(unit == "degrees"){
+    else if(unit == "degrees"){
         value = value/360;
         return value * 0.393 / (robot.motor_states[port]->speed / 100) + (min(0.4, 0.4 * value)) * (robot.motor_states[port]->speed / 100) * (robot.motor_states[port]->speed / 100);
     }
-    return 0;
+    else value = 0;
+    //cout << "Value: " << value << endl;
+    double v_max = (robot.motor_states[port]->current_speed / 100) / 0.387;
+    double s_acc = v_max * v_max / (2 * robot.motion_vector.acceleration);
+
+    double t_total = 0;
+    if (value > 2 * s_acc) {
+        // Trapezni profil (ima dio s max brzinom)
+        t_total = 2 * (v_max / robot.motion_vector.acceleration) + (value - 2 * s_acc) / v_max;
+    } else {
+        // Trokutasti profil (nikad ne dosegne max brzinu)
+        t_total = 2 * sqrt(value / robot.motion_vector.acceleration);
+    }
+    //cout << "Time: " << t_total << endl;
+    return t_total;
 }  
 
 bool is_number(const std::string& s) {

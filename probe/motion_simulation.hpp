@@ -106,6 +106,20 @@ void calculate_position(Robot& robot){
     }
 }
 
+void calculate_previous_value(Robot& robot){
+    for(auto i : "ABCDEF"){
+        string port(1, i);
+        if(robot.color_states.find(port) != robot.color_states.end()){
+            robot.color_states[port]->previous_value = robot.color_states[port]->value;
+        }
+        if(robot.distance_states.find(port) != robot.distance_states.end()){
+            robot.distance_states[port]->previous_value = robot.distance_states[port]->value;
+        }
+        if(robot.force_states.find(port) != robot.force_states.end()){
+            robot.force_states[port]->previous_value = robot.force_states[port]->value;
+        }
+    }
+}
 
 
 // Funal function to calculate everything using these above
@@ -118,6 +132,8 @@ void run_robot(Robot& robot){
     for(auto i : "ABCDEF"){
         robot.calculate_motor_position(string(1, i));
     }
+
+    calculate_previous_value(robot);
 }
 
 #endif

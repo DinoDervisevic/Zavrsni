@@ -168,7 +168,8 @@ public:
         string port_name = string(1, toupper(port->executeString(robot)[0]));
         if (robot.color_states.find(port_name) != robot.color_states.end() 
         && is_number(color->executeString(robot))
-        && robot.color_states[port_name]->value == color->execute(robot)) {
+        && robot.color_states[port_name]->value == color->execute(robot)
+        && robot.color_states[port_name]->value != robot.color_states[port_name]->previous_value) {
             return true;
         }
         else return false;

@@ -47,10 +47,10 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences) {
             }
         }
         run_robot(robot);
-        robot.time_since_start += robot.discrete_time_interval;
-
+        robot.save_state();
         print_robot_state(robot);
 
+        robot.time_since_start += robot.discrete_time_interval;
     }
 }
 
