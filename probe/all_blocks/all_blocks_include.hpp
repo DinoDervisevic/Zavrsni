@@ -1,0 +1,10 @@
+#pragma once
+#include "blank_blocks/blank_blocks_include.hpp"
+#include "event_blocks/event_blocks_include.hpp"
+#include "control_blocks/control_blocks_include.hpp"
+#include "display_blocks/display_blocks_include.hpp"
+#include "movement_blocks/movement_blocks_include.hpp"
+#include "motor_blocks/motor_blocks_include.hpp"
+#include "sensor_blocks/sensor_blocks_include.hpp"
+#include "sound_blocks/sound_blocks_include.hpp"
+#include "operator_blocks/operator_blocks_include.hpp"

@@ -1,0 +1,12 @@
+#pragma once
+#include "Beep.hpp"
+#include "BeepForTime.hpp"
+#include "ChangeEffectBy.hpp"
+#include "ClearEffects.hpp"
+#include "Play.hpp"
+#include "PlayUntilDone.hpp"
+#include "SetEffectTo.hpp"
+#include "StopSound.hpp"
+#include "Volume.hpp"
+#include "ChangeVolumeBy.hpp"
+#include "SetVolumeTo.hpp"
