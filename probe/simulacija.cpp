@@ -127,7 +127,6 @@ int main(int argc, char* argv[]) {
     json j;
     file >> j;
     auto blocks = j["targets"][1]["blocks"];
-
     vector<BlockSequence*> sequences;
     for(auto it = blocks.begin(); it != blocks.end(); ++it){
         if (it.value()["topLevel"]) {
@@ -137,7 +136,6 @@ int main(int argc, char* argv[]) {
     }
 
     Robot robot("robot", 0, 0, sequences);
-
     robot.addMotorState("A", 75);
     robot.addMotorState("B", 75);
     robot.addForceSensor("C", 0);
