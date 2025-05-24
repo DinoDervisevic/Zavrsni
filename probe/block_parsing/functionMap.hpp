@@ -5,15 +5,15 @@
 #include <memory>
 #include <string>
 
-#include "control_blocks_parsing.hpp"
-#include "event_blocks_parsing.hpp"
-#include "miscelanious_blocks_parsing.hpp"
-#include "operator_blocks_parsing.hpp"
-#include "sensor_blocks_parsing.hpp"
-#include "display_blocks_parsing.hpp"
-#include "movement_blocks_parsing.hpp"
-#include "motor_blocks_parsing.hpp"
-#include "sound_blocks_parsing.hpp"
+#include "block_groups/control_blocks_parsing.hpp"
+#include "block_groups/event_blocks_parsing.hpp"
+#include "block_groups/miscelanious_blocks_parsing.hpp"
+#include "block_groups/operator_blocks_parsing.hpp"
+#include "block_groups/sensor_blocks_parsing.hpp"
+#include "block_groups/display_blocks_parsing.hpp"
+#include "block_groups/movement_blocks_parsing.hpp"
+#include "block_groups/motor_blocks_parsing.hpp"
+#include "block_groups/sound_blocks_parsing.hpp"
 
 using namespace std;
 
