@@ -6,8 +6,8 @@
 
 using namespace std;
 
-#include "../robot.hpp"
-#include "block.hpp"
+#include "../robot/robot.hpp"
+#include "Block.hpp"
 
 class BlockSequence {
     Block* current_block;

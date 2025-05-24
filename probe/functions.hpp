@@ -7,7 +7,7 @@
 #include <memory>
 #include <functional>
 #include "json.hpp"
-#include "robot.hpp"
+#include "robot/robot.hpp"
 
 using namespace std;
 

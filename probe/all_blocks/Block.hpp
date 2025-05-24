@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#include "../robot.hpp"
+#include "../robot/robot.hpp"
 
 class Block {
     public:

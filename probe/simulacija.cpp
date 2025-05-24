@@ -11,7 +11,7 @@
 #include <sstream>
 
 #include "json.hpp"
-#include "robot.hpp"
+#include "robot/robot.hpp"
 #include "blocks.hpp"
 #include "functions.hpp"
 #include "motion_simulation.hpp"

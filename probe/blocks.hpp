@@ -16,11 +16,11 @@
 #include <iomanip>
 
 #include "json.hpp"
-#include "robot.hpp"
+#include "robot/robot.hpp"
 #include "functions.hpp"
 #include "display_letters.hpp"
-#include "./all_blocks/common_block_includes.hpp"
-#include "./all_blocks/all_blocks_include.hpp"
+#include "all_blocks/common_block_includes.hpp"
+#include "all_blocks/all_blocks_include.hpp"
 
 using namespace std;
 
