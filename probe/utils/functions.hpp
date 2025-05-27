@@ -6,8 +6,8 @@
 #include <map>
 #include <memory>
 #include <functional>
-#include "json.hpp"
-#include "robot/robot.hpp"
+#include "../external/json.hpp"
+#include "../robot/robot.hpp"
 
 using namespace std;
 

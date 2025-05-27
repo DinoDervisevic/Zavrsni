@@ -15,20 +15,17 @@
 #include <cmath>
 #include <iomanip>
 
-#include "json.hpp"
-#include "robot/robot.hpp"
-#include "functions.hpp"
-#include "display_letters.hpp"
-#include "all_blocks/common_block_includes.hpp"
-#include "all_blocks/all_blocks_include.hpp"
+#include "external/json.hpp"
+#include "robot/Robot.hpp"
+#include "utils/functions.hpp"
+#include "utils/display_letters.hpp"
+#include "blocks/common_block_includes.hpp"
+#include "blocks/all_blocks_include.hpp"
 #include "block_parsing/functionMap.hpp"
 
 using namespace std;
 
 using json = nlohmann::json;
-
-
-// blocks.hpp
 
 inline FunctionMap& getFunctionMap() {
     static FunctionMap functionMap = createFunctionMap();

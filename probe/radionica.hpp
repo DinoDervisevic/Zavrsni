@@ -5,8 +5,8 @@
 #include <map>
 #include <math.h>
 
-#include "robot/robot.hpp"
-#include "color_names.hpp"
+#include "robot/Robot.hpp"
+#include "utils/color_names.hpp"
 
 using namespace std;
 

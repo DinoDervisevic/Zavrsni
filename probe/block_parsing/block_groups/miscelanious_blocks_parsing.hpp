@@ -6,10 +6,10 @@
 #include <memory>
 #include <string>
 
-#include "../../all_blocks/Block.hpp"
-#include "../../all_blocks/BlockSequence.hpp"
-#include "../../json.hpp"
-#include "../../all_blocks/blank_blocks/blank_blocks_include.hpp"
+#include "../../blocks/Block.hpp"
+#include "../../blocks/BlockSequence.hpp"
+#include "../../external/json.hpp"
+#include "../../blocks/blank_blocks/blank_blocks_include.hpp"
 
 using namespace std;
 using json = nlohmann::json;

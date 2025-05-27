@@ -15,8 +15,9 @@ public:
         if(port->executeString(robot).length() < 1) return 0;
         string port_name = string(1, toupper(port->executeString(robot)[0]));
         if (robot.distance_states.find(port_name) != robot.distance_states.end()) {
-            return robot.distance_states[port_name]->value; // TODO: ovdje i gore skuziit sto tocno unti znaci i kako se radi s postotcima
+            return robot.distance_states[port_name]->value; // TODO: ovdje i gore skuzit sto tocno unti znaci i kako se radi s postotcima
         }
+        else return 0;
     }
 };
 

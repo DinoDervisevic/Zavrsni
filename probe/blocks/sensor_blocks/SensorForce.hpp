@@ -17,6 +17,7 @@ public:
         if (robot.force_states.find(port_name) != robot.force_states.end()){
             return robot.force_states[port_name]->value * (unit == "%" ? 100 : 1); 
         }
+        else return 0;
     }
 };
 

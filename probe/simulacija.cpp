@@ -10,10 +10,7 @@
 #include <queue>
 #include <sstream>
 
-#include "json.hpp"
-#include "robot/robot.hpp"
-#include "blocks.hpp"
-#include "functions.hpp"
+#include "blocks_include.hpp"
 #include "motion_simulation.hpp"
 #include "radionica.hpp"
 
@@ -117,7 +114,8 @@ void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
 int main(int argc, char* argv[]) {
     //cout << "Starting simulation..." << endl;
     string json_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data/project.json";
-
+    //string json_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/project.json";
+    
     ifstream file(json_file_path);
     if (!file.is_open()) {
         std::cerr << "Could not open the file!" << std::endl;

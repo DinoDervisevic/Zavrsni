@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#include "../robot/robot.hpp"
+#include "../robot/Robot.hpp"
 #include "Block.hpp"
 
 class BlockSequence {

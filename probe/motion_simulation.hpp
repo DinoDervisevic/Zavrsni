@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-#include "robot/robot.hpp"
+#include "robot/Robot.hpp"
 
 
 using namespace std;

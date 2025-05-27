@@ -16,6 +16,7 @@ public:
         if (robot.color_states.find(port_name) != robot.color_states.end()){
             return robot.color_states[port_name]->value;
         }
+        else return 0;
     }
 };
 

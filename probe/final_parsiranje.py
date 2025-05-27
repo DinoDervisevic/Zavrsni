@@ -81,7 +81,7 @@ def find_latest_snapshot_in_period(snapshots, start, end):
     start_dt = datetime.strptime(start, fmt)
     end_dt = datetime.strptime(end, fmt)
     # Filtriraj sve snapshotove prije kraja perioda (i opcionalno nakon početka)
-    candidates = [(ts, fname) for ts, fname in snapshots.items() if ts <= end_dt and ts >= start_dt]
+    candidates = [(ts, fname) for ts, fname in snapshots.items() if ts <= end_dt]
     if not candidates:
         # Ako nema nijednog, možeš vratiti None ili probati najnoviji prije end_dt
         return None
@@ -99,14 +99,18 @@ sb3_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/
 # Ekstraktiraj .llsp datoteku
 
 all_snapshots = get_all_snapshots()
-for ts, fname in sorted(all_snapshots.items()):
-    print(ts, fname)
+# for ts, fname in sorted(all_snapshots.items()):
+#     print(ts, fname)
 
 task_periods = parse_log_file()
-for task, periods in task_periods.items():
-    print(f"Task {task}:")
-    for start, end in periods:
-        print(f"  {start} - {end}")
+# for task, periods in task_periods.items():
+#     print(f"Task {task}:")
+#     for start, end in periods:
+#         print(f"  {start} - {end}")
+    
+results = {}
+for i in range(14):
+    results["Task " + str(i)] = False
 
 for task, periods in task_periods.items():
     for start, end in periods:
@@ -117,14 +121,20 @@ for task, periods in task_periods.items():
             ts, fname = final_file
             extract_sb3(llsp_file_path, fname, output_dir)
             extract_sb3(sb3_path, "scratch.sb3", output_dir)
-            print(f"Task {task} ({start} - {end}): {fname}")
+            #print(f"Task {task} ({start} - {end}): {fname}")
             result = subprocess.run(
                 ["simulacija.exe", str(task)],
                 capture_output=True, text=True
             )
             is_correct = result.stdout.strip() == "1"
-            print(f"  -> Task solved: {is_correct}")
-        else:
-            print(f"Task {task} ({start} - {end}): NEMA SNAPSHOTA U PERIODU")
+            if is_correct:
+                results["Task " + str(task)] = True
+            #print(f"  -> Task solved: {is_correct}")
+        #else:
+            #print(f"Task {task} ({start} - {end}): NEMA SNAPSHOTA U PERIODU")
 
+always_true = ["Task 0", "Task 5", "Task 8", "Task 9", "Task 10", "Task 14"]
+
+for task, solved in results.items():
+    print(f"{task}: {'Solved' if solved else 'Not solved'} {'(was not really a task)' if task in always_true else ''}")
 

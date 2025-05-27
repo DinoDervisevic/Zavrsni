@@ -14,6 +14,7 @@ public:
         if(axis == "yaw") return robot.angle - robot.default_yaw_angle;
         else if(axis == "pitch") return robot.pitch_angle;
         else if(axis == "roll") return robot.roll_angle;
+        else return 0; // Invalid axis
     }
 };
 
