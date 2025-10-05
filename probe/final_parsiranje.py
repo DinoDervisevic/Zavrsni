@@ -1,13 +1,34 @@
 import zipfile
 import os
+import sys
 from datetime import datetime, timedelta
 from collections import defaultdict
 import subprocess
+import tkinter as tk
+from tkinter import filedialog
+import ctypes
 
-snapshots_dir = 'C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshots'
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except Exception:
+    pass
+
+folder_path = filedialog.askdirectory(title="Odaberi glavni folder s podacima")
+if not folder_path:
+    print("Nije odabran folder.")
+    exit()
+
+snapshots_dir = os.path.join(folder_path, "snapshots")
 # Putanja do direktorija sa snapshotima
-log_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/zadatci_metadata.txt"
+log_path = os.path.join(folder_path, "zadatci_metadata.txt")
 # Putanja do datoteke sa logovima
+
+if not os.path.isdir(snapshots_dir):
+    print(f"Greška: Folder sa snapshotovima ne postoji: {snapshots_dir}")
+    sys.exit(1)
+if not os.path.isfile(log_path):
+    print(f"Greška: Log datoteka ne postoji: {log_path}")
+    sys.exit(1)
 
 def extract_llsp(file_path, output_dir):
     with zipfile.ZipFile(file_path, 'r') as zip_ref:
@@ -90,11 +111,11 @@ def find_latest_snapshot_in_period(snapshots, start, end):
 
 
 # Putanja do .llsp datoteke
-llsp_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshots"
+llsp_file_path = os.path.join(folder_path, "snapshots")
 
-output_dir = 'C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data'
+output_dir = os.path.join(folder_path, "snapshots", "snapshot_data")
 
-sb3_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data"
+sb3_path = os.path.join(folder_path, "snapshots", "snapshot_data")
 
 # Ekstraktiraj .llsp datoteku
 
@@ -112,39 +133,48 @@ results = {}
 for i in range(14):
     results["Task " + str(i)] = False
 
+# Rjesenje je samo zadnji screenshot za neki task
+def evaluate_final_snapshot(task, start, end, all_snapshots, llsp_file_path, sb3_path, output_dir):
+    # Pronađi najnoviji snapshot u periodu
+    final_file = find_latest_snapshot_in_period(all_snapshots, start, end)
+    # Simuliraj i provjeri rješenje
+    if final_file:
+        ts, fname = final_file
+        extract_sb3(llsp_file_path, fname, output_dir)
+        extract_sb3(sb3_path, "scratch.sb3", output_dir)
+        result = subprocess.run(
+            ["simulacija.exe", str(task)],
+            capture_output=True, text=True
+        )
+        is_correct = result.stdout.strip() == "1"
+        return is_correct
+    return False
+
+# Ako je barem jedan screenshot u periodu tačan, task je riješen
+def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, sb3_path, output_dir):
+    # Pronađi sve snapshotove u periodu
+    snapshots_in_period = [
+        (ts, fname) for ts, fname in all_snapshots.items()
+        if datetime.strptime(start, "%Y-%m-%d-%H-%M-%S,%f") <= ts <= datetime.strptime(end, "%Y-%m-%d-%H-%M-%S,%f")
+    ]
+    # Analiziraj svaki snapshot u periodu
+    for ts, fname in sorted(snapshots_in_period):
+        extract_sb3(llsp_file_path, fname, output_dir)
+        extract_sb3(sb3_path, "scratch.sb3", output_dir)
+        result = subprocess.run(
+            ["simulacija.exe", str(task)],
+            capture_output=True, text=True
+        )
+        is_correct = result.stdout.strip() == "1"
+        if is_correct:
+            return True
+    return False
+
 for task, periods in task_periods.items():
     for start, end in periods:
-        snapshots_in_period = [
-            (ts, fname) for ts, fname in all_snapshots.items()
-            if datetime.strptime(start, "%Y-%m-%d-%H-%M-%S,%f") <= ts <= datetime.strptime(end, "%Y-%m-%d-%H-%M-%S,%f")
-        ]
-        # Analiziraj svaki snapshot u periodu
-        for ts, fname in sorted(snapshots_in_period):
-            extract_sb3(llsp_file_path, fname, output_dir)
-            extract_sb3(sb3_path, "scratch.sb3", output_dir)
-            result = subprocess.run(
-                ["simulacija.exe", str(task)],
-                capture_output=True, text=True
-            )
-            
-        final_file = find_latest_snapshot_in_period(all_snapshots, start, end)
-        #if(task == 2):
-        #   exit()
-        if final_file:
-            ts, fname = final_file
-            extract_sb3(llsp_file_path, fname, output_dir)
-            extract_sb3(sb3_path, "scratch.sb3", output_dir)
-            #print(f"Task {task} ({start} - {end}): {fname}")
-            result = subprocess.run(
-                ["simulacija.exe", str(task)],
-                capture_output=True, text=True
-            )
-            is_correct = result.stdout.strip() == "1"
-            if is_correct:
-                results["Task " + str(task)] = True
-            #print(f"  -> Task solved: {is_correct}")
-        #else:
-            #print(f"Task {task} ({start} - {end}): NEMA SNAPSHOTA U PERIODU")
+        solved = evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, sb3_path, output_dir)
+        if solved:
+            results["Task " + str(task)] = True
 
 always_true = ["Task 0", "Task 5", "Task 8", "Task 9", "Task 10", "Task 14"]
 
