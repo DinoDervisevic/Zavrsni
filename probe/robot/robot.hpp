@@ -54,7 +54,7 @@ struct Robot {
     pair<double, string> motor_rotation = {0, "cm"}; // direction of the movement
 
     double time_since_start = 0; // current time in seconds
-    double discrete_time_interval = 0.005; // time in seconds between each simulation step
+    double discrete_time_interval = 0.001; // time in seconds between each simulation step
 
     vector<string> broadcasts; // list of broadcasted messages
     vector<string> finished_broadcasts; // list of finished broadcasts

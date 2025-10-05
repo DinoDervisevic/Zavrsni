@@ -50,7 +50,7 @@ void run_interference(Robot& robot, int taskId){
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId) {
     bool done = false;
     while (true){
-        if(robot.time_since_start >= 40.0){
+        if(robot.time_since_start >= 20.0){
             break;
         }
         
@@ -65,7 +65,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
         }
         run_robot(robot);
         robot.save_state();
-        //print_robot_state(robot);
+        print_robot_state(robot);
         //cout << robot.force_states["C"]->value << endl;
 
         adjust_trash_can(robot); // only for workshop
@@ -113,8 +113,8 @@ void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
 
 int main(int argc, char* argv[]) {
     //cout << "Starting simulation..." << endl;
-    string json_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data/project.json";
-    //string json_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/project.json";
+    //string json_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data/project.json";
+    string json_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/project.json";
     
     ifstream file(json_file_path);
     if (!file.is_open()) {

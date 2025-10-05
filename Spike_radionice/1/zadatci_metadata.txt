@@ -1,0 +1,96 @@
+NEW SESSION STARTED 
+ROBOT ASSEMBLY OPENED 
+2025-07-22-15-47-42,7 Task: 0 Next  Time_spent_on_previous_task: 00:37:21,062
+HELP WINDOW OPENED 
+2025-07-22-15-55-23,4 Task: 1 Next  Time_spent_on_previous_task: 00:05:32,441
+2025-07-22-15-57-43,2 Task: 2 Next  Time_spent_on_previous_task: 00:02:19,744
+2025-07-22-15-58-34,0 Task: 3 Next  Time_spent_on_previous_task: 00:00:50,848
+2025-07-22-16-01-57,8 Task: 4 TRUE  Time_spent_on_previous_task: 00:00:50,848
+2025-07-22-16-01-57,8 Task: 4 Next  Time_spent_on_previous_task: 00:03:23,807
+2025-07-22-16-02-01,6 Task: 5 Next  Time_spent_on_previous_task: 00:00:03,781
+2025-07-22-16-07-39,2 Task: 6 TRUE  Time_spent_on_previous_task: 00:00:03,781
+2025-07-22-16-07-39,2 Task: 6 Next  Time_spent_on_previous_task: 00:05:37,600
+2025-07-22-16-12-56,9 Task: 7 Next  Time_spent_on_previous_task: 00:05:17,658
+2025-07-22-16-13-10,6 Task: 8 Next  Time_spent_on_previous_task: 00:00:13,712
+2025-07-22-16-13-14,1 Task: 9 Next  Time_spent_on_previous_task: 00:00:03,547
+2025-07-22-16-13-20,1 Task: 10 Next  Time_spent_on_previous_task: 00:00:05,958
+2025-07-22-16-17-08,7 Task: 11 Next  Time_spent_on_previous_task: 00:03:48,610
+2025-07-22-16-17-10,9 Task: 12 Next  Time_spent_on_previous_task: 00:00:02,162
+2025-07-22-16-17-13,5 Task: 13 Next  Time_spent_on_previous_task: 00:00:02,641
+2025-07-22-16-17-33,7 Task: 14 Next  Time_spent_on_previous_task: 00:00:20,190
+NEW SESSION STARTED 
+ROBOT ASSEMBLY OPENED 
+2025-07-23-10-43-56,2 Task: 0 Next  Time_spent_on_previous_task: 00:57:41,643
+2025-07-23-10-44-17,1 Task: 1 Prev  Time_spent_on_previous_task: 00:00:20,841
+ROBOT ASSEMBLY OPENED 
+2025-07-23-10-46-12,1 Task: 0 Next  Time_spent_on_previous_task: 00:01:53,555
+HELP WINDOW OPENED 
+2025-07-23-10-48-12,7 Task: 1 Next  Time_spent_on_previous_task: 00:01:54,655
+2025-07-23-10-48-27,3 Task: 2 Next  Time_spent_on_previous_task: 00:00:14,600
+2025-07-23-10-49-41,4 Task: 3 Next  Time_spent_on_previous_task: 00:01:14,119
+2025-07-23-10-52-09,7 Task: 4 TRUE  Time_spent_on_previous_task: 00:01:14,119
+2025-07-23-10-52-09,7 Task: 4 Next  Time_spent_on_previous_task: 00:02:28,279
+2025-07-23-10-52-13,2 Task: 5 Next  Time_spent_on_previous_task: 00:00:03,444
+2025-07-23-10-56-19,5 Task: 6 TRUE  Time_spent_on_previous_task: 00:00:03,444
+2025-07-23-10-56-19,5 Task: 6 Next  Time_spent_on_previous_task: 00:04:06,322
+2025-07-23-10-56-25,8 Task: 7 Next  Time_spent_on_previous_task: 00:00:06,337
+2025-07-23-10-56-28,7 Task: 8 Next  Time_spent_on_previous_task: 00:00:02,887
+2025-07-23-10-56-30,8 Task: 9 Next  Time_spent_on_previous_task: 00:00:02,086
+2025-07-23-10-56-33,5 Task: 10 Next  Time_spent_on_previous_task: 00:00:02,696
+2025-07-23-10-56-35,4 Task: 11 Next  Time_spent_on_previous_task: 00:00:01,925
+2025-07-23-10-56-37,6 Task: 12 Next  Time_spent_on_previous_task: 00:00:02,145
+2025-07-23-10-56-40,5 Task: 13 Next  Time_spent_on_previous_task: 00:00:02,902
+2025-07-23-10-56-42,1 Task: 14 Next  Time_spent_on_previous_task: 00:00:01,623
+2025-07-23-10-56-45,6 Task: 15 Prev  Time_spent_on_previous_task: 00:00:03,479
+2025-07-23-10-56-46,1 Task: 14 Prev  Time_spent_on_previous_task: 00:00:00,543
+2025-07-23-10-56-48,3 Task: 13 Next  Time_spent_on_previous_task: 00:00:02,158
+2025-07-23-10-58-37,1 Task: 14 Next  Time_spent_on_previous_task: 00:01:48,814
+2025-07-23-10-58-51,5 Task: 15 Prev  Time_spent_on_previous_task: 00:00:14,439
+2025-07-23-10-59-07,8 Task: 14 Next  Time_spent_on_previous_task: 00:00:16,268
+NEW SESSION STARTED 
+ROBOT ASSEMBLY OPENED 
+2025-07-23-12-11-54,0 Task: 0 Next  Time_spent_on_previous_task: 00:38:08,767
+2025-07-23-12-12-42,3 Task: 1 Next  Time_spent_on_previous_task: 00:00:48,312
+2025-07-23-12-14-40,0 Task: 2 Next  Time_spent_on_previous_task: 00:01:57,701
+2025-07-23-12-14-54,7 Task: 3 Next  Time_spent_on_previous_task: 00:00:14,750
+2025-07-23-12-15-40,4 Task: 4 TRUE  Time_spent_on_previous_task: 00:00:14,750
+2025-07-23-12-15-40,4 Task: 4 Next  Time_spent_on_previous_task: 00:00:45,659
+2025-07-23-12-15-42,0 Task: 5 Prev  Time_spent_on_previous_task: 00:00:01,576
+2025-07-23-12-15-42,8 Task: 4 Prev  Time_spent_on_previous_task: 00:00:00,795
+2025-07-23-12-15-49,0 Task: 3 Next  Time_spent_on_previous_task: 00:00:06,222
+2025-07-23-12-17-11,7 Task: 4 TRUE  Time_spent_on_previous_task: 00:00:06,222
+2025-07-23-12-17-11,7 Task: 4 Next  Time_spent_on_previous_task: 00:01:22,734
+2025-07-23-12-18-02,4 Task: 5 Next  Time_spent_on_previous_task: 00:00:50,675
+2025-07-23-12-19-10,2 Task: 6 TRUE  Time_spent_on_previous_task: 00:00:50,675
+2025-07-23-12-19-10,2 Task: 6 Next  Time_spent_on_previous_task: 00:01:07,814
+2025-07-23-12-19-53,0 Task: 7 Prev  Time_spent_on_previous_task: 00:00:42,742
+2025-07-23-12-19-54,5 Task: 6 Prev  Time_spent_on_previous_task: 00:00:01,494
+2025-07-23-12-19-55,6 Task: 5 Prev  Time_spent_on_previous_task: 00:00:01,107
+2025-07-23-12-21-00,3 Task: 4 TRUE  Time_spent_on_previous_task: 00:00:01,107
+2025-07-23-12-21-00,3 Task: 4 Next  Time_spent_on_previous_task: 00:01:04,757
+2025-07-23-12-21-03,3 Task: 5 Next  Time_spent_on_previous_task: 00:00:02,944
+2025-07-23-12-21-05,9 Task: 6 Prev  Time_spent_on_previous_task: 00:00:02,584
+2025-07-23-12-21-22,1 Task: 5 Prev  Time_spent_on_previous_task: 00:00:16,289
+2025-07-23-12-21-22,7 Task: 4 Prev  Time_spent_on_previous_task: 00:00:00,519
+2025-07-23-12-21-23,6 Task: 3 Prev  Time_spent_on_previous_task: 00:00:00,934
+2025-07-23-12-21-24,2 Task: 2 Prev  Time_spent_on_previous_task: 00:00:00,589
+2025-07-23-12-21-25,2 Task: 1 Prev  Time_spent_on_previous_task: 00:00:01,007
+2025-07-23-12-21-26,9 Task: 0 Next  Time_spent_on_previous_task: 00:00:01,714
+2025-07-23-12-22-04,7 Task: 1 Next  Time_spent_on_previous_task: 00:00:37,837
+2025-07-23-12-22-07,1 Task: 2 Next  Time_spent_on_previous_task: 00:00:02,386
+2025-07-23-12-23-42,9 Task: 3 Next  Time_spent_on_previous_task: 00:01:35,719
+2025-07-23-12-24-01,0 Task: 4 TRUE  Time_spent_on_previous_task: 00:01:35,719
+2025-07-23-12-24-01,0 Task: 4 Next  Time_spent_on_previous_task: 00:00:18,184
+2025-07-23-12-24-08,2 Task: 5 Next  Time_spent_on_previous_task: 00:00:07,175
+2025-07-23-12-24-45,5 Task: 6 TRUE  Time_spent_on_previous_task: 00:00:07,175
+2025-07-23-12-24-45,5 Task: 6 Next  Time_spent_on_previous_task: 00:00:37,322
+2025-07-23-12-25-09,7 Task: 7 Next  Time_spent_on_previous_task: 00:00:24,178
+2025-07-23-12-25-24,8 Task: 8 Next  Time_spent_on_previous_task: 00:00:15,046
+2025-07-23-12-25-27,5 Task: 9 Next  Time_spent_on_previous_task: 00:00:02,783
+2025-07-23-12-25-36,9 Task: 10 Next  Time_spent_on_previous_task: 00:00:09,309
+2025-07-23-12-30-00,0 Task: 11 Next  Time_spent_on_previous_task: 00:04:23,105
+2025-07-23-12-31-21,6 Task: 12 Prev  Time_spent_on_previous_task: 00:01:21,604
+2025-07-23-12-31-24,1 Task: 11 Next  Time_spent_on_previous_task: 00:00:02,570
+2025-07-23-12-32-13,4 Task: 12 Next  Time_spent_on_previous_task: 00:00:49,237
+2025-07-23-12-32-19,7 Task: 13 Next  Time_spent_on_previous_task: 00:00:06,281
+2025-07-23-12-33-01,3 Task: 14 Next  Time_spent_on_previous_task: 00:00:41,637

@@ -105,10 +105,10 @@ FunctionMap createMovementFunctionMap(FunctionMap& globalMap) {
     functionMap["flippermove_movementSpeed"] = [&globalMap](const json& json_object, const string& name) {
         Block* speed;
         if(json_object[name]["inputs"]["SPEED"][0] == 1){
-            speed = new BlankBlockDouble(stod(json_object[name]["inputs"]["SPEED"][1][1].get<string>()));
+            speed = new BlankBlockDouble (stod (json_object[name]["inputs"]["SPEED"][1][1].get<string>()));
         } else {
             string speed_name = json_object[name]["inputs"]["SPEED"][1];
-            speed = globalMap[json_object[speed_name]["opcode"]](json_object, speed_name).release();
+            speed = globalMap[json_object[speed_name]["opcode"]] (json_object, speed_name).release();
         }
         return make_unique<SetMovementSpeed>(speed);
     };

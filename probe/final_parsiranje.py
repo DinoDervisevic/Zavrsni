@@ -114,6 +114,19 @@ for i in range(14):
 
 for task, periods in task_periods.items():
     for start, end in periods:
+        snapshots_in_period = [
+            (ts, fname) for ts, fname in all_snapshots.items()
+            if datetime.strptime(start, "%Y-%m-%d-%H-%M-%S,%f") <= ts <= datetime.strptime(end, "%Y-%m-%d-%H-%M-%S,%f")
+        ]
+        # Analiziraj svaki snapshot u periodu
+        for ts, fname in sorted(snapshots_in_period):
+            extract_sb3(llsp_file_path, fname, output_dir)
+            extract_sb3(sb3_path, "scratch.sb3", output_dir)
+            result = subprocess.run(
+                ["simulacija.exe", str(task)],
+                capture_output=True, text=True
+            )
+            
         final_file = find_latest_snapshot_in_period(all_snapshots, start, end)
         #if(task == 2):
         #   exit()
