@@ -21,7 +21,7 @@ FunctionMap createMiscelaniousFunctionMap(FunctionMap& globalMap) {
 
      // Miscelanious helper "blocks"
     functionMap["flippermove_movement-port-selector"] = [&globalMap](const json& json_object, const string& name) {
-        string port = json_object[name]["fields"]["field_flippermove_multiple-port-selector"][0].get<string>();
+        string port = json_object[name]["fields"]["field_flippermove_movement-port-selector"][0].get<string>();
         return make_unique<BlankBlockString>(port);
     };
 

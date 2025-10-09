@@ -61,7 +61,7 @@ void subtract_time_from_motors(Robot& robot){
     }
 }
 
-// Functions to calculate motion vectors for each ribot individually (just this one for now)
+// Functions to calculate motion vectors for each robot individually (just this one for now)
 void one_motor_two_wheel_robot(Robot& robot){
     double right_wheel_speed = -robot.calculate_wheel_speed("A"); // hardcoded; the right wheel has to be here
     double left_wheel_speed = right_wheel_speed; // hardcoded; the left wheel has to be here
@@ -88,6 +88,20 @@ void one_motor_two_wheel_robot(Robot& robot){
     }*/
 
     //cout << "angular velocity: " << robot.motion_vector.angular_velocity << endl;
+}
+
+void two_motor_two_wheel_robot(Robot& robot) {
+    // Pretpostavljamo: A = lijevi kotač, B = desni kotač
+    double left_wheel_speed = robot.calculate_wheel_speed("A");
+    double right_wheel_speed = robot.calculate_wheel_speed("B");
+
+    // Linearna brzina je prosjek brzina kotača
+    double target_speed = (left_wheel_speed + right_wheel_speed) / 2.0;
+    // Kutna brzina ovisi o razlici brzina i udaljenosti kotača
+    double target_angular_speed = (right_wheel_speed - left_wheel_speed) / robot.wheel_distance;
+
+    robot.motion_vector.linear_velocity = target_speed;
+    robot.motion_vector.angular_velocity = target_angular_speed;
 }
 
 
@@ -124,8 +138,12 @@ void calculate_previous_value(Robot& robot){
 
 // Funal function to calculate everything using these above
 void run_robot(Robot& robot){
+    double prev_x = robot.x;
+    double prev_y = robot.y;
+    double prev_angle = robot.angle;
     calculate_motor_speed(robot);
-    one_motor_two_wheel_robot(robot);
+    //one_motor_two_wheel_robot(robot);
+    two_motor_two_wheel_robot(robot);
     calculate_position(robot);
     subtract_time_from_motors(robot);
 

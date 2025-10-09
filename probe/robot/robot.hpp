@@ -14,17 +14,23 @@ class BlockSequence;
 
 struct Robot {
     string name;
-    double x, y = 0;
-    int angle = 0;
+    double x, y = 0; // center position in cm
+    double angle = 0;
     int default_yaw_angle = 0; // when calculating yaw angle, this needs to be subtracted from the current angle
     int pitch_angle = 0;
     int roll_angle = 0;
-    double wheel_distance = 6.8; // distance between the wheels in cm
-    double wheel_radius = 5.55/2; // radius of the wheel in cm
     double movement_speed = 50;
     double volume;
     string sound_state;
     int button_color;
+
+    //--------------------ROBOT METADATA------------------------------------------
+    double wheel_distance = 6.8; // distance between the wheels in cm
+    double wheel_radius = 5.55/2; // radius of the wheel in cm
+    
+    double robot_width = 10.0;
+    double robot_length = 15.0;
+    //----------------------------------------------------------------------------
 
     double pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
     double permanent_pixel_display[5][5] = {0}; // 5x5 matrix of pixel brightness
