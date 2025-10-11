@@ -2,11 +2,20 @@
 #define VECTORS_H
 
 #include <cmath>
-
+#include "utils/collision_functions.hpp"
+#include <vector>
 #include "robot/Robot.hpp"
 
 
 using namespace std;
+
+struct CollisionInfo {
+    bool collision;
+    Point point{0, 0}; // Point of collision
+    enum class Type { NONE, OBSTACLE, WALL } type = Type::NONE;
+    int index = -1; // Index of the obstacle or wall in the respective vector
+    Point normal_vector{0, 0}; // Normal vector at the point of collision
+};
 
 void calculate_motor_speed(Robot& robot){
     for(auto i : "ABCDEF"){

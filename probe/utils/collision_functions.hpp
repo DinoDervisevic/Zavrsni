@@ -6,6 +6,12 @@
 
 struct Point { double x, y; };
 
+static Point normalize(const Point& v) {
+    double len = sqrt(v.x * v.x + v.y * v.y);
+    if (len < 1e-12) return {0, 0};
+    return {v.x / len, v.y / len};
+}
+
 vector<Point> get_rectangle_corners(double center_x, double center_y, double width, double length, double angle) {
     vector<Point> corners(4);
     double half_width = width / 2.0;
@@ -149,6 +155,29 @@ bool segment_segment_intersect(Robot& robot, Wall& wall){
         }
     }
     return false; // No intersection found
+}
+
+// Function to find exact intersection point of two line segments
+static bool segment_intersection_point(const Point& p1, const Point& p2,
+                                       const Point& q1, const Point& q2,
+                                       double& x, double& y) {
+    double s1_x = p2.x - p1.x;
+    double s1_y = p2.y - p1.y;
+    double s2_x = q2.x - q1.x;
+    double s2_y = q2.y - q1.y;
+
+    double d = (-s2_x * s1_y + s1_x * s2_y);
+    if (fabs(d) < 1e-12) return false;
+
+    double s = (-s1_y * (p1.x - q1.x) + s1_x * (p1.y - q1.y)) / d;
+    double t = ( s2_x * (p1.y - q1.y) - s2_y * (p1.x - q1.x)) / d;
+
+    if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+        x = p1.x + (t * s1_x);
+        y = p1.y + (t * s1_y);
+        return true;
+    }
+    return false;
 }
 
 void handle_collision(Robot& robot, double prev_x, double prev_y, double prev_angle) {
