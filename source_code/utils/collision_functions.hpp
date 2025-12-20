@@ -4,6 +4,8 @@
 #include "../robot/robot.hpp"
 #include "obstacle.hpp"
 
+#define M_PI 3.14159265358979323846
+
 struct Point { double x, y; };
 
 static Point normalize(const Point& v) {
