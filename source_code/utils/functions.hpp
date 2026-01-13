@@ -50,7 +50,7 @@ double convert_to_seconds_movement(Robot& robot, string unit, double value) {
 }  
 
 double convert_to_seconds_motor(Robot& robot, string unit, double value, string port) {
-    if(unit == "s") return value;
+    if(unit == "seconds") return value;
     else if(unit == "rotations"){
         value = value;
     }

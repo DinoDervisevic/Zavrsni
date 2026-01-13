@@ -18,15 +18,21 @@ public:
     }
 
     bool done(Robot& robot) override {
-        if(port->executeString(robot).length() < 1) return false;
-        string port_name = string(1, toupper(port->executeString(robot)[0]));
-        if (robot.distance_states.find(port_name) != robot.distance_states.end()
-        && is_number(distance->executeString(robot))
-        && robot.distance_states[port_name]->value != robot.distance_states[port_name]->previous_value
-        && check_distance(robot.distance_states[port_name]->value == distance->execute(robot), option, distance->execute(robot))) {
-            return true;
-        }
-        else return false;
+        string portStr = port->executeString(robot);
+        if (portStr.empty()) return false;
+        string port_name = string(1, toupper((unsigned char)portStr[0]));
+
+        if (robot.distance_states.find(port_name) == robot.distance_states.end()) return false;
+        auto ds = robot.distance_states[port_name];
+        if (!ds) return false;
+
+        string distStr = distance->executeString(robot);
+        if (!is_number(distStr)) return false;
+        double target = distance->execute(robot);
+
+        if (ds->value == ds->previous_value) return false;
+
+        return check_distance(ds->value, option, target);
     }
 };
 

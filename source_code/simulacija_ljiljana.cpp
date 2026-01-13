@@ -12,7 +12,7 @@
 
 #include "blocks_include.hpp"
 #include "motion_simulation.hpp"
-#include "radionica.hpp"
+#include "radionica_ljiljana.hpp"
 
 using namespace std;
 
@@ -30,19 +30,7 @@ void print_robot_state(Robot& robot) {
 
 void run_interference(Robot& robot, int taskId){
     switch (taskId) {
-        case 1:  outside_interference_task_3(robot); break;
-        case 2:  outside_interference_task_3(robot); break;
-        case 3:  outside_interference_task_3(robot); break;
-        case 4:  outside_interference_task_3(robot); break;
-        case 5:  outside_interference_task_3(robot); break;
-        case 6:  outside_interference_task_3(robot); break;
-        case 7:  outside_interference_task_3(robot); break;
-        case 8:  outside_interference_task_3(robot); break;
-        case 9:  outside_interference_task_3(robot); break;
-        case 10: outside_interference_task_3(robot); break;
-        case 11: outside_interference_task_11(robot); break;
-        case 12: outside_interference_task_12(robot); break;
-        case 13: outside_interference_task_13(robot); break;
+
         default: return;
     }
 }
@@ -50,7 +38,7 @@ void run_interference(Robot& robot, int taskId){
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId) {
     bool done = false;
     while (true){
-        if(robot.time_since_start >= 2.0){
+        if(robot.time_since_start >= 5.0){
             break;
         }
         
@@ -63,38 +51,29 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
                 sequence->reset(robot);
             }
         }
-        run_robot(robot);
+
+        // Ovdje nam ne treba racunanje micanja robota jer se robot ne mice, potrebno nam je samo izracunati stanja motora u svakom koraku
+        subtract_time_from_motors(robot);
+
+        for(auto i : "ABCDEF"){
+            robot.calculate_motor_position(string(1, i));
+        }
+
+        calculate_previous_value(robot);
+
         robot.save_state();
         print_robot_state(robot);
-        //cout << robot.force_states["C"]->value << endl;
 
-        if(taskId != -1){
-            adjust_trash_can(robot); // only for workshop
-            run_interference(robot, taskId); // only for workshop
-        }
+        run_interference(robot, taskId);
 
         robot.time_since_start += robot.discrete_time_interval;
     }
 }
 
-bool check_if_correct(Robot& robot, int taskId){
+int check_if_correct(Robot& robot, int taskId){
     switch (taskId) {
-        case 0:  return check_task_0(robot);
-        case 1:  return check_task_1(robot);
-        case 2:  return check_task_2(robot);
-        case 3:  return check_task_3(robot);
-        case 4:  return check_task_4(robot);
-        case 5:  return check_task_5(robot);
-        case 6:  return check_task_6(robot);
-        case 7:  return check_task_7(robot);
-        case 8:  return check_task_8(robot);
-        case 9:  return check_task_9(robot);
-        case 10: return check_task_10(robot);
-        case 11: return check_task_11(robot);
-        case 12: return check_task_12(robot);
-        case 13: return check_task_13(robot);
-        case 14: return check_task_14(robot);
-        default: return false;
+
+        default: return 0;
     }
 }
 
@@ -116,7 +95,7 @@ void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
 int main(int argc, char* argv[]) {
     cout << "Starting simulation..." << endl;
     //string json_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data/project.json";
-    string json_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/project.json";
+    string json_file_path = "C:/Users/amrad/OneDrive/Desktop/fer/4_1/seminar_za_ljiljanu/koraci1/extraction_folder/project.json";
     
     ifstream file(json_file_path);
     if (!file.is_open()) {
@@ -136,10 +115,9 @@ int main(int argc, char* argv[]) {
     }
 
     Robot robot("robot", 0, 0, sequences);
-    robot.addMotorState("A", 75);
-    robot.addMotorState("B", 75);
-    robot.addForceSensor("C", 0);
-    robot.addColorSensor("D", -1);
+    robot.addMotorState("D", 75);
+    robot.addMotorState("F", 75);
+    robot.addDistanceSensor("B", 0);
 
     int taskId = std::stoi(argv[1]);
     
@@ -147,7 +125,7 @@ int main(int argc, char* argv[]) {
     for (auto& sequence : sequences) {
         delete sequence;
     }
-    bool result = check_if_correct(robot, taskId);
+    int result = check_if_correct(robot, taskId);
 
     cout << result << endl;
 

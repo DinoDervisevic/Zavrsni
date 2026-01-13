@@ -18,6 +18,8 @@ struct RobotState {
     double permanent_pixel_display[5][5] = {0};
 
     map<string, double> motor_states;
+    map<string, double> motor_states_value;
+    map<string, double> motor_states_speed;
     map<string, double> color_states;
     map<string, double> distance_states;
     map<string, double> force_states;
@@ -42,6 +44,12 @@ struct RobotState {
         
         for(const auto& pair : motor_states) {
             this->motor_states[pair.first] = pair.second->position;
+        }
+        for(const auto& pair : motor_states) {
+            this->motor_states_speed[pair.first] = pair.second->speed;
+        }
+        for(const auto& pair : motor_states) {
+            this->motor_states_value[pair.first] = pair.second->value;
         }
         for(const auto& pair : color_states) {
             this->color_states[pair.first] = pair.second->value;
