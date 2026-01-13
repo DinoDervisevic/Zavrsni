@@ -12,12 +12,13 @@ public:
     SensorDistance(Block* port, string unit) : Block("Sensor", "SensorDistance"), port(port), unit(unit) {}
 
     double execute(Robot& robot) override {
-        if(port->executeString(robot).length() < 1) return 0;
-        string port_name = string(1, toupper(port->executeString(robot)[0]));
-        if (robot.distance_states.find(port_name) != robot.distance_states.end()) {
-            return robot.distance_states[port_name]->value; // TODO: ovdje i gore skuzit sto tocno unti znaci i kako se radi s postotcima
+        string portStr = port->executeString(robot);
+        if (portStr.empty()) return 0;
+        string port_name = string(1, toupper((unsigned char)portStr[0]));
+        if (robot.distance_states.find(port_name) != robot.distance_states.end() && robot.distance_states[port_name]) {
+            return robot.distance_states[port_name]->value;
         }
-        else return 0;
+        return 0;
     }
 };
 

@@ -268,6 +268,97 @@ void outside_interference_5(Robot& robot){
     }
 }
 
+int check_task_5(Robot& robot){
+    int score = 50;
 
+    bool poceo_kretat_D = false;
+    bool poceo_kretat_F = false;
+
+    bool D_moving_clockwise = false;
+    bool D_done = false;
+    bool D_correct_speed = false;
+    float D_started_moving_time = 0.0;
+
+    bool F_done = false;
+    bool F_correct_speed = false;
+    bool F_moving_clockwise = false;
+    float F_started_moving_time = 0.0;
+
+    for (int i = 0; i < robot.robot_states.size(); i++){
+        if (!poceo_kretat_D && !D_done && check_if_moved_a_bit(robot, "D", i)) {
+            poceo_kretat_D = true;
+            D_started_moving_time = robot.robot_states[i].t;
+            score += 5;
+            if (robot.robot_states[i].motor_states.at("D") > 180) D_moving_clockwise = true;
+            else D_moving_clockwise = false;
+
+            if(robot.robot_states[i].motor_states_speed.at("D") == 50){
+                D_correct_speed = true;
+            }
+        }
+
+        if (!poceo_kretat_F && check_if_moved_a_bit(robot, "F", i)) {
+            poceo_kretat_F = true;
+            F_started_moving_time = robot.robot_states[i].t;
+            score += 5;
+            if (robot.robot_states[i].motor_states.at("F") > 180) F_moving_clockwise = true;
+            else F_moving_clockwise = false;
+
+            if(robot.robot_states[i].motor_states_speed.at("F") == 50){
+                F_correct_speed = true;
+            }
+        }
+
+        if (poceo_kretat_D && !D_done){
+            if (robot.robot_states[i].distance_states.at("B") > 5.0){
+                if (robot.robot_states[i].motor_states_value.at("D") == 0){
+                    D_done = true;
+                    score -= 25;
+                }
+            }
+            else{
+                if (robot.robot_states[i].motor_states_value.at("D") != 0){
+                    D_done = true;
+                    score -= 25;
+                }
+            }
+        }
+
+        if (poceo_kretat_F && !F_done){
+            if (robot.robot_states[i].distance_states.at("B") > 5.0){
+                if (robot.robot_states[i].motor_states_value.at("F") == 0){
+                    F_done = true;
+                    score -= 25;
+                }
+            }
+            else{
+                if (robot.robot_states[i].motor_states_value.at("F") != 0){
+                    F_done = true;
+                    score -= 25;
+                }
+            }
+        }
+        if (i == robot.robot_states.size() - 1){
+            D_done = true;
+            F_done = true;
+        }
+
+        if(F_done && D_done){
+            if(D_correct_speed && F_correct_speed){
+                score += 20;
+            }
+            else{
+                if(robot.robot_states[i].motor_states_speed.at("F") == 50) score += 5;
+                if(robot.robot_states[i].motor_states_speed.at("D") == 50) score += 5;
+            }
+            if (D_started_moving_time - 0.5 < F_started_moving_time && F_started_moving_time < D_started_moving_time + 0.5){
+                score += 20;
+            }
+            break;
+        }
+    }
+
+    return score;
+}
 
 #endif
