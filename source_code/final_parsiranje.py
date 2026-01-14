@@ -7,6 +7,7 @@ import subprocess
 import tkinter as tk
 from tkinter import filedialog
 import ctypes
+from datetime import timezone
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
@@ -50,7 +51,7 @@ def get_all_snapshots():
         try:
             # Ako želiš i datetime objekt:
             unix_time = float(timestamp_str[:10] + '.' + timestamp_str[10:])
-            dt = datetime.utcfromtimestamp(unix_time) + timedelta(hours=2)
+            dt = datetime.fromtimestamp(unix_time, tz=timezone.utc) + timedelta(hours=2)
             
             timestamp_to_file[dt] = filename
         except ValueError:

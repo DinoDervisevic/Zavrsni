@@ -30,6 +30,11 @@ FunctionMap createMiscelaniousFunctionMap(FunctionMap& globalMap) {
         return make_unique<BlankBlockString>(port);
     };
 
+    functionMap ["flippermotor_single-motor-selector"] = [&globalMap](const json& json_object, const string& name) {
+        string port = json_object[name]["fields"]["field_flippermotor_single-motor-selector"][0].get<string>();
+        return make_unique<BlankBlockString>(port);
+    };
+
     functionMap["flippermotor_custom-angle"] = [&globalMap](const json& json_object, const string& name) {
         int angle = json_object[name]["fields"]["field_flippermotor_custom-angle"][0].get<int>();
         return make_unique<BlankBlockInt>(angle);

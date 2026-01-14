@@ -107,10 +107,21 @@ FunctionMap createMotorFunctionMap(FunctionMap& globalMap) {
     };
 
     functionMap ["flippermotor_absolutePosition"] = [&globalMap](const json& json_object, const string& name) {
-        string port_name = json_object[name]["inputs"]["PORT"][1];
-        Block* port = globalMap[json_object[port_name]["opcode"]](json_object, port_name).release();
-        
+    string port_name = json_object[name]["inputs"]["PORT"][1];
+    Block* port = nullptr;
+
+    auto port_block = json_object[port_name];
+
+    string port_opcode = port_block["opcode"];
+
+
+    try {
+        Block* port = globalMap[port_opcode](json_object, port_name).release();
         return make_unique<MotorPosition>(port);
+    } catch (const std::exception& e) {
+        cout << "Exception in MotorPosition creation: " << e.what() << endl;
+    }
+    return make_unique<MotorPosition>(port);
     };
 
     functionMap ["flippermotor_speed"] = [&globalMap](const json& json_object, const string& name) {

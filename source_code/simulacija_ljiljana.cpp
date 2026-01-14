@@ -30,7 +30,12 @@ void print_robot_state(Robot& robot) {
 
 void run_interference(Robot& robot, int taskId){
     switch (taskId) {
-
+        case 1: outside_interference(robot); break;
+        case 2: outside_interference(robot); break;
+        case 3: outside_interference(robot); break;
+        case 4: outside_interference(robot); break;
+        case 5: outside_interference_5(robot); break;
+        case 6: outside_interference_6(robot); break;
         default: return;
     }
 }
@@ -38,8 +43,15 @@ void run_interference(Robot& robot, int taskId){
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId) {
     bool done = false;
     while (true){
-        if(robot.time_since_start >= 5.0){
-            break;
+        if (taskId != 6){
+            if (robot.time_since_start >= 30.0){
+                break;
+            }
+        }
+        if (taskId == 6){
+            if (robot.time_since_start >= 400.0){
+                break;
+            }
         }
         
         for(auto sequence : sequences){
@@ -53,6 +65,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
         }
 
         // Ovdje nam ne treba racunanje micanja robota jer se robot ne mice, potrebno nam je samo izracunati stanja motora u svakom koraku
+        calculate_motor_speed(robot);
         subtract_time_from_motors(robot);
 
         for(auto i : "ABCDEF"){
@@ -62,7 +75,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
         calculate_previous_value(robot);
 
         robot.save_state();
-        print_robot_state(robot);
+        //print_robot_state(robot);
 
         run_interference(robot, taskId);
 
@@ -72,7 +85,12 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
 
 int check_if_correct(Robot& robot, int taskId){
     switch (taskId) {
-
+        case 1: return check_task_1(robot);
+        case 2: return check_task_2(robot);
+        case 3: return check_task_3(robot);
+        case 4: return check_task_4(robot);
+        case 5: return check_task_5(robot);
+        case 6: return check_task_6(robot);
         default: return 0;
     }
 }
@@ -93,10 +111,17 @@ void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
 
 
 int main(int argc, char* argv[]) {
-    cout << "Starting simulation..." << endl;
+    //cout << "Starting simulation..." << endl;
     //string json_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data/project.json";
-    string json_file_path = "C:/Users/amrad/OneDrive/Desktop/fer/4_1/seminar_za_ljiljanu/koraci1/extraction_folder/project.json";
-    
+    //string json_file_path = "C:/Users/amrad/OneDrive/Desktop/fer/4_1/seminar_za_ljiljanu/koraci1/extraction_folder/project.json";
+
+    if (argc < 3) {
+        std::cerr << "Please provide the task ID as a command line argument." << std::endl;
+        return -1;
+    }
+
+    string json_file_path = argv[2];
+
     ifstream file(json_file_path);
     if (!file.is_open()) {
         std::cerr << "Could not open the file!" << std::endl;
@@ -104,7 +129,13 @@ int main(int argc, char* argv[]) {
     }
 
     json j;
-    file >> j;
+    try {
+        file >> j;
+    } catch (const json::parse_error& e) {
+        std::cerr << "JSON parsing error: " << e.what() << std::endl;
+        return -1;
+    }
+
     auto blocks = j["targets"][1]["blocks"];
     vector<BlockSequence*> sequences;
     for(auto it = blocks.begin(); it != blocks.end(); ++it){
@@ -130,5 +161,4 @@ int main(int argc, char* argv[]) {
     cout << result << endl;
 
     return 0;
-
 }

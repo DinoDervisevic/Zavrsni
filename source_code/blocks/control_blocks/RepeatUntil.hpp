@@ -13,6 +13,10 @@ public:
     RepeatUntil(Block* condition, BlockSequence* block_sequence) : Block("Control", "RepeatUntil"), condition(condition), block_sequence(block_sequence) {}
 
     double execute(Robot& robot) override {
+        if (condition == nullptr) {
+            when_done = true;
+            return 0;
+        }
         if (block_sequence == nullptr) {
             return 0;
         }

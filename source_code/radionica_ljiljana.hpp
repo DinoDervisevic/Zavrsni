@@ -27,7 +27,7 @@ void outside_interference(Robot& robot){
 
 bool check_if_moved_a_bit(Robot& robot, string motor, int i){
     if((robot.robot_states[i].motor_states.at(motor) > MOVED_A_BIT && robot.robot_states[i].motor_states.at(motor) < 180)
-        || robot.robot_states[i].motor_states.at(motor) < 360 - MOVED_A_BIT && robot.robot_states[i].motor_states.at(motor) > 180){
+        || (robot.robot_states[i].motor_states.at(motor) < 360 - MOVED_A_BIT && robot.robot_states[i].motor_states.at(motor) > 180)){
         return true;
     }
     return false;
@@ -37,25 +37,40 @@ int check_task_1(Robot& robot){
     int score = 0;
     bool poceo_kretat = false;
     bool reached_target = false;
+    bool halfway = false;
 
     for(int i = 0; i < robot.robot_states.size(); i++){
+        //cout << robot.robot_states[i].motor_states.at("D") << endl;
         if (!poceo_kretat && check_if_moved_a_bit(robot, "D", i)) {
             poceo_kretat = true;
             score += 30;
         }
 
-        if (poceo_kretat && !reached_target && ((robot.robot_states[i].motor_states.at("D") > 360 - MARGIN_OF_ERROR * 360 && robot.robot_states[i].motor_states.at("D") < 360)
-            || (robot.robot_states[i].motor_states.at("D") < 0 + MARGIN_OF_ERROR * 360 && robot.robot_states[i].motor_states.at("D") > 0))){
+        if (poceo_kretat && !halfway) {
+            float pos = robot.robot_states[i].motor_states.at("D");
+            if ((pos > 180 - MARGIN_OF_ERROR * 360 && pos < 180 + MARGIN_OF_ERROR * 360)) {
+                halfway = true;
+            }
+        }
+
+        if (poceo_kretat && !reached_target && halfway) {
+            float pos = robot.robot_states[i].motor_states.at("D");
+            if ((pos > 360 - MARGIN_OF_ERROR * 360 && pos < 360) ||
+                (pos < 0 + MARGIN_OF_ERROR * 360 && pos > 0)) {
                 reached_target = true;
                 score += 70;
             }
-
-        else if (reached_target){
-            score -= 50;
-            break;
         }
 
-
+        if (reached_target) {
+            float pos = robot.robot_states[i].motor_states.at("D");
+            bool in_range = (pos > 360 - MARGIN_OF_ERROR * 360 && pos <= 360) ||
+                            (pos < 0 + MARGIN_OF_ERROR * 360 && pos >= 0);
+            if (!in_range) {
+                score -= 50;
+                break;
+            }
+        }
     }
 
     return score;

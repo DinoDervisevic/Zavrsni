@@ -13,6 +13,14 @@ public:
     If(BlockSequence* block_sequence, Block* condition) : Block("Control", "If"), block_sequence(block_sequence), condition(condition) {}
 
     double execute(Robot& robot) override {
+        if (block_sequence == nullptr) {
+            when_done = true;
+            return 0;
+        }
+        if (condition == nullptr) {
+            when_done = true;
+            return 0;
+        }
         if(condition_checked || condition->execute(robot)){
             condition_checked = true;
             block_sequence->execute(robot);

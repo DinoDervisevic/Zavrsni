@@ -8,11 +8,14 @@ import subprocess
 import tkinter as tk
 from tkinter import filedialog
 import ctypes
+from datetime import timezone
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except Exception:
     pass
+
+exe_path = os.path.join(os.path.dirname(__file__), "simulacija_ljiljana.exe")
 
 folder_path = filedialog.askdirectory(title="Odaberi glavni folder s podacima")
 if not folder_path:
@@ -60,7 +63,7 @@ def get_all_snapshots():
         try:
             # Ako želiš i datetime objekt:
             unix_time = float(timestamp_str[:10] + '.' + timestamp_str[10:])
-            dt = datetime.utcfromtimestamp(unix_time) + timedelta(hours=2)
+            dt = datetime.fromtimestamp(unix_time, tz=timezone.utc) + timedelta(hours=2)
             
             timestamp_to_file[dt] = filename
         except ValueError:
@@ -74,15 +77,13 @@ def parse_log_file():
         lines = [line.strip() for line in f if line.strip()]
 
     # Pronađi zadnji session
-    session_indices = [i for i, line in enumerate(lines) if line.startswith("NEW SESSION STARTED")]
-    last_session_start = session_indices[-1]
-    session_lines = lines[last_session_start+1:]
+
 
     task_periods = defaultdict(list)
     current_task = 0
     current_start = None
 
-    for i, line in enumerate(session_lines):
+    for i, line in enumerate(lines):
         if "zadatak:" in line:
             # Primjer: 2025-04-03-10-51-43,6 Task: 0 Next  Time_spent_on_previous_task: 00:00:00,004
             parts = line.split()
@@ -111,7 +112,7 @@ def find_latest_snapshot_in_period(snapshots, start, end):
     start_dt = datetime.strptime(start, fmt)
     end_dt = datetime.strptime(end, fmt)
     # Filtriraj sve snapshotove prije kraja perioda (i opcionalno nakon početka)
-    candidates = [(ts, fname) for ts, fname in snapshots.items() if ts <= end_dt]
+    candidates = [(ts, fname) for ts, fname in snapshots.items() if ts.replace(tzinfo=None) <= end_dt]
     if not candidates:
         # Ako nema nijednog, možeš vratiti None ili probati najnoviji prije end_dt
         return None
@@ -126,6 +127,9 @@ output_dir = os.path.join(folder_path, "koraci", "extraction_folder")
 
 sb3_path = os.path.join(folder_path, "koraci", "extraction_folder")
 
+json_file_path = os.path.normpath(os.path.join(output_dir, "project.json"))
+exe_path = os.path.normpath(exe_path)
+
 # Ekstraktiraj .llsp datoteku
 
 all_snapshots = get_all_snapshots()
@@ -139,8 +143,8 @@ task_periods = parse_log_file()
 #         print(f"  {start} - {end}")
     
 results = {}
-for i in range(6):
-    results["Task " + str(i)] = -1
+for i in range(7):
+    results["Task " + str(i)] = (-1, "Nema")
 
 # Rjesenje je samo zadnji screenshot za neki task
 def evaluate_final_snapshot(task, start, end, all_snapshots, llsp_file_path, sb3_path, output_dir):
@@ -153,7 +157,7 @@ def evaluate_final_snapshot(task, start, end, all_snapshots, llsp_file_path, sb3
         extract_sb3(llsp_file_path, fname, output_dir)
         extract_sb3(sb3_path, "scratch.sb3", output_dir)
         result = subprocess.run(
-            ["simulacija_ljiljana.exe", str(task)],
+            [exe_path, str(task), json_file_path],
             capture_output=True, text=True
         )
         is_correct = result.stdout.strip() == "1"
@@ -163,9 +167,11 @@ def evaluate_final_snapshot(task, start, end, all_snapshots, llsp_file_path, sb3
 # Ako je barem jedan screenshot u periodu tačan, task je riješen
 def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, sb3_path, output_dir):
     # Pronađi sve snapshotove u periodu
+    start_dt = datetime.strptime(start, "%Y-%m-%d-%H-%M-%S,%f")
+    end_dt = datetime.strptime(end, "%Y-%m-%d-%H-%M-%S,%f")
     snapshots_in_period = [
         (ts, fname) for ts, fname in all_snapshots.items()
-        if datetime.strptime(start, "%Y-%m-%d-%H-%M-%S,%f") <= ts <= datetime.strptime(end, "%Y-%m-%d-%H-%M-%S,%f")
+        if start_dt <= ts.replace(tzinfo=None) <= end_dt
     ]
     maxi_score = -1
     final_file = "Nema dobrog rjesenja"
@@ -173,11 +179,19 @@ def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, sb3_
     for ts, fname in sorted(snapshots_in_period):
         clean_dir(output_dir)
         extract_sb3(llsp_file_path, fname, output_dir)
-        extract_sb3(sb3_path, "scratch.sb3", output_dir)
+        extract_sb3(output_dir, "scratch.sb3", output_dir)
         result = subprocess.run(
-            ["simulacija_ljiljana.exe", str(task)],
-            capture_output=True, text=True
+            [exe_path, str(task), json_file_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=os.path.dirname(exe_path),
+            env={**os.environ, "PATH": os.path.dirname(exe_path) + ";" + os.environ["PATH"]}
         )
+        print("STDOUT:", repr(result.stdout))
+        print("STDERR:", repr(result.stderr))
+        print("RETURNCODE:", result.returncode)
+        print( exe_path, str(task), json_file_path)
         score = int(result.stdout.strip())
         if score > maxi_score:
             maxi_score = score
@@ -190,7 +204,7 @@ for task, periods in task_periods.items():
         if results["Task " + str(task)][0] < maxi_score:
             results["Task " + str(task)] = (maxi_score, final_file)
 
-always_true = []
+#always_true = []
 
 for task, result in results.items():
     print(f"{task}: {result}")

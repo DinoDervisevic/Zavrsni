@@ -15,12 +15,27 @@ public:
 
     double execute(Robot& robot) override {
         double t = 0;
+
+        if (condition == nullptr) {
+            when_done = true;
+            return 0;
+        }
         if(condition_checked || (!condition_checked && !else_checked && condition->execute(robot))){
+            if (block_sequence1 == nullptr) {
+                block_sequence2->reset(robot);
+                when_done = true;
+                return 0;
+            }
             condition_checked = true;
             block_sequence1->execute(robot);
             t = block_sequence1->get_time_left();
             block_sequence1->set_time_left(0);
         } else {
+            if (block_sequence2 == nullptr) {
+                block_sequence1->reset(robot);
+                when_done = true;
+                return 0;
+            }
             else_checked = true;
             block_sequence2->execute(robot);
             t = block_sequence2->get_time_left();

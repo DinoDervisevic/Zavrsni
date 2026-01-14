@@ -38,7 +38,14 @@ inline BlockSequence* processBlock(const json& blocks, string key) {
         cerr << "Error: Block is missing 'opcode'!" << endl;
         return nullptr;
     }
-    auto curr_sequence_block = getFunctionMap()[curr_block["opcode"]](blocks, key).release();
+    Block* curr_sequence_block = nullptr;
+    try {
+        curr_sequence_block = getFunctionMap()[curr_block["opcode"]](blocks, key).release();
+    } catch (const std::exception& e) {
+        cerr << "Bad function call for opcode: " << curr_block["opcode"] << endl;
+        return nullptr;
+    }
+    if (curr_sequence_block == nullptr) return nullptr;
     BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
     while (true) {
         if (curr_block["next"].is_null() || !blocks.contains(curr_block["next"])) {

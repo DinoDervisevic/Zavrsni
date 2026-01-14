@@ -66,7 +66,7 @@ FunctionMap createSensorFunctionMap(FunctionMap& globalMap) {
         string port_name = json_object[name]["inputs"]["PORT"][1];
         Block* port = globalMap[json_object[port_name]["opcode"]](json_object, port_name).release();
         
-        string pressed = json_object[name]["fields"]["PRESSED"][0].get<string>();
+        string pressed = json_object[name]["fields"]["OPTION"][0].get<string>();
 
         return make_unique<IsPressed>(port, pressed);
     }; 

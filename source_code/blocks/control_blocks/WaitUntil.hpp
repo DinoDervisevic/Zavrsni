@@ -12,6 +12,10 @@ public:
     WaitUntil(Block* condition) : Block("Control", "WaitUntil"), condition(condition) {}
 
     double execute(Robot& robot) override {
+        if (condition == nullptr) {
+            when_done = true;
+            return 0;
+        }
         if(condition->execute(robot)){
             when_done = true;
             return 0;
