@@ -10,7 +10,7 @@
 
 using namespace std;
 
-#define DELTA_T 2.0 // how long the robot must stay still before we conclude the task is over
+#define DELTA_T 0.5
 #define MARGIN_OF_ERROR 0.03
 
 #define MOVED_A_BIT 10
@@ -30,6 +30,7 @@ bool check_if_moved_a_bit(Robot& robot, string motor, int i){
         || robot.robot_states[i].motor_states.at(motor) < 360 - MOVED_A_BIT && robot.robot_states[i].motor_states.at(motor) > 180){
         return true;
     }
+    return false;
 }
 
 int check_task_1(Robot& robot){
@@ -356,6 +357,106 @@ int check_task_5(Robot& robot){
             }
             break;
         }
+    }
+
+    return score;
+}
+
+void outside_interference_6(Robot& robot){
+    if (!robot.distance_states.count("B") || !robot.distance_states["B"]) return;
+
+    if (robot.time_since_start < 1.0) {
+        robot.distance_states["B"]->value = 100.0;
+    } else if (robot.time_since_start < 1.1) {
+        robot.distance_states["B"]->value = 4.0;
+    } else if (robot.time_since_start < 200.0) {
+        robot.distance_states["B"]->value = 100.0;
+    } else if (robot.time_since_start < 200.1) {
+        robot.distance_states["B"]->value = 4.0;
+    } else {
+        robot.distance_states["B"]->value = 100.0;
+    }
+}
+
+int check_task_6(Robot& robot){
+    int score = 0;
+    bool poceo_kretat = false;
+
+    bool simulatanious_starts = true; // until proven otherwise
+
+    float D_start_time = -1.0;
+    float F_start_time = -1.0;
+    float start_time = -1.0;
+
+    bool is_moving_correctly = true; // until proven otherwise
+    int times_moved = 0;
+    int times_stopped = 0;
+
+
+    for(int i = 0; i < robot.robot_states.size(); i++){
+        
+        if (D_start_time < 0.0 && check_if_moved_a_bit(robot, "D", i)) {
+            D_start_time = robot.robot_states[i].t;
+            score += 5;
+            poceo_kretat = true;
+            if (start_time < 0.0){
+                start_time = D_start_time;
+                times_moved += 1;
+            }
+            else {
+                if (fabs(D_start_time - start_time) > 0.5) simulatanious_starts = false;
+            }
+
+            if(!(robot.robot_states[i].t > 0.5 && robot.robot_states[i].t < 1.5) &&
+               !(robot.robot_states[i].t > 199.5 && robot.robot_states[i].t < 200.5)) {
+                is_moving_correctly = false;
+            }
+        }
+        if (F_start_time < 0.0 && check_if_moved_a_bit(robot, "F", i)) {
+            F_start_time = robot.robot_states[i].t;
+            score += 5;
+            poceo_kretat = true;
+            if (start_time < 0.0){
+                start_time = F_start_time;
+                times_moved += 1;
+            }
+            else {
+                if (fabs(F_start_time - start_time) > 0.5) simulatanious_starts = false;
+            }
+            if(!(robot.robot_states[i].t > 0.5 && robot.robot_states[i].t < 1.5) &&
+               !(robot.robot_states[i].t > 199.5 && robot.robot_states[i].t < 200.5)) {
+                is_moving_correctly = false;
+            }
+        }
+
+        if (poceo_kretat){
+            if (robot.robot_states[i].motor_states_value.at("D") == 0 && robot.robot_states[i].motor_states_value.at("F") == 0){
+                times_stopped += 1;
+                poceo_kretat = false;
+                score += 5;
+
+                if (!simulatanious_starts || D_start_time < 0.0 || F_start_time < 0.0) {
+                    is_moving_correctly = false;
+                }
+
+                if (fabs((robot.robot_states[i].t - start_time) - 180.0) > 0.5) {
+                    is_moving_correctly = false;
+                }
+
+                D_start_time = -1.0;
+                F_start_time = -1.0;
+                start_time = -1.0;
+                simulatanious_starts = true;
+            }
+        }
+    }
+
+    if (times_moved > 2 || times_stopped > 2) {
+        is_moving_correctly = false;
+    }
+
+    if (is_moving_correctly) {
+        score += 70;
     }
 
     return score;
