@@ -25,10 +25,11 @@ public:
         string distStr = distance->executeString(robot);
         if (!is_number(distStr)) return 0;
         double target = distance->execute(robot);
-
+        
         if (ds->value == ds->previous_value) return 0;
 
         if (check_distance(ds->value, option, target)) {
+            //cout << "Current distance: " << ds->value << ", Previous distance: " << ds->previous_value << endl;
             return 1;
         } else {
             return 0;

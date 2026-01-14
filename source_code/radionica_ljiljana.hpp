@@ -103,6 +103,7 @@ int check_task_3(Robot& robot){
     bool D_reached_target = false;
     bool D_done = false;
     bool D_correct_speed = false;
+    bool D_done_halfway = false;
 
     float F_started_moving_time = 0.0;
     bool F_done = false;
@@ -120,7 +121,15 @@ int check_task_3(Robot& robot){
             }
         }
 
-        if(poceo_kretat_D && !D_done && !D_reached_target){
+        if (poceo_kretat_D){
+            if (!D_done_halfway){
+                if (robot.robot_states[i].motor_states.at("D") > 180 - MARGIN_OF_ERROR * 360 && robot.robot_states[i].motor_states.at("D") < 180 + MARGIN_OF_ERROR * 360){
+                    D_done_halfway = true;
+                }
+            }
+        }
+
+        if(poceo_kretat_D && D_done_halfway && !D_done && !D_reached_target){
             if (D_moving_clockwise && (robot.robot_states[i].motor_states.at("D") > 15 - MARGIN_OF_ERROR * 360 && robot.robot_states[i].motor_states.at("D") < 15 + MARGIN_OF_ERROR * 360)){
                 D_reached_target = true;
                 score += 20;
@@ -192,11 +201,13 @@ int check_task_4(Robot& robot){
     bool D_moving_clockwise = false;
     bool D_done = false;
     bool D_correct_speed = false;
+    bool D_done_halfway = false;
     float D_started_moving_time = 0.0;
 
     bool F_done = false;
     bool F_correct_speed = false;
     bool F_moving_clockwise = false;
+    bool F_done_halfway = false;
     float F_started_moving_time = 0.0;
 
 
@@ -214,17 +225,27 @@ int check_task_4(Robot& robot){
             }
         }
 
-        if (poceo_kretat_D && !D_done && D_position_one == -1){
+        if (poceo_kretat_D){
+            if (!D_done_halfway){
+                if (robot.robot_states[i].motor_states.at("D") > 180 - MARGIN_OF_ERROR * 360 && robot.robot_states[i].motor_states.at("D") < 180 + MARGIN_OF_ERROR * 360){
+                    D_done_halfway = true;
+                }
+            }
+        }
+
+        if (poceo_kretat_D && !D_done && D_position_one == -1 && D_done_halfway){
             if (robot.robot_states[i].motor_states.at("D") > 360 - MARGIN_OF_ERROR * 360 || robot.robot_states[i].motor_states.at("D") < 0 + MARGIN_OF_ERROR * 360){
                 D_position_one = i;
+                D_done_halfway = false;
             }
         }
-        else if(poceo_kretat_D && !D_done && D_position_one != -1 && D_position_two == -1){
+        else if(poceo_kretat_D && !D_done && D_position_one != -1 && D_position_two == -1 && D_done_halfway){
             if (robot.robot_states[i].motor_states.at("D") > 360 - MARGIN_OF_ERROR * 360 || robot.robot_states[i].motor_states.at("D") < 0 + MARGIN_OF_ERROR * 360){
                 D_position_two = i;
+                D_done_halfway = false;
             }
         }
-        else if(poceo_kretat_D && !D_done && D_position_one != -1 && D_position_two != -1){
+        else if(poceo_kretat_D && !D_done && D_position_one != -1 && D_position_two != -1 && D_done_halfway){
             if (robot.robot_states[i].motor_states.at("D") > 360 - MARGIN_OF_ERROR * 360 || robot.robot_states[i].motor_states.at("D") < 0 + MARGIN_OF_ERROR * 360){
                 score += 10;
                 D_done = true;
@@ -244,7 +265,15 @@ int check_task_4(Robot& robot){
             }
         }
 
-        if (poceo_kretat_F && !F_done){
+        if (poceo_kretat_F){
+            if (!F_done_halfway){
+                if (robot.robot_states[i].motor_states.at("F") > 180 - MARGIN_OF_ERROR * 360 && robot.robot_states[i].motor_states.at("F") < 180 + MARGIN_OF_ERROR * 360){
+                    F_done_halfway = true;
+                }
+            }
+        }
+
+        if (poceo_kretat_F && F_done_halfway && !F_done){
             if(!F_moving_clockwise){
                 F_done = true;
             }
@@ -339,7 +368,9 @@ int check_task_5(Robot& robot){
                 }
             }
         }
-
+        // problem tu je sto ovo kad je tipa jedan rotation u while true petlji zavrsen, onda ce se na onak 2 framea ugasit kretanje, 
+        //a onda odmah oduzimam bodove i gasim pa trebam napraviti da ne pratim value tu neg 
+        //da idem tipa gledat za svakih pola sekunde jel se pomaknuo motor za neku min vrijednost
         if (poceo_kretat_F && !F_done){
             if (robot.robot_states[i].distance_states.at("B") > 5.0){
                 if (robot.robot_states[i].motor_states_value.at("F") == 0){
@@ -409,13 +440,13 @@ int check_task_6(Robot& robot){
 
 
     for(int i = 0; i < robot.robot_states.size(); i++){
-        
-        if (D_start_time < 0.0 && check_if_moved_a_bit(robot, "D", i)) {
+        //cout << "Time: " << robot.robot_states[i].t << " D: " << robot.robot_states[i].motor_states.at("D") << " F: " << robot.robot_states[i].motor_states.at("F") << "B: " << robot.robot_states[i].distance_states.at("B") << endl;
+        if (D_start_time < 0.0 && check_if_moved_a_bit(robot, "D", i) && robot.robot_states[i].motor_states_value.at("D") != 0) {
             D_start_time = robot.robot_states[i].t;
-            score += 5;
             poceo_kretat = true;
             if (start_time < 0.0){
                 start_time = D_start_time;
+                score += 10;
                 times_moved += 1;
             }
             else {
@@ -427,12 +458,12 @@ int check_task_6(Robot& robot){
                 is_moving_correctly = false;
             }
         }
-        if (F_start_time < 0.0 && check_if_moved_a_bit(robot, "F", i)) {
+        if (F_start_time < 0.0 && check_if_moved_a_bit(robot, "F", i) && robot.robot_states[i].motor_states_value.at("F") != 0) {
             F_start_time = robot.robot_states[i].t;
-            score += 5;
             poceo_kretat = true;
             if (start_time < 0.0){
                 start_time = F_start_time;
+                score += 10;
                 times_moved += 1;
             }
             else {
@@ -448,6 +479,7 @@ int check_task_6(Robot& robot){
             if (robot.robot_states[i].motor_states_value.at("D") == 0 && robot.robot_states[i].motor_states_value.at("F") == 0){
                 times_stopped += 1;
                 poceo_kretat = false;
+                //cout << "Both motors stopped at time: " << robot.robot_states[i].t << endl;
                 score += 5;
 
                 if (!simulatanious_starts || D_start_time < 0.0 || F_start_time < 0.0) {
@@ -466,8 +498,12 @@ int check_task_6(Robot& robot){
         }
     }
 
-    if (times_moved > 2 || times_stopped > 2) {
-        is_moving_correctly = false;
+    if (times_moved != 2 || times_stopped != 2) {
+        score -= max(0, 10 * (times_moved - 1));
+        score -= max(0, 5 * (times_stopped - 2));
+        if (is_moving_correctly && (times_moved != 1 || times_stopped != 1)) {
+            is_moving_correctly = false;
+        }
     }
 
     if (is_moving_correctly) {

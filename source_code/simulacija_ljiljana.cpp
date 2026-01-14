@@ -74,6 +74,8 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
 
         calculate_previous_value(robot);
 
+        //cout << "Time: " << robot.time_since_start << " ";
+        //cout << robot.motor_states["D"]->value << " " << robot.motor_states["F"]->value << endl;
         robot.save_state();
         //print_robot_state(robot);
 

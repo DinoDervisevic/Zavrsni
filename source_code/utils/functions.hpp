@@ -112,11 +112,12 @@ bool calculate_pressed_event(ForceSensor* state, string event){
 }
 
 bool check_distance(double distance, string option, double value){ //TODO: check what tf % is and how it translates into cm
-    if(option == "closer than"){
+    //cout << "Distance: " << distance << ", Option: " << option << ", Value: " << value << endl;
+    if(option == "closer than" || option == "<"){
         return distance < value;
-    } else if(option == "farther than"){
+    } else if(option == "farther than" || option == ">"){
         return distance > value;
-    } else if(option == "exactly at"){
+    } else if(option == "exactly at" || option == "="){
         return distance == value;
     }else {
         return false;

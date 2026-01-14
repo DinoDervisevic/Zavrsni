@@ -27,6 +27,8 @@ snapshots_dir = os.path.join(folder_path, "koraci")
 log_path = os.path.join(folder_path, "zadatci.txt")
 # Putanja do datoteke sa logovima
 
+num = 0
+
 if not os.path.isdir(snapshots_dir):
     print(f"Greška: Folder sa snapshotovima ne postoji: {snapshots_dir}")
     sys.exit(1)
@@ -143,7 +145,7 @@ task_periods = parse_log_file()
 #         print(f"  {start} - {end}")
     
 results = {}
-for i in range(7):
+for i in range(8):
     results["Task " + str(i)] = (-1, "Nema")
 
 # Rjesenje je samo zadnji screenshot za neki task
@@ -175,6 +177,7 @@ def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, sb3_
     ]
     maxi_score = -1
     final_file = "Nema dobrog rjesenja"
+    global num
     # Analiziraj svaki snapshot u periodu
     for ts, fname in sorted(snapshots_in_period):
         clean_dir(output_dir)
@@ -188,10 +191,14 @@ def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, sb3_
             cwd=os.path.dirname(exe_path),
             env={**os.environ, "PATH": os.path.dirname(exe_path) + ";" + os.environ["PATH"]}
         )
+        print("Evaluating Task", task, "Snapshot:", fname)
         print("STDOUT:", repr(result.stdout))
         print("STDERR:", repr(result.stderr))
         print("RETURNCODE:", result.returncode)
-        print( exe_path, str(task), json_file_path)
+        num += 1
+        print("Evaluated", num, "snapshots so far.")
+        print("-----------------------------------")
+        
         score = int(result.stdout.strip())
         if score > maxi_score:
             maxi_score = score
