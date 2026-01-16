@@ -14,8 +14,10 @@ public:
     }
 
     bool done(Robot& robot) override {
+        //cout << "WhenProgramStarts done check at time " << robot.time_since_start << "s" << endl;
         if(robot.time_since_start == 0){
             return true;
+            //cout << "WhenProgramStarts done at time " << robot.time_since_start << "s" << endl;
         }
         return false;
     }

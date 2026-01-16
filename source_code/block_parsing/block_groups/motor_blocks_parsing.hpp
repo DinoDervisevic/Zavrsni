@@ -44,7 +44,10 @@ FunctionMap createMotorFunctionMap(FunctionMap& globalMap) {
         
         Block* value;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
-            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
+                value = new BlankBlockDouble(0.0);
+            }
+            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string from_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();
@@ -95,10 +98,13 @@ FunctionMap createMotorFunctionMap(FunctionMap& globalMap) {
     functionMap ["flippermotor_motorSetSpeed"] = [&globalMap](const json& json_object, const string& name) {
         string port_name = json_object[name]["inputs"]["PORT"][1];
         Block* port = globalMap[json_object[port_name]["opcode"]](json_object, port_name).release();
-
         Block* speed;
+
         if(json_object[name]["inputs"]["SPEED"][0] == 1){
-            speed = new BlankBlockDouble(stod(json_object[name]["inputs"]["SPEED"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["SPEED"][1][1].get<string>() == ""){
+                speed = new BlankBlockDouble(0.0);
+            }
+            else speed = new BlankBlockDouble(stod(json_object[name]["inputs"]["SPEED"][1][1].get<string>()));
         } else {
             string speed_name = json_object[name]["inputs"]["SPEED"][1];
             speed = globalMap[json_object[speed_name]["opcode"]](json_object, speed_name).release();

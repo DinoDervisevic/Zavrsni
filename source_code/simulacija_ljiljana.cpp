@@ -53,6 +53,9 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
                 break;
             }
         }
+
+        calculate_previous_value(robot);
+        run_interference(robot, taskId);
         
         for(auto sequence : sequences){
             sequence->execute(robot);
@@ -63,6 +66,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
                 sequence->reset(robot);
             }
         }
+        
 
         // Ovdje nam ne treba racunanje micanja robota jer se robot ne mice, potrebno nam je samo izracunati stanja motora u svakom koraku
         calculate_motor_speed(robot);
@@ -72,14 +76,14 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
             robot.calculate_motor_position(string(1, i));
         }
 
-        calculate_previous_value(robot);
+        
 
         //cout << "Time: " << robot.time_since_start << " ";
         //cout << robot.motor_states["D"]->value << " " << robot.motor_states["F"]->value << endl;
         robot.save_state();
         //print_robot_state(robot);
 
-        run_interference(robot, taskId);
+        
 
         robot.time_since_start += robot.discrete_time_interval;
     }
@@ -87,12 +91,12 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
 
 int check_if_correct(Robot& robot, int taskId){
     switch (taskId) {
-        case 1: return check_task_1(robot);
+        case 1: return check_task_1_2_2(robot);
         case 2: return check_task_2(robot);
-        case 3: return check_task_3(robot);
-        case 4: return check_task_4(robot);
-        case 5: return check_task_5(robot);
-        case 6: return check_task_6(robot);
+        case 3: return check_task_3_2_2(robot);
+        case 4: return check_task_4_2_2(robot);
+        case 5: return check_task_5_2(robot);
+        case 6: return check_task_6_2(robot);
         default: return 0;
     }
 }
@@ -142,8 +146,18 @@ int main(int argc, char* argv[]) {
     vector<BlockSequence*> sequences;
     for(auto it = blocks.begin(); it != blocks.end(); ++it){
         if (it.value()["topLevel"]) {
-            BlockSequence* block_sequence = processBlock(blocks, it.key());
-            sequences.push_back(block_sequence);
+            string opcode = it.value()["opcode"].get<string>();
+            
+            // Procesiraj samo ako je event blok (početak programa)
+            if (opcode.find("event") != string::npos || 
+                opcode.find("Event") != string::npos ||
+                opcode.find("when") != string::npos ||
+                opcode.find("When") != string::npos) {
+                
+                BlockSequence* block_sequence = processBlock(blocks, it.key());
+                sequences.push_back(block_sequence);
+            }
+            // Ignoriraj sve ostale top-level blokove (nepovezani blokovi)
         }
     }
 

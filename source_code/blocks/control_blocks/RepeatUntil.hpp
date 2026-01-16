@@ -26,6 +26,7 @@ public:
         }
 
         if(block_sequence->get_current_block() == block_sequence->get_starting_block() && condition->execute(robot)){
+            //cout << "RepeatUntil condition met at time " << robot.time_since_start << "s, ending loop." << endl;
             when_done = true;
             block_sequence->reset(robot);
             return 0;

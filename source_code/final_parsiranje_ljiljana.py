@@ -55,7 +55,7 @@ def clean_dir(path):
             shutil.rmtree(full)
 
 def get_all_snapshots():
-    llsp_files = [f for f in os.listdir(snapshots_dir) if f.endswith('.llsp')]
+    llsp_files = [f for f in os.listdir(snapshots_dir) if f.endswith('.llsp3')]
 
     timestamp_to_file = {}
 
@@ -65,7 +65,7 @@ def get_all_snapshots():
         try:
             # Ako želiš i datetime objekt:
             unix_time = float(timestamp_str[:10] + '.' + timestamp_str[10:])
-            dt = datetime.fromtimestamp(unix_time, tz=timezone.utc) + timedelta(hours=2)
+            dt = datetime.fromtimestamp(unix_time)
             
             timestamp_to_file[dt] = filename
         except ValueError:
@@ -78,33 +78,30 @@ def parse_log_file():
     with open(log_path, encoding='utf8') as f:
         lines = [line.strip() for line in f if line.strip()]
 
-    # Pronađi zadnji session
-
-
     task_periods = defaultdict(list)
-    current_task = 0
+    current_task = None
     current_start = None
 
     for i, line in enumerate(lines):
         if "zadatak:" in line:
-            # Primjer: 2025-04-03-10-51-43,6 Task: 0 Next  Time_spent_on_previous_task: 00:00:00,004
             parts = line.split()
             timestamp = parts[0]
             task_id = int(parts[2])
-            action = parts[3]
+            # action = parts[3]  # Next ili Prev - nije bitno za logiku
 
-            if action in ("Next", "Prev"):
-                if current_start is None:
-                    current_start = timestamp
-                # Zatvori prethodni task period
-                if current_task is not None and current_start is not None:
-                    task_periods[current_task].append((current_start, timestamp))
+            # Ako smo već radili na nekom zadatku, zatvori taj period
+            if current_task is not None and current_start is not None:
+                task_periods[current_task].append((current_start, timestamp))
 
-                current_task = task_id
-                current_start = timestamp
+            # Započni novi period za novi zadatak
+            current_task = task_id
+            current_start = timestamp
 
-    now_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S,%f")[:-3]
-    task_periods[current_task].append((current_start, now_str))
+    # Zatvori zadnji period (do sada)
+    if current_task is not None and current_start is not None:
+        now_str = datetime.now().strftime("%Y-%m-%d-%H-%M-%S,%f")[:-3]
+        task_periods[current_task].append((current_start, now_str))
+    
     return dict(task_periods)
 
 def find_latest_snapshot_in_period(snapshots, start, end):
@@ -145,7 +142,7 @@ task_periods = parse_log_file()
 #         print(f"  {start} - {end}")
     
 results = {}
-for i in range(8):
+for i in range(1, 7):
     results["Task " + str(i)] = (-1, "Nema")
 
 # Rjesenje je samo zadnji screenshot za neki task
@@ -205,7 +202,87 @@ def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, sb3_
             final_file = fname
     return maxi_score, final_file
 
+def debug_print_task_periods(task_periods, all_snapshots):
+    """
+    Ispisuje za svaki zadatak:
+    - Sve periode kada se radio
+    - Sve snapshotove koji pripadaju tom periodu s njihovim vremenima
+    """
+    print("\n" + "="*80)
+    print("DEBUG: Pregled zadataka i snapshotova")
+    print("="*80)
+    
+    for task in sorted(task_periods.keys()):
+        periods = task_periods[task]
+        print(f"\n{'='*40}")
+        print(f"ZADATAK {task}")
+        print(f"{'='*40}")
+        print(f"Broj perioda: {len(periods)}")
+        
+        total_snapshots_for_task = 0
+        
+        for period_idx, (start, end) in enumerate(periods):
+            print(f"\n  Period {period_idx + 1}:")
+            print(f"    Početak: {start}")
+            print(f"    Kraj:    {end}")
+            
+            # Pronađi snapshotove u ovom periodu
+            start_dt = datetime.strptime(start, "%Y-%m-%d-%H-%M-%S,%f")
+            end_dt = datetime.strptime(end, "%Y-%m-%d-%H-%M-%S,%f")
+            
+            snapshots_in_period = [
+                (ts, fname) for ts, fname in all_snapshots.items()
+                if start_dt <= ts.replace(tzinfo=None) <= end_dt
+            ]
+            
+            print(f"    Broj snapshotova u periodu: {len(snapshots_in_period)}")
+            
+            if snapshots_in_period:
+                print(f"    Snapshotovi:")
+                for ts, fname in sorted(snapshots_in_period):
+                    # Formatiraj vrijeme čitljivije
+                    time_str = ts.strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"      [{time_str}] {fname}")
+            else:
+                print(f"    (Nema snapshotova u ovom periodu)")
+            
+            total_snapshots_for_task += len(snapshots_in_period)
+        
+        print(f"\n  UKUPNO snapshotova za zadatak {task}: {total_snapshots_for_task}")
+    
+    print("\n" + "="*80)
+    print(f"UKUPNO snapshotova: {len(all_snapshots)}")
+    print("="*80 + "\n")
+
+
+def debug_print_results(results, all_snapshots):
+    """
+    Ispisuje rezultate evaluacije s detaljima o najboljim snapshotovima
+    """
+    print("\n" + "="*80)
+    print("DEBUG: Rezultati evaluacije")
+    print("="*80)
+    
+    for task_name, (score, filename) in sorted(results.items()):
+        print(f"\n{task_name}:")
+        print(f"  Score: {score}")
+        print(f"  Najbolji file: {filename}")
+        
+        # Pronađi timestamp tog filea
+        if filename != "Nema" and filename != "Nema dobrog rjesenja":
+            for ts, fname in all_snapshots.items():
+                if fname == filename:
+                    time_str = ts.strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"  Vrijeme snapshota: {time_str}")
+                    break
+    
+    print("\n" + "="*80)
+
+# debug_print_task_periods(task_periods, all_snapshots)
+
 for task, periods in task_periods.items():
+    if task < 1 or task > 6:  # Preskoči fake zadatke
+        continue
     for start, end in periods:
         maxi_score, final_file = evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, sb3_path, output_dir)
         if results["Task " + str(task)][0] < maxi_score:
@@ -216,3 +293,96 @@ for task, periods in task_periods.items():
 for task, result in results.items():
     print(f"{task}: {result}")
 
+def evaluate_all_snapshots_debug(task, start, end, all_snapshots, llsp_file_path, sb3_path, output_dir):
+    """
+    Verzija s više debug ispisa da vidimo što se točno događa
+    """
+    start_dt = datetime.strptime(start, "%Y-%m-%d-%H-%M-%S,%f")
+    end_dt = datetime.strptime(end, "%Y-%m-%d-%H-%M-%S,%f")
+    
+    print(f"\n>>> EVALUACIJA ZADATKA {task}")
+    print(f"    Period: {start} -> {end}")
+    print(f"    start_dt (naive): {start_dt}")
+    print(f"    end_dt (naive): {end_dt}")
+    
+    # Debug: ispiši sve snapshotove i njihove usporedbe
+    print(f"\n    Provjera svih snapshotova:")
+    for ts, fname in sorted(all_snapshots.items()):
+        ts_naive = ts.replace(tzinfo=None)
+        in_range = start_dt <= ts_naive <= end_dt
+        print(f"      {fname[:40]:40} | ts={ts} | naive={ts_naive} | in_range={in_range}")
+    
+    snapshots_in_period = [
+        (ts, fname) for ts, fname in all_snapshots.items()
+        if start_dt <= ts.replace(tzinfo=None) <= end_dt
+    ]
+    
+    print(f"\n    Odabrani snapshotovi za evaluaciju: {len(snapshots_in_period)}")
+    for ts, fname in sorted(snapshots_in_period):
+        print(f"      {fname}")
+    
+    maxi_score = -1
+    final_file = "Nema dobrog rjesenja"
+    
+    for ts, fname in sorted(snapshots_in_period):
+        clean_dir(output_dir)
+        extract_sb3(llsp_file_path, fname, output_dir)
+        
+        # Debug: provjeri što je ekstraktirano
+        print(f"\n    Ekstraktirano iz {fname}:")
+        for f in os.listdir(output_dir):
+            print(f"      - {f}")
+        
+        extract_sb3(output_dir, "scratch.sb3", output_dir)
+        
+        # Debug: provjeri project.json postoji
+        if os.path.exists(json_file_path):
+            print(f"    project.json POSTOJI")
+        else:
+            print(f"    project.json NE POSTOJI!")
+        
+        # Debug: ispiši točnu komandu
+        cmd = [exe_path, str(task), json_file_path]
+        print(f"    Komanda: {' '.join(cmd)}")
+        
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=os.path.dirname(exe_path),
+        )
+        
+        print(f"    STDOUT: {repr(result.stdout)}")
+        print(f"    STDERR: {repr(result.stderr)}")
+        print(f"    RETURN: {result.returncode}")
+        
+        try:
+            score = int(result.stdout.strip())
+        except ValueError:
+            print(f"    GREŠKA: Ne mogu parsirati score iz '{result.stdout}'")
+            score = -1
+        
+        print(f"    Score: {score}")
+        
+        if score > maxi_score:
+            maxi_score = score
+            final_file = fname
+    
+    print(f"\n>>> REZULTAT ZA ZADATAK {task}: score={maxi_score}, file={final_file}")
+    return maxi_score, final_file
+
+
+# Testiraj samo jedan zadatak detaljno
+def test_single_task(task_num):
+    """Pozovi ovako: test_single_task(4) za debug zadatka 4"""
+    if task_num not in task_periods:
+        print(f"Zadatak {task_num} nije u task_periods!")
+        print(f"Dostupni zadaci: {list(task_periods.keys())}")
+        return
+    
+    for start, end in task_periods[task_num]:
+        evaluate_all_snapshots_debug(task_num, start, end, all_snapshots, llsp_file_path, sb3_path, output_dir)
+
+# Odkomentiraj ovu liniju i pokreni za debug jednog zadatka:
+# test_single_task(4)

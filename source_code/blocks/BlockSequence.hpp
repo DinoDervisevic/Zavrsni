@@ -38,6 +38,7 @@ public:
             }
 
             if(current_block->done(robot)){
+                //cout << "Finished block: " << current_block->name << " at time " << robot.time_since_start << "s" << " Starting next block:" << (current_block->next ? current_block->next->name : "nullptr") << endl;
                 current_block->finish(robot);
                 current_block = current_block->next;
                 can_execute = true;

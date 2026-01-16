@@ -47,7 +47,7 @@ FunctionMap createEventFunctionMap(FunctionMap& globalMap) {
         string port_name = json_object[name]["inputs"]["PORT"][1];
         Block* port = globalMap[json_object[port_name]["opcode"]](json_object, port_name).release();
         
-        string option = json_object[name]["inputs"]["COMPARATOR"][0];
+        string option = json_object[name]["fields"]["COMPARATOR"][0];
         
         Block* distance;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
