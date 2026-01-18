@@ -28,7 +28,10 @@ FunctionMap createControlFunctionMap(FunctionMap& globalMap) {
     functionMap["control_wait"] = [&globalMap](const json& json_object, const string& name) {
         Block* duration;
         if(json_object[name]["inputs"]["DURATION"][0] == 1){
-            duration = new BlankBlockDouble(stod(json_object[name]["inputs"]["DURATION"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["DURATION"][1][1].get<string>() == ""){
+                duration = new BlankBlockDouble(0.0);
+            }
+            else duration = new BlankBlockDouble(stod(json_object[name]["inputs"]["DURATION"][1][1].get<string>()));
         } else {
             auto duration_name = json_object[name]["inputs"]["DURATION"][1];
             duration = globalMap[json_object[duration_name]["opcode"]](json_object, duration_name).release();
@@ -39,7 +42,10 @@ FunctionMap createControlFunctionMap(FunctionMap& globalMap) {
     functionMap["control_repeat"] = [&globalMap](const json& json_object, const string& name) {
         Block* times;
         if(json_object[name]["inputs"]["TIMES"][0] == 1){
-            times = new BlankBlockInt(stoi(json_object[name]["inputs"]["TIMES"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["TIMES"][1][1].get<string>() == ""){
+                times = new BlankBlockInt(0);
+            }
+            else times = new BlankBlockInt(stoi(json_object[name]["inputs"]["TIMES"][1][1].get<string>()));
         } else {
             auto times_name = json_object[name]["inputs"]["TIMES"][1];
             times = globalMap[json_object[times_name]["opcode"]](json_object, times_name).release();

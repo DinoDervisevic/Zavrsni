@@ -51,7 +51,10 @@ FunctionMap createEventFunctionMap(FunctionMap& globalMap) {
         
         Block* distance;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
-            distance = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
+                distance = new BlankBlockDouble(0.0);
+            }
+            else distance = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string from_name = json_object[name]["inputs"]["VALUE"][1];
             distance = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();
@@ -91,7 +94,10 @@ FunctionMap createEventFunctionMap(FunctionMap& globalMap) {
     functionMap ["flipperevents_whenTimer"] = [&globalMap](const json& json_object, const string& name) {
         Block* value;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
-            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
+                value = new BlankBlockDouble(0.0);
+            }
+            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string from_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();

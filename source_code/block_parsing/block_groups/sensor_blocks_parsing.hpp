@@ -41,7 +41,10 @@ FunctionMap createSensorFunctionMap(FunctionMap& globalMap) {
     functionMap ["flippersensors_isReflectivity"] = [&globalMap](const json& json_object, const string& name) {
         Block* value;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
-            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
+                value = new BlankBlockDouble(0.0);
+            }
+            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
@@ -83,7 +86,10 @@ FunctionMap createSensorFunctionMap(FunctionMap& globalMap) {
     functionMap ["flippersensors_isDistance"] = [&globalMap](const json& json_object, const string& name) {
         Block* value;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
-            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
+                value = new BlankBlockDouble(0.0);
+            }
+            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string value_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[value_name]["opcode"]](json_object, value_name).release();

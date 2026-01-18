@@ -50,7 +50,10 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
     functionMap["flippersound_beepForTime"] = [&globalMap](const json& json_object, const string& name) {
         Block* time;
         if(json_object[name]["inputs"]["DURATION"][0] == 1){
-            time = new BlankBlockDouble(stod(json_object[name]["inputs"]["DURATION"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["DURATION"][1][1].get<string>() == ""){
+                time = new BlankBlockDouble(0.0);
+            }
+            else time = new BlankBlockDouble(stod(json_object[name]["inputs"]["DURATION"][1][1].get<string>()));
         } else {
             string time_name = json_object[name]["inputs"]["DURATION"][1];
             time = globalMap[json_object[time_name]["opcode"]](json_object, time_name).release();
@@ -74,7 +77,10 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
         string effect = json_object[name]["fields"]["EFFECT"][0].get<string>();
         Block* value;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
-            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
+                value = new BlankBlockDouble(0.0);
+            }
+            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string value_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[value_name]["opcode"]](json_object, value_name).release();
@@ -86,7 +92,10 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
         string effect = json_object[name]["fields"]["EFFECT"][0].get<string>();
         Block* value;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
-            value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
+                value = new BlankBlockDouble(0.0);
+            }
+            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string value_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[value_name]["opcode"]](json_object, value_name).release();
@@ -101,7 +110,10 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
     functionMap["sound_changevolumeby"] = [&globalMap](const json& json_object, const string& name) {
         Block* volume;
         if(json_object[name]["inputs"]["VOLUME"][0] == 1){
-            volume = new BlankBlockDouble(stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["VOLUME"][1][1].get<string>() == ""){
+                volume = new BlankBlockDouble(0.0);
+            }
+            else volume = new BlankBlockDouble(stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
         } else {
             string volume_name = json_object[name]["inputs"]["VOLUME"][1];
             volume = globalMap[json_object[volume_name]["opcode"]](json_object, volume_name).release();
@@ -112,7 +124,10 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
     functionMap["sound_setvolumeto"] = [&globalMap](const json& json_object, const string& name) {
         Block* volume;
         if(json_object[name]["inputs"]["VOLUME"][0] == 1){
-            volume = new BlankBlockDouble(stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["VOLUME"][1][1].get<string>() == ""){
+                volume = new BlankBlockDouble(0.0);
+            }
+            else volume = new BlankBlockDouble(stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
         } else {
             string volume_name = json_object[name]["inputs"]["VOLUME"][1];
             volume = globalMap[json_object[volume_name]["opcode"]](json_object, volume_name).release();

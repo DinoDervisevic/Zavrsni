@@ -1619,11 +1619,144 @@ int check_task_6_2(Robot& robot){
         }
     }
     
-    // Bonus ako je uspješno odradio barem jedan ciklus s while true (ponovljivost)
-    if (completed_cycles >= 2){
-        score += 20;  // Bonus za while true petlju
-    }
+
     if (score > 100) score = 100;
+    
+    return score;
+}
+
+int check_task_6_2_2(Robot& robot){
+    int score = 0;
+    
+    // Stanja:
+    // 1. WAITING_FOR_OBSTACLE - čekamo da se nešto približi
+    // 2. OBSTACLE_PRESENT - prepreka je tu, robot bi se trebao pokrenuti
+    // 3. MOVING - robot se kreće, čekamo da stane
+    // 4. STOPPED - robot je stao, provjeravamo da ostane zaustavljen dok se opet nešto ne približi
+    // 5. CYCLE_COMPLETE - jedan ciklus je uspješno završen
+    
+    enum State { WAITING_FOR_OBSTACLE, OBSTACLE_PRESENT, MOVING, STOPPED, CYCLE_COMPLETE };
+    State state = WAITING_FOR_OBSTACLE;
+    
+    float obstacle_appeared_time = -1.0;
+    float movement_start_time = -1.0;
+    float stopped_time = -1.0;
+    bool cycle_completed = false;
+    bool started_moving_prematurely = false;
+    
+    const float START_TOLERANCE = 1.5;   // Koliko brzo mora početi nakon pojave prepreke
+    
+    for(int i = 0; i < robot.robot_states.size(); i++){
+        float distance = robot.robot_states[i].distance_states.at("B");
+        float value_D = robot.robot_states[i].motor_states_value.at("D");
+        float value_F = robot.robot_states[i].motor_states_value.at("F");
+        float time = robot.robot_states[i].t;
+        
+        bool motors_active = (value_D != 0 || value_F != 0);
+        bool obstacle_close = (distance <= 5.0);
+        
+        switch(state){
+            case WAITING_FOR_OBSTACLE:
+                // Čekamo da se nešto približi robotu
+                if (obstacle_close){
+                    obstacle_appeared_time = time;
+                    state = OBSTACLE_PRESENT;
+                }
+                if (motors_active && !obstacle_close){
+                    // Robot se pokrenuo prije nego se nešto približilo - FAIL
+                    started_moving_prematurely = true;
+                }
+                break;
+                
+            case OBSTACLE_PRESENT:
+                // Prepreka je tu - robot bi se trebao pokrenuti
+                if (motors_active){
+                    movement_start_time = time;
+                    
+                    // Provjeri je li krenuo dovoljno brzo
+                    if (movement_start_time - obstacle_appeared_time <= START_TOLERANCE){
+                        // Dobro je krenuo!
+                        state = MOVING;
+                    } else {
+                        // Prekasno je krenuo - ali svejedno pratimo
+                        state = MOVING;
+                    }
+                }
+                
+                // Ako prepreka ode prije nego robot krene, resetiraj
+                if (!obstacle_close && !motors_active){
+                    state = WAITING_FOR_OBSTACLE;
+                    obstacle_appeared_time = -1.0;
+                }
+                break;
+                
+            case MOVING:
+                // Robot se kreće - čekamo da stane
+                if (!motors_active){
+                    stopped_time = time;
+                    state = STOPPED;
+                }
+                break;
+                
+            case STOPPED:
+                // Robot je stao - provjeravamo da OSTANE zaustavljen dok se opet nešto ne približi
+                
+                if (obstacle_close){
+                    // Nešto se opet približilo - ciklus je uspješno završen!
+                    // (ne zahtijevamo da se robot opet pokrene)
+                    cycle_completed = true;
+                    state = CYCLE_COMPLETE;
+                }
+                
+                if (motors_active && !obstacle_close){
+                    // Robot se pokrenuo prije nego se nešto približilo - FAIL
+                    // Resetiraj i pokušaj opet
+                    state = WAITING_FOR_OBSTACLE;
+                    obstacle_appeared_time = -1.0;
+                    movement_start_time = -1.0;
+                    stopped_time = -1.0;
+                }
+                break;
+                
+            case CYCLE_COMPLETE:
+                // Ciklus je završen, možemo izaći
+                break;
+        }
+        
+        // Ako je ciklus završen, prekini petlju
+        if (cycle_completed){
+            break;
+        }
+    }
+    
+    // Bodovanje:
+    // - Ako je završio barem jedan ciklus: 100 bodova
+    // - Ako je stao ali nije dočekao drugu prepreku (simulacija završila): djelomični bodovi
+    // - Ako se pokrenuo ali nije stao: mali bodovi
+    // - Ako se nije ni pokrenuo: 0 bodova
+    
+    if (cycle_completed){
+        score = 100;  // Puni bodovi za uspješan ciklus
+    } else if (state == STOPPED){
+        // Robot je stao i ostao zaustavljen do kraja simulacije
+        // (možda simulacija nije trajala dovoljno dugo da se pojavi druga prepreka)
+        score = 80;  // Većina bodova - napravio je sve što je mogao
+    } else if (state == MOVING){
+        // Robot se pokrenuo ali nije stao do kraja simulacije
+        score = 40;  // Djelomični bodovi
+    } else if (movement_start_time > 0){
+        // Robot se pokrenuo ali je negdje zapeo
+        score = 30;
+    } else {
+        // Robot se nije ni pokrenuo
+        score = 0;
+    }
+
+    if (started_moving_prematurely){
+        score -= 20; // Penalizacija za pokretanje prije pojave prepreke
+    }
+
+    if (score < 0) score = 0;
     
     return score;
 }

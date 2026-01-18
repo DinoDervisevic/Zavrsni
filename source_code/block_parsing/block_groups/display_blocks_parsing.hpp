@@ -24,7 +24,11 @@ FunctionMap createDisplayFunctionMap(FunctionMap& globalMap) {
     functionMap["flipperlight_lightDisplayImageOnForTime"] = [&globalMap](const json& json_object, const string& name) {
         string matrix_name = json_object[name]["inputs"]["MATRIX"][1];
         Block* image = globalMap[json_object[matrix_name]["opcode"]](json_object, matrix_name).release();
-        double time = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
+        double time;
+        if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
+            time = 0.0;
+        }
+        else time = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
         return make_unique<DisplayImageForTime>(image, time);
     };
 
@@ -51,8 +55,11 @@ FunctionMap createDisplayFunctionMap(FunctionMap& globalMap) {
 
     functionMap["flipperlight_lightDisplaySetBrightness"] = [&globalMap](const json& json_object, const string& name) {
         Block*brightness;
-        if(json_object[name]["inputs"]["BRIGHTNESS"][0] == 1){
-            brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
+        if(json_object[name]["inputs"]["BRIGHTNESS"][0] == 1){ 
+            if (json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>() == ""){
+                brightness = new BlankBlockDouble(0.0);
+            }
+            else brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
         } else {
             string brightness_name = json_object[name]["inputs"]["BRIGHTNESS"][1];
             brightness = globalMap[json_object[brightness_name]["opcode"]](json_object, brightness_name).release();
@@ -68,7 +75,10 @@ FunctionMap createDisplayFunctionMap(FunctionMap& globalMap) {
         
         Block* brightness;
         if(json_object[name]["inputs"]["BRIGHTNESS"][0] == 1){
-            brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
+            if (json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>() == ""){
+                brightness = new BlankBlockDouble(0.0);
+            }
+            else brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
         } else {
             string distance_name = json_object[name]["inputs"]["BRIGHTNESS"][1];
             brightness = globalMap[json_object[distance_name]["opcode"]](json_object, distance_name).release();

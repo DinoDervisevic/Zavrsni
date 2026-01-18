@@ -49,7 +49,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
             }
         }
         if (taskId == 6){
-            if (robot.time_since_start >= 400.0){
+            if (robot.time_since_start >= 250.0){
                 break;
             }
         }
@@ -96,7 +96,7 @@ int check_if_correct(Robot& robot, int taskId){
         case 3: return check_task_3_2_2(robot);
         case 4: return check_task_4_2_2(robot);
         case 5: return check_task_5_2(robot);
-        case 6: return check_task_6_2(robot);
+        case 6: return check_task_6_2_2(robot);
         default: return 0;
     }
 }
