@@ -11,7 +11,7 @@
 using namespace std;
 
 #define DELTA_T 0.5
-#define MARGIN_OF_ERROR 0.03
+#define MARGIN_OF_ERROR 0.015
 
 #define MOVED_A_BIT 10
 
@@ -588,10 +588,8 @@ int check_task_3_2_with_motors(Robot& robot, string motor_noge, string motor_ruk
     if (D_speed_correct){
         if (D_speed_set_before_start){
             score += 20;
-        } else if (D_speed_set_after_end){
-            score += 10;
         } else {
-            score += 15;
+            score += 10;
         }
     }
     
@@ -599,8 +597,6 @@ int check_task_3_2_with_motors(Robot& robot, string motor_noge, string motor_ruk
     if (F_speed_correct){
         if (F_speed_set_before_start){
             score += 20;
-        } else if (F_speed_set_after_end){
-            score += 10;
         } else {
             score += 15;
         }
@@ -1749,7 +1745,7 @@ int check_task_6_2_2(Robot& robot){
     }
 
     if (started_moving_prematurely){
-        score -= 50; // Penalizacija za pokretanje prije pojave prepreke
+        score -= 100; // Penalizacija za pokretanje prije pojave prepreke
     }
 
     if (score < 0) score = 0;

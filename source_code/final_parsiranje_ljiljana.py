@@ -188,13 +188,13 @@ def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, sb3_
             cwd=os.path.dirname(exe_path),
             env={**os.environ, "PATH": os.path.dirname(exe_path) + ";" + os.environ["PATH"]}
         )
-        print("Evaluating Task", task, "Snapshot:", fname)
-        print("STDOUT:", repr(result.stdout))
-        print("STDERR:", repr(result.stderr))
-        print("RETURNCODE:", result.returncode)
-        num += 1
-        print("Evaluated", num, "snapshots so far.")
-        print("-----------------------------------")
+        # print("Evaluating Task", task, "Snapshot:", fname)
+        # print("STDOUT:", repr(result.stdout))
+        # print("STDERR:", repr(result.stderr))
+        # print("RETURNCODE:", result.returncode)
+        # num += 1
+        # print("Evaluated", num, "snapshots so far.")
+        # print("-----------------------------------")
         
         score = int(result.stdout.strip())
         if score > maxi_score:
@@ -278,7 +278,7 @@ def debug_print_results(results, all_snapshots):
     
     print("\n" + "="*80)
 
-# debug_print_task_periods(task_periods, all_snapshots)
+debug_print_task_periods(task_periods, all_snapshots)
 
 for task, periods in task_periods.items():
     if task < 1 or task > 6:  # Preskoči fake zadatke
