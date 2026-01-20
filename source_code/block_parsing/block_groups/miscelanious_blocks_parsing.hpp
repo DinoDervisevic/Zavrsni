@@ -36,13 +36,23 @@ FunctionMap createMiscelaniousFunctionMap(FunctionMap& globalMap) {
     };
 
     functionMap["flippermotor_custom-angle"] = [&globalMap](const json& json_object, const string& name) {
-        int angle = json_object[name]["fields"]["field_flippermotor_custom-angle"][0].get<int>();
+        int angle;
+        if (json_object[name]["fields"]["field_flippermotor_custom-angle"][0].is_string()){
+            angle = stoi(json_object[name]["fields"]["field_flippermotor_custom-angle"][0].get<string>());
+        } else {
+            angle = json_object[name]["fields"]["field_flippermotor_custom-angle"][0].get<int>();
+        }
         return make_unique<BlankBlockInt>(angle);
     };
 
     functionMap ["flipperevents_color-selector"] = [&globalMap](const json& json_object, const string& name) {
-        string color = json_object[name]["fields"]["field_flipperevents_color-selector"][0].get<string>();
-        return make_unique<BlankBlockInt>(stoi(color));
+        int color;
+        if (json_object[name]["fields"]["field_flipperevents_color-selector"][0].is_string()){
+            color = stoi(json_object[name]["fields"]["field_flipperevents_color-selector"][0].get<string>());
+        } else {
+            color = json_object[name]["fields"]["field_flipperevents_color-selector"][0].get<int>();
+        }
+        return make_unique<BlankBlockInt>(color);
     };
 
     functionMap ["flipperevents_color-sensor-selector"] = [&globalMap](const json& json_object, const string& name) {
@@ -61,13 +71,23 @@ FunctionMap createMiscelaniousFunctionMap(FunctionMap& globalMap) {
     };
 
     functionMap ["flipperevents_custom-tilted"] = [&globalMap](const json& json_object, const string& name) {
-        string tilt = json_object[name]["fields"]["field_flipperevents_custom-tilted"][0].get<string>();
-        return make_unique<BlankBlockInt>(stoi(tilt));
+        int tilt;
+        if (json_object[name]["fields"]["field_flipperevents_custom-tilted"][0].is_string()){
+            tilt = stoi(json_object[name]["fields"]["field_flipperevents_custom-tilted"][0].get<string>());
+        } else {
+            tilt = json_object[name]["fields"]["field_flipperevents_custom-tilted"][0].get<int>();
+        }
+        return make_unique<BlankBlockInt>(tilt);
     };
 
     functionMap ["flippersensors_color-selector"] = [&globalMap](const json& json_object, const string& name) {
-        string color = json_object[name]["fields"]["field_flippersensors_color-selector"][0].get<string>();
-        return make_unique<BlankBlockInt>(stoi(color));
+        int color;
+        if (json_object[name]["fields"]["field_flippersensors_color-selector"][0].is_string()){
+            color = stoi(json_object[name]["fields"]["field_flippersensors_color-selector"][0].get<string>());
+        } else {
+            color = json_object[name]["fields"]["field_flippersensors_color-selector"][0].get<int>();
+        }
+        return make_unique<BlankBlockInt>(color);
     };
 
     functionMap ["flippersensors_color-sensor-selector"] = [&globalMap](const json& json_object, const string& name) {
@@ -86,8 +106,13 @@ FunctionMap createMiscelaniousFunctionMap(FunctionMap& globalMap) {
     };
 
     functionMap ["flippersensors_custom-tilted"] = [&globalMap](const json& json_object, const string& name) {
-        string tilt = json_object[name]["fields"]["field_flippersensors_custom-tilted"][0].get<string>();
-        return make_unique<BlankBlockInt>(stoi(tilt));
+        int tilt;
+        if (json_object[name]["fields"]["field_flippersensors_custom-tilted"][0].is_string()){
+            tilt = stoi(json_object[name]["fields"]["field_flippersensors_custom-tilted"][0].get<string>());
+        } else {
+            tilt = json_object[name]["fields"]["field_flippersensors_custom-tilted"][0].get<int>();
+        }
+        return make_unique<BlankBlockInt>(tilt);
     };
 
     functionMap["flipperlight_matrix-5x5-brightness-image"] = [&globalMap](const json& json_object, const string& name) {
@@ -101,8 +126,13 @@ FunctionMap createMiscelaniousFunctionMap(FunctionMap& globalMap) {
     };
 
     functionMap["flipperlight_color-selector-vertical"] = [&globalMap](const json& json_object, const string& name) {
-        string color = json_object[name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<string>();
-        return make_unique<BlankBlockInt>(stoi(color));
+        int color;
+        if (json_object[name]["fields"]["field_flipperlight_color-selector-vertical"][0].is_string()){
+            color = stoi(json_object[name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<string>());
+        } else {
+            color = json_object[name]["fields"]["field_flipperlight_color-selector-vertical"][0].get<int>();
+        }
+        return make_unique<BlankBlockInt>(color);
     };
 
     functionMap["flippersound_custom-piano"] = [&globalMap](const json& json_object, const string& name) {
@@ -120,8 +150,13 @@ FunctionMap createMiscelaniousFunctionMap(FunctionMap& globalMap) {
     };
 
     functionMap["flipperlight_matrix-pixel-index"] = [&globalMap](const json& json_object, const string& name) {
-        string index = json_object[name]["fields"]["field_flipperlight_matrix-pixel-index"][0].get<string>();
-        return make_unique<BlankBlockInt>(stoi(index));
+        int index;
+        if (json_object[name]["fields"]["field_flipperlight_matrix-pixel-index"][0].is_string()){
+            index = stoi(json_object[name]["fields"]["field_flipperlight_matrix-pixel-index"][0].get<string>());
+        } else {
+            index = json_object[name]["fields"]["field_flipperlight_matrix-pixel-index"][0].get<int>();
+        }
+        return make_unique<BlankBlockInt>(index);
     };
 
     functionMap["flipperlight_distance-sensor-selector"] = [&globalMap](const json& json_object, const string& name) {
@@ -139,6 +174,24 @@ FunctionMap createMiscelaniousFunctionMap(FunctionMap& globalMap) {
         return make_unique<BlankBlockString>(sound);
     };
 
+    functionMap["flippermove_rotation-wheel"] = [&globalMap](const json& json_object, const string& name) {
+        int value;
+        if (!json_object[name]["fields"]["field_flippermove_rotation-wheel"][0].is_string()) {
+            value = json_object[name]["fields"]["field_flippermove_rotation-wheel"][0].get<int>();
+        }
+        else {
+            string direction = json_object[name]["fields"]["field_flippermove_rotation-wheel"][0];
+            size_t space_pos = direction.find(" ");
+            
+            // Ako postoji razmak, uzmi nakon njega; ako ne, uzmi cijeli string
+            if (space_pos != string::npos) {
+                value = stoi(direction.substr(space_pos + 1));
+            } else {
+                value = stoi(direction);
+            }
+        }
+        return make_unique<BlankBlockInt>(value);
+    };
 
     return functionMap;
 

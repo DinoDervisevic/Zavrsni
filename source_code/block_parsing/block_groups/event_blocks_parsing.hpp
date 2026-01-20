@@ -107,9 +107,14 @@ FunctionMap createEventFunctionMap(FunctionMap& globalMap) {
     };
 
     functionMap["flipperevents_whenCondition"] = [&globalMap](const json& json_object, const string& name) {
-        Block* condition;
-        string from_name = json_object[name]["inputs"]["CONDITION"][1];
-        condition = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();
+        Block* condition = nullptr;
+        if (json_object[name]["inputs"].contains("CONDITION")) {
+            auto cond_input = json_object[name]["inputs"]["CONDITION"];
+            if (cond_input.size() >= 2 && !cond_input[1].is_null()) {
+                auto condition_name = cond_input[1];
+                condition = globalMap[json_object[condition_name]["opcode"]](json_object, condition_name).release();
+            }
+        }
         
         return make_unique<WhenCondition>(condition);
     };

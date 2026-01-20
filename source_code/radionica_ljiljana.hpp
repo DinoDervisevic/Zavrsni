@@ -462,6 +462,8 @@ int check_task_3_2_with_motors(Robot& robot, string motor_noge, string motor_ruk
     bool F_speed_set_after_end = false;
     bool F_speed_correct = false;
     float F_speed_set_time = -1.0;
+
+    bool one_speed_after_end = false;
     
     const float TARGET_ANGLE = 15.0;
     const float ANGLE_TOLERANCE = MARGIN_OF_ERROR * 360;
@@ -586,20 +588,22 @@ int check_task_3_2_with_motors(Robot& robot, string motor_noge, string motor_ruk
     
     // 3. Brzina noge (30%): max 20 bodova
     if (D_speed_correct){
-        if (D_speed_set_before_start){
-            score += 20;
-        } else {
-            score += 10;
+        score += 20;
+        if (!D_speed_set_before_start){
+            one_speed_after_end = true;
         }
     }
     
     // 4. Brzina ruke (50%): max 20 bodova
     if (F_speed_correct){
-        if (F_speed_set_before_start){
-            score += 20;
-        } else {
-            score += 15;
+        score += 20;
+        if (!F_speed_set_before_start){
+            one_speed_after_end = true;
         }
+    }
+
+    if (one_speed_after_end){
+        score -= 10;
     }
     
     if (score > 100) score = 100;

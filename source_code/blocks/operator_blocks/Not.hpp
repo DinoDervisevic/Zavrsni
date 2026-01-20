@@ -11,10 +11,16 @@ public:
     Not(Block* value) : Block("Operator", "Not"), value(value) {}
 
     double execute(Robot& robot) override {
+        if (value == nullptr) {
+            return 1; // if no value is provided, return true
+        }
         return !value->execute(robot);
     }
 
     string executeString(Robot& robot) override {
+        if (value == nullptr) {
+            return "False";
+        }
         if(!value->execute(robot)){
             return "True";
         } else {

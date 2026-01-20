@@ -73,12 +73,6 @@ FunctionMap createMovementFunctionMap(FunctionMap& globalMap) {
         return make_unique<StartMove>(forward);
     };
 
-    functionMap["flippermove_rotation-wheel"] = [&globalMap](const json& json_object, const string& name) {
-        string direction = json_object[name]["fields"]["field_flippermove_rotation-wheel"][0];
-        int value = stoi(direction.substr(direction.find(" ") + 1));
-        return make_unique<BlankBlockInt>(value);
-    };
-
     functionMap["flippermove_steer"] = [&globalMap](const json& json_object, const string& name) {
         string direction_name = json_object[name]["inputs"]["STEERING"][1];
         Block* direction = globalMap[json_object[direction_name]["opcode"]](json_object, direction_name).release();

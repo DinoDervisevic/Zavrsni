@@ -15,6 +15,9 @@ public:
     }
 
     bool done(Robot& robot) override {
+        if (condition == nullptr) {
+            return true;
+        }
         if (condition->execute(robot)) {
             return true;
         }

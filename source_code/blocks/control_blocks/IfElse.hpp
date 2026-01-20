@@ -22,7 +22,7 @@ public:
         }
         if(condition_checked || (!condition_checked && !else_checked && condition->execute(robot))){
             if (block_sequence1 == nullptr) {
-                block_sequence2->reset(robot);
+                if (block_sequence2 != nullptr) block_sequence2->reset(robot);
                 when_done = true;
                 return 0;
             }
@@ -32,7 +32,7 @@ public:
             block_sequence1->set_time_left(0);
         } else {
             if (block_sequence2 == nullptr) {
-                block_sequence1->reset(robot);
+                if (block_sequence1 != nullptr) block_sequence1->reset(robot);
                 when_done = true;
                 return 0;
             }

@@ -174,50 +174,40 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
     };
 
     functionMap["operator_and"] = [&globalMap](const json& json_object, const string& name) {
-        Block* value1;
-        Block* value2;
+        Block* value1 = nullptr;
+        Block* value2 = nullptr;
         if (json_object[name]["inputs"].contains("OPERAND1")) {
             string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
-        } else {
-            cerr << "Error: Operator AND is missing input one!" << endl;
-        }
+        } 
 
         if (json_object[name]["inputs"].contains("OPERAND2")) {
             string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
-        } else {
-            cerr << "Error: Operator AND is missing input two!" << endl;
-        }
+        } 
         return make_unique<And>(value1, value2);
     };
 
     functionMap["operator_or"] = [&globalMap](const json& json_object, const string& name) {
-        Block* value1;
-        Block* value2;
+        Block* value1 = nullptr;
+        Block* value2 = nullptr;
         if (json_object[name]["inputs"].contains("OPERAND1")) {
             string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
-        } else {
-            cerr << "Error: Operator OR is missing input one!" << endl;
-        }
+        } 
 
         if (json_object[name]["inputs"].contains("OPERAND2")) {
             string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
-        } else {
-            cerr << "Error: Operator OR is missing input two!" << endl;
-        }
+        } 
         return make_unique<Or>(value1, value2);
     };
 
     functionMap["operator_not"] = [&globalMap](const json& json_object, const string& name) {
-        Block* value1;
+        Block* value1 = nullptr;
         if (json_object[name]["inputs"].contains("OPERAND")) {
             string value1_name = json_object[name]["inputs"]["OPERAND"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
-        } else {
-            cerr << "Error: Operator NOT is missing input!" << endl;
         }
         return make_unique<Not>(value1);
     };
