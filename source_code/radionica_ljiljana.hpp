@@ -1108,22 +1108,12 @@ int check_task_4_2_with_motors(Robot& robot, string motor_noge, string motor_ruk
     
     // 3. Brzina noge (20%): max 10 bodova
     if (D_speed_correct){
-        //cout << "D_speed_correct: true" << endl;
-        if (D_speed_set_before_start){
-            score += 10;  // Puni bodovi - namješteno prije početka
-        } else {
-            score += 5;   // Namješteno, ali ne prije početka
-        }
+        score += 10;
     }
     
     // 4. Brzina ruke (100%): max 10 bodova
     if (F_speed_correct){
-        //cout << "F_speed_correct: true" << endl;
-        if (F_speed_set_before_start){
-            score += 10;  // Puni bodovi - namješteno prije početka
-        } else {
-            score += 5;   // Namješteno, ali ne prije početka
-        }
+        score += 10;
     }
 
     // 5. Istovremeni početak: 50 bodova
@@ -1132,6 +1122,10 @@ int check_task_4_2_with_motors(Robot& robot, string motor_noge, string motor_ruk
         if (fabs(D_start_time - F_start_time) <= TIME_TOLERANCE){
             score += 50;
         }
+    }
+
+    if ((D_speed_correct && !D_speed_set_before_start) || (F_speed_correct && !F_speed_set_before_start)){
+        score -= 10;
     }
     
     // Ograniči na max 100

@@ -146,14 +146,15 @@ def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, outp
         if score == -1:
             print(f"\n\n{'='*60}")
             print(f"KRITINA GREKA!")
-            print(f"Študent folder: {student_code}")
+            print(f"tudent folder: {student_code}")
             print(f"Zadatak: {task}")
             print(f"File: {fname}")
             print(f"Score: {score}")
             print(f"STDOUT: {repr(result.stdout)}")
             print(f"STDERR: {repr(result.stderr)}")
             print(f"{'='*60}\n")
-            sys.exit(1)
+            if not result.stderr.startswith("Bad function call for opcode: "):
+                sys.exit(1)
         
         print(f"score={score}")
         
