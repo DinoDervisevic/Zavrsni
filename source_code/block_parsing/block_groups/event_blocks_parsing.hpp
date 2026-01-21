@@ -11,6 +11,7 @@
 #include "../../external/json.hpp"
 #include "../../blocks/event_blocks/event_blocks_include.hpp"
 #include "../../blocks/blank_blocks/blank_blocks_include.hpp"
+#include "../string_conversion.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -54,7 +55,7 @@ FunctionMap createEventFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
                 distance = new BlankBlockDouble(0.0);
             }
-            else distance = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            else distance = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string from_name = json_object[name]["inputs"]["VALUE"][1];
             distance = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();
@@ -97,7 +98,7 @@ FunctionMap createEventFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
                 value = new BlankBlockDouble(0.0);
             }
-            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            else value = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string from_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();

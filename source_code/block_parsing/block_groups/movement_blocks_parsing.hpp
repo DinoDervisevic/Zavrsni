@@ -11,6 +11,7 @@
 #include "../../external/json.hpp"
 #include "../../blocks/movement_blocks/movement_blocks_include.hpp"
 #include "../../blocks/blank_blocks/blank_blocks_include.hpp"
+#include "../string_conversion.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -45,7 +46,7 @@ FunctionMap createMovementFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
                 value = new BlankBlockDouble(0.0);
             }
-            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            else value = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string from_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();
@@ -82,7 +83,7 @@ FunctionMap createMovementFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
                 value = new BlankBlockDouble(0.0);
             }
-            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            else value = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string from_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();
@@ -108,7 +109,7 @@ FunctionMap createMovementFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["SPEED"][1][1].get<string>() == ""){
                 speed = new BlankBlockDouble(0.0);
             }
-            else speed = new BlankBlockDouble(stod(json_object[name]["inputs"]["SPEED"][1][1].get<string>()));
+            else speed = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["SPEED"][1][1].get<string>()));
         } else {
             string speed_name = json_object[name]["inputs"]["SPEED"][1];
             speed = globalMap[json_object[speed_name]["opcode"]] (json_object, speed_name).release();
@@ -125,15 +126,10 @@ FunctionMap createMovementFunctionMap(FunctionMap& globalMap) {
     functionMap["flippermove_setDistance"] = [&globalMap](const json& json_object, const string& name) {
         string unit = json_object[name]["fields"]["UNIT"][0];
         Block* distance;
-        if(json_object[name]["inputs"]["DISTANCE"][0] == 1){
-            if (json_object[name]["inputs"]["DISTANCE"][1][1].get<string>() == ""){
-                distance = new BlankBlockDouble(0.0);
-            }
-            else distance = new BlankBlockDouble(stod(json_object[name]["inputs"]["DISTANCE"][1][1].get<string>()));
-        } else {
-            string distance_name = json_object[name]["inputs"]["DISTANCE"][1];
-            distance = globalMap[json_object[distance_name]["opcode"]](json_object, distance_name).release();
-        }
+        
+        string distance_name = json_object[name]["inputs"]["DISTANCE"][1];
+        distance = globalMap[json_object[distance_name]["opcode"]](json_object, distance_name).release();
+
         return make_unique<SetMotorRotation>(unit, distance);
     };
 

@@ -10,6 +10,7 @@
 #include "../../blocks/BlockSequence.hpp"
 #include "../../external/json.hpp"
 #include "../../blocks/blank_blocks/blank_blocks_include.hpp"
+#include "../string_conversion.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -191,6 +192,17 @@ FunctionMap createMiscelaniousFunctionMap(FunctionMap& globalMap) {
             }
         }
         return make_unique<BlankBlockInt>(value);
+    };
+
+    functionMap["flippermove_custom-set-move-distance-number"] = [&globalMap](const json& json_object, const string& name) {
+        double value;
+        if (!json_object[name]["fields"]["field_flippermove_custom-set-move-distance-number"][0].is_string()) {
+            value = json_object[name]["fields"]["field_flippermove_custom-set-move-distance-number"][0].get<double>();
+        }
+        else {
+            value = stod(json_object[name]["fields"]["field_flippermove_custom-set-move-distance-number"][0].get<string>());
+        }
+        return make_unique<BlankBlockDouble>(value);
     };
 
     return functionMap;

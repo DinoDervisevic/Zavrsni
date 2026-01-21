@@ -11,6 +11,7 @@
 #include "../../external/json.hpp"
 #include "../../blocks/motor_blocks/motor_blocks_include.hpp"
 #include "../../blocks/blank_blocks/blank_blocks_include.hpp"
+#include "../string_conversion.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -47,7 +48,7 @@ FunctionMap createMotorFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
                 value = new BlankBlockDouble(0.0);
             }
-            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            else value = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string from_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();
@@ -104,7 +105,7 @@ FunctionMap createMotorFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["SPEED"][1][1].get<string>() == ""){
                 speed = new BlankBlockDouble(0.0);
             }
-            else speed = new BlankBlockDouble(stod(json_object[name]["inputs"]["SPEED"][1][1].get<string>()));
+            else speed = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["SPEED"][1][1].get<string>()));
         } else {
             string speed_name = json_object[name]["inputs"]["SPEED"][1];
             speed = globalMap[json_object[speed_name]["opcode"]](json_object, speed_name).release();

@@ -72,7 +72,7 @@ public:
         return time_left;
     }
 
-    void set_time_left(int amount){
+    void set_time_left(double amount){
         time_left = amount;
     }
 

@@ -43,6 +43,7 @@ void run_interference(Robot& robot, int taskId){
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId) {
     bool done = false;
     while (true){
+        //cout << "Simulation time: " << robot.time_since_start << "s" << endl;
         if (taskId != 6){
             if (robot.time_since_start >= 30.0){
                 break;
@@ -59,7 +60,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
         
         for(auto sequence : sequences){
             sequence->execute(robot);
-            if(sequence->get_current_block() != nullptr){
+             if(sequence->get_current_block() != nullptr){
                 done = false;
             }
             else {
@@ -168,7 +169,11 @@ int main(int argc, char* argv[]) {
 
     int taskId = std::stoi(argv[1]);
     
-    start_simulation(robot, sequences, taskId);
+    try {
+        start_simulation(robot, sequences, taskId);
+    } catch (const ExitProgramException& e) {
+        cerr << "Program exited via ControlStop" << endl;
+    }
     for (auto& sequence : sequences) {
         delete sequence;
     }

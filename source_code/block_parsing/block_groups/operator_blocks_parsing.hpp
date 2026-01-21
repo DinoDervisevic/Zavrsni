@@ -11,6 +11,7 @@
 #include "../../external/json.hpp"
 #include "../../blocks/operator_blocks/operator_blocks_include.hpp"
 #include "../../blocks/blank_blocks/blank_blocks_include.hpp"
+#include "../string_conversion.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -25,14 +26,15 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* from;
         Block* to;
         if(json_object[name]["inputs"]["FROM"][0] == 1){
-            from = new BlankBlockInt(stoi(json_object[name]["inputs"]["FROM"][1][1].get<string>()));
+            from = new BlankBlockInt(parseInt(json_object[name]["inputs"]["FROM"][1][1].get<string>()));
         } else {
             string from_name = json_object[name]["inputs"]["FROM"][1];
             from = globalMap[json_object[from_name]["opcode"]](json_object, from_name).release();
         }
 
         if(json_object[name]["inputs"]["TO"][0] == 1){
-            to = new BlankBlockInt(stoi(json_object[name]["inputs"]["TO"][1][1].get<string>()));
+            
+            to = new BlankBlockInt(parseInt(json_object[name]["inputs"]["TO"][1][1].get<string>()));
         } else {
             string to_name = json_object[name]["inputs"]["TO"][1];
             to = globalMap[json_object[to_name]["opcode"]](json_object, to_name).release();
@@ -44,14 +46,16 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* value1;
         Block* value2;
         if(json_object[name]["inputs"]["NUM1"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
+            
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["NUM1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
         }
 
         if(json_object[name]["inputs"]["NUM2"][0] == 1){
-            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
+            
+            value2 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["NUM2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
@@ -63,14 +67,16 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* value1;
         Block* value2;
         if(json_object[name]["inputs"]["NUM1"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
+            
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["NUM1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
         }
 
         if(json_object[name]["inputs"]["NUM2"][0] == 1){
-            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
+            
+            value2 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["NUM2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
@@ -82,14 +88,16 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* value1;
         Block* value2;
         if(json_object[name]["inputs"]["NUM1"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
+            
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["NUM1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
         }
 
         if(json_object[name]["inputs"]["NUM2"][0] == 1){
-            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
+           
+            value2 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["NUM2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
@@ -101,14 +109,16 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* value1;
         Block* value2;
         if(json_object[name]["inputs"]["NUM1"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
+            
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["NUM1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
         }
 
         if(json_object[name]["inputs"]["NUM2"][0] == 1){
-            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
+            
+            value2 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["NUM2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
@@ -120,14 +130,16 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* value1;
         Block* value2;
         if(json_object[name]["inputs"]["OPERAND1"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND1"][1][1].get<string>()));
+            
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["OPERAND1"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
         }
 
         if(json_object[name]["inputs"]["OPERAND2"][0] == 1){
-            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND2"][1][1].get<string>()));
+            
+            value2 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["OPERAND2"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
@@ -139,14 +151,16 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* value1;
         Block* value2;
         if(json_object[name]["inputs"]["OPERAND1"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND1"][1][1].get<string>()));
+            
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["OPERAND1"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
         }
 
         if(json_object[name]["inputs"]["OPERAND2"][0] == 1){
-            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND2"][1][1].get<string>()));
+            
+            value2 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["OPERAND2"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
@@ -158,14 +172,14 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* value1;
         Block* value2;
         if(json_object[name]["inputs"]["OPERAND1"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND1"][1][1].get<string>()));
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["OPERAND1"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["OPERAND1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
         }
 
         if(json_object[name]["inputs"]["OPERAND2"][0] == 1){
-            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["OPERAND2"][1][1].get<string>()));
+            value2 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["OPERAND2"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["OPERAND2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
@@ -217,21 +231,21 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* value2;
         Block* value3;
         if(json_object[name]["inputs"]["VALUE"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["VALUE"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
         }
 
         if(json_object[name]["inputs"]["LOW"][0] == 1){
-            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["LOW"][1][1].get<string>()));
+            value2 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["LOW"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["LOW"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
         }
 
         if(json_object[name]["inputs"]["HIGH"][0] == 1){
-            value3 = new BlankBlockDouble(stod(json_object[name]["inputs"]["HIGH"][1][1].get<string>()));
+            value3 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["HIGH"][1][1].get<string>()));
         } else {
             string value3_name = json_object[name]["inputs"]["HIGH"][1];
             value3 = globalMap[json_object[value3_name]["opcode"]](json_object, value3_name).release();
@@ -269,7 +283,7 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         }
 
         if(json_object[name]["inputs"]["LETTER"][0] == 1){
-            value1 = new BlankBlockInt(stoi(json_object[name]["inputs"]["LETTER"][1][1].get<string>()));
+            value1 = new BlankBlockInt(parseInt(json_object[name]["inputs"]["LETTER"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["LETTER"][1];
             value1 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
@@ -311,14 +325,14 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
         Block* value1;
         Block* value2;
         if(json_object[name]["inputs"]["NUM1"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM1"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["NUM1"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
         }
 
         if(json_object[name]["inputs"]["NUM2"][0] == 1){
-            value2 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
+            value2 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM2"][1][1].get<string>()));
         } else {
             string value2_name = json_object[name]["inputs"]["NUM2"][1];
             value2 = globalMap[json_object[value2_name]["opcode"]](json_object, value2_name).release();
@@ -329,7 +343,7 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
     functionMap["operator_round"] = [&globalMap](const json& json_object, const string& name) {
         Block* value1;
         if(json_object[name]["inputs"]["NUM"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM"][1][1].get<string>()));
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["NUM"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
@@ -340,7 +354,7 @@ FunctionMap createOperatorFunctionMap(FunctionMap& globalMap) {
     functionMap["operator_mathop"] = [&globalMap](const json& json_object, const string& name) {
         Block* value1;
         if(json_object[name]["inputs"]["NUM"][0] == 1){
-            value1 = new BlankBlockDouble(stod(json_object[name]["inputs"]["NUM"][1][1].get<string>()));
+            value1 = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["NUM"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["NUM"][1];
             value1 = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();

@@ -143,7 +143,11 @@ int main(int argc, char* argv[]) {
 
     int taskId = std::stoi(argv[1]);
     
-    start_simulation(robot, sequences, taskId);
+    try {
+        start_simulation(robot, sequences, taskId);
+    } catch (const ExitProgramException& e) {
+        cerr << "Program exited via ControlStop" << endl;
+    }
     for (auto& sequence : sequences) {
         delete sequence;
     }

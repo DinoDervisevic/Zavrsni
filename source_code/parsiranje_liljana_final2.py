@@ -153,7 +153,7 @@ def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, outp
             print(f"STDOUT: {repr(result.stdout)}")
             print(f"STDERR: {repr(result.stderr)}")
             print(f"{'='*60}\n")
-            if not result.stderr.startswith("Bad function call for opcode: "):
+            if not result.stderr.startswith("Bad function call for opcode: ") and not result.stderr.startswith("Program exited via ControlStop"):
                 sys.exit(1)
         
         print(f"score={score}")
@@ -179,6 +179,7 @@ def normalize_code(code):
     elif len(normalized) > 1 and normalized[0] == '1' and not normalized[1].isdigit():
         # Makni '1' samo ako sljedeći znak nije broj (da ne maknemo iz "123ABC")
         normalized = normalized[1:].strip()
+    normalized = normalized.replace("_", "").replace(" ", "").replace(",", "").replace(".", "")
     
     return normalized.upper()
 

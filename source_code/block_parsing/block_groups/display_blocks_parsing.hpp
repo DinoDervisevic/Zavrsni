@@ -11,6 +11,7 @@
 #include "../../external/json.hpp"
 #include "../../blocks/display_blocks/display_blocks_include.hpp"
 #include "../../blocks/blank_blocks/blank_blocks_include.hpp"
+#include "../string_conversion.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -28,7 +29,7 @@ FunctionMap createDisplayFunctionMap(FunctionMap& globalMap) {
         if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
             time = 0.0;
         }
-        else time = stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
+        else time = parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>());
         return make_unique<DisplayImageForTime>(image, time);
     };
 
@@ -59,7 +60,7 @@ FunctionMap createDisplayFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>() == ""){
                 brightness = new BlankBlockDouble(0.0);
             }
-            else brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
+            else brightness = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
         } else {
             string brightness_name = json_object[name]["inputs"]["BRIGHTNESS"][1];
             brightness = globalMap[json_object[brightness_name]["opcode"]](json_object, brightness_name).release();
@@ -78,7 +79,7 @@ FunctionMap createDisplayFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>() == ""){
                 brightness = new BlankBlockDouble(0.0);
             }
-            else brightness = new BlankBlockDouble(stod(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
+            else brightness = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["BRIGHTNESS"][1][1].get<string>()));
         } else {
             string distance_name = json_object[name]["inputs"]["BRIGHTNESS"][1];
             brightness = globalMap[json_object[distance_name]["opcode"]](json_object, distance_name).release();

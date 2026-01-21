@@ -11,6 +11,7 @@
 #include "../../external/json.hpp"
 #include "../../blocks/sound_blocks/sound_blocks_include.hpp"
 #include "../../blocks/blank_blocks/blank_blocks_include.hpp"
+#include "../string_conversion.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -53,7 +54,7 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["DURATION"][1][1].get<string>() == ""){
                 time = new BlankBlockDouble(0.0);
             }
-            else time = new BlankBlockDouble(stod(json_object[name]["inputs"]["DURATION"][1][1].get<string>()));
+            else time = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["DURATION"][1][1].get<string>()));
         } else {
             string time_name = json_object[name]["inputs"]["DURATION"][1];
             time = globalMap[json_object[time_name]["opcode"]](json_object, time_name).release();
@@ -80,7 +81,7 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
                 value = new BlankBlockDouble(0.0);
             }
-            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            else value = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string value_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[value_name]["opcode"]](json_object, value_name).release();
@@ -95,7 +96,7 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
                 value = new BlankBlockDouble(0.0);
             }
-            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            else value = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string value_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[value_name]["opcode"]](json_object, value_name).release();
@@ -113,7 +114,7 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VOLUME"][1][1].get<string>() == ""){
                 volume = new BlankBlockDouble(0.0);
             }
-            else volume = new BlankBlockDouble(stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
+            else volume = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
         } else {
             string volume_name = json_object[name]["inputs"]["VOLUME"][1];
             volume = globalMap[json_object[volume_name]["opcode"]](json_object, volume_name).release();
@@ -127,7 +128,7 @@ FunctionMap createSoundFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VOLUME"][1][1].get<string>() == ""){
                 volume = new BlankBlockDouble(0.0);
             }
-            else volume = new BlankBlockDouble(stod(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
+            else volume = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VOLUME"][1][1].get<string>()));
         } else {
             string volume_name = json_object[name]["inputs"]["VOLUME"][1];
             volume = globalMap[json_object[volume_name]["opcode"]](json_object, volume_name).release();

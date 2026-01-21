@@ -10,8 +10,12 @@ public:
     StopOtherStacks() : Block("Control", "StopOtherStacks") {}
 
     double execute(Robot& robot) override {
+        //cout << "Executing StopOtherStacks at time " << robot.time_since_start << "s" << endl;
         for (auto& stack : robot.block_sequences) {
-            if(stack->get_current_block() != nullptr && stack->get_current_block() != this) stack->reset(robot);
+            if(stack->get_current_block() != nullptr && stack->get_current_block() != this){ 
+                stack->reset(robot);
+                stack->set_time_left(robot.discrete_time_interval);
+            }
         }
 
         robot.reset();

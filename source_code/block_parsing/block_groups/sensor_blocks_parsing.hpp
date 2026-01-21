@@ -11,6 +11,7 @@
 #include "../../external/json.hpp"
 #include "../../blocks/sensor_blocks/sensor_blocks_include.hpp"
 #include "../../blocks/blank_blocks/blank_blocks_include.hpp"
+#include "../string_conversion.hpp"
 
 using namespace std;
 using json = nlohmann::json;
@@ -44,7 +45,7 @@ FunctionMap createSensorFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
                 value = new BlankBlockDouble(0.0);
             }
-            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            else value = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string value1_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[value1_name]["opcode"]](json_object, value1_name).release();
@@ -89,7 +90,7 @@ FunctionMap createSensorFunctionMap(FunctionMap& globalMap) {
             if (json_object[name]["inputs"]["VALUE"][1][1].get<string>() == ""){
                 value = new BlankBlockDouble(0.0);
             }
-            else value = new BlankBlockDouble(stod(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
+            else value = new BlankBlockDouble(parseDouble(json_object[name]["inputs"]["VALUE"][1][1].get<string>()));
         } else {
             string value_name = json_object[name]["inputs"]["VALUE"][1];
             value = globalMap[json_object[value_name]["opcode"]](json_object, value_name).release();

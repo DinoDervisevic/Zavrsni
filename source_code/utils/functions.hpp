@@ -45,7 +45,7 @@ double convert_to_seconds_movement(Robot& robot, string unit, double value) {
         // Trokutasti profil (nikad ne dosegne max brzinu)
         t_total = 2 * sqrt(value / robot.motion_vector.acceleration);
     }
-    cout << "Time: " << t_total << endl;
+    //cout << "Time: " << t_total << endl;
     return t_total;
 }  
 

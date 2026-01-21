@@ -478,6 +478,8 @@ int check_task_3_2_with_motors(Robot& robot, string motor_noge, string motor_ruk
         float value_D = robot.robot_states[i].motor_states_value.at(motor_noge);
         float value_F = robot.robot_states[i].motor_states_value.at(motor_ruke);
         
+        //cout << "Time: " << time << " | D pos: " << pos_D << " | D speed: " << speed_D << " | D value: " << value_D << endl;
+
         // --- Praćenje brzine noge (30%) ---
         if (speed_D == 30 && !D_speed_correct){
             D_speed_correct = true;
