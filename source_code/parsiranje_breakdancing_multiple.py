@@ -15,7 +15,7 @@ try:
 except Exception:
     pass
 
-exe_path = os.path.join(os.path.dirname(__file__), "simulacija_ljiljana.exe")
+exe_path = os.path.join(os.path.dirname(__file__), "simulacija_breakdancing.exe")
 
 # Odaberi glavni folder
 root_folder = filedialog.askdirectory(title="Odaberi glavni folder s podacima (koji sadrži kodove i metapodaci folder)")
@@ -153,7 +153,7 @@ def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, outp
             print(f"STDOUT: {repr(result.stdout)}")
             print(f"STDERR: {repr(result.stderr)}")
             print(f"{'='*60}\n")
-            if not result.stderr.startswith("Bad function call for opcode: ") and not result.stderr.startswith("Program exited via ControlStop"):
+            if not result.stderr.startswith("Bad function call for opcode: ") and not result.stderr.startswith("Program exited via ControlStop") and not fname.endswith(".llsp"):
                 sys.exit(1)
         
         print(f"score={score}")
@@ -179,7 +179,7 @@ def normalize_code(code):
     elif len(normalized) > 1 and normalized[0] == '1' and not normalized[1].isdigit():
         # Makni '1' samo ako sljedeći znak nije broj (da ne maknemo iz "123ABC")
         normalized = normalized[1:].strip()
-    normalized = normalized.replace("_", "").replace(" ", "").replace(",", "").replace(".", "")
+    normalized = normalized.replace("_", "").replace(" ", "").replace(",", "").replace(".", "").replace("-", "")
     
     return normalized.upper()
 

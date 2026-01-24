@@ -15,7 +15,7 @@ try:
 except Exception:
     pass
 
-exe_path = os.path.join(os.path.dirname(__file__), "simulacija_ljiljana.exe")
+exe_path = os.path.join(os.path.dirname(__file__), "simulacija_breakdancing.exe")
 
 folder_path = filedialog.askdirectory(title="Odaberi glavni folder s podacima")
 if not folder_path:
