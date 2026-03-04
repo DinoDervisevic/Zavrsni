@@ -1,0 +1,15 @@
+{
+  "objects": [
+    {
+      "id": "robot_0",
+      "type": "robot",
+      "x": -15.5,
+      "y": -5.375,
+      "angle": 0.0,
+      "metadata": {
+        "name": "Robot",
+        "description": ""
+      }
+    }
+  ]
+}

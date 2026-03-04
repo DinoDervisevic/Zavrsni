@@ -1,0 +1,32 @@
+{
+  "objects": [
+    {
+      "id": "obstacle_1",
+      "type": "obstacle",
+      "x": 3.75,
+      "y": -14.8125,
+      "width": 99.0,
+      "length": 66.25,
+      "angle": 0,
+      "metadata": {
+        "name": "Prepreka",
+        "description": ""
+      },
+      "points": 0
+    },
+    {
+      "id": "checkpoint_1",
+      "type": "checkpoint",
+      "x1": -53.875,
+      "y1": -38.25,
+      "x2": -56.375,
+      "y2": -4.125,
+      "metadata": {
+        "name": "Checkpoint",
+        "description": ""
+      },
+      "points": 5,
+      "direction_requirement": null
+    }
+  ]
+}

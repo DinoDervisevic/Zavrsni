@@ -13,6 +13,7 @@
 #include "blocks_include.hpp"
 #include "motion_simulation.hpp"
 #include "radionica.hpp"
+#include "json_export.hpp"
 
 using namespace std;
 
@@ -24,7 +25,7 @@ using FunctionMap = map<string, function<unique_ptr<Block>(json, string)>>;
 void print_robot_state(Robot& robot) {
     cout << robot.time_since_start << endl;
     robot.print_position();
-    robot.print_display();
+    //robot.print_display();
     //robot.print_sound();
 }
 
@@ -152,6 +153,11 @@ int main(int argc, char* argv[]) {
         delete sequence;
     }
     bool result = check_if_correct(robot, taskId);
+
+    // Exportaj u JSON
+    vector<Obstacle> obstacles;  // Za sada prazno — kasnije učitaj iz task.json
+    vector<Wall> walls;           // Za sada prazno — kasnije učitaj iz task.json
+    export_simulation_to_json(robot.robot_states, obstacles, walls, "simulation_result.json");
 
     cout << result << endl;
 

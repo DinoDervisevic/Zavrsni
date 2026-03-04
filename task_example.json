@@ -1,0 +1,68 @@
+{
+  "obstacles": [
+    {
+      "id": "obs_1",
+      "type": "obstacle",
+      "x": 50,
+      "y": 50,
+      "width": 20,
+      "length": 30,
+      "angle": 0,
+      "metadata": {
+        "name": "Prepreka - stol",
+        "description": "Robot mora obići oko ovoga"
+      }
+    },
+    {
+      "id": "obs_2",
+      "type": "obstacle",
+      "x": -40,
+      "y": 100,
+      "width": 15,
+      "length": 15,
+      "angle": 45,
+      "metadata": {
+        "name": "Prepreka - kut",
+        "description": ""
+      }
+    }
+  ],
+  "walls": [
+    {
+      "id": "wall_1",
+      "type": "wall",
+      "x1": 0,
+      "y1": 0,
+      "x2": 200,
+      "y2": 0,
+      "metadata": {
+        "name": "Donji zid",
+        "description": ""
+      }
+    },
+    {
+      "id": "wall_2",
+      "type": "wall",
+      "x1": 0,
+      "y1": 0,
+      "x2": 0,
+      "y2": 150,
+      "metadata": {
+        "name": "Lijevi zid",
+        "description": ""
+      }
+    },
+    {
+      "id": "wall_3",
+      "type": "wall",
+      "x1": 200,
+      "y1": 0,
+      "x2": 200,
+      "y2": 150,
+      "metadata": {
+        "name": "Desni zid",
+        "description": ""
+      }
+    }
+  ]
+}
