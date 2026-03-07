@@ -90,7 +90,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
     }
 }
 
-int check_if_correct(Robot& robot, int taskId){
+TaskResult check_if_correct(Robot& robot, int taskId){
     switch (taskId) {
         case 1: return check_task_1_2_2(robot);
         case 2: return check_task_2(robot);
@@ -98,7 +98,7 @@ int check_if_correct(Robot& robot, int taskId){
         case 4: return check_task_4_2_2(robot);
         case 5: return check_task_5_2(robot);
         case 6: return check_task_6_2_2(robot);
-        default: return 0;
+        default: return TaskResult(0, {false, false, false});
     }
 }
 
@@ -177,9 +177,9 @@ int main(int argc, char* argv[]) {
     for (auto& sequence : sequences) {
         delete sequence;
     }
-    int result = check_if_correct(robot, taskId);
+    TaskResult result = check_if_correct(robot, taskId);
 
-    cout << result << endl;
+    cout << result.score << endl;
 
     return 0;
 }

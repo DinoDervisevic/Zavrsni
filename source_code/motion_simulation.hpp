@@ -101,7 +101,7 @@ void one_motor_two_wheel_robot(Robot& robot){
 
 void two_motor_two_wheel_robot(Robot& robot) {
     // Pretpostavljamo: A = lijevi kotač, B = desni kotač
-    double left_wheel_speed = robot.calculate_wheel_speed("A");
+    double left_wheel_speed = -robot.calculate_wheel_speed("A");
     double right_wheel_speed = robot.calculate_wheel_speed("B");
 
     // Linearna brzina je prosjek brzina kotača

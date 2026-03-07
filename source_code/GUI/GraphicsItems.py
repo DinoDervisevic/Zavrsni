@@ -103,6 +103,7 @@ class TaskScene(QGraphicsScene):
         self.task_objects: List[SceneObject] = []
         self.robot_item: Optional[RobotGraphicsItem] = None
         self.robot: Optional[RobotObject] = None  # Spremi robot podatke
+        self.robot_static_item = None  # Static robot item iz render_task_objects za kasnije brisanje
         self.grid_enabled = True
         self.object_bounds: Dict[str, Tuple] = {}  # Čuvaj bounds svakog objekta za click detection
         
@@ -114,6 +115,10 @@ class TaskScene(QGraphicsScene):
     def render_task_objects(self, objects: List[SceneObject], robot: Optional[RobotObject] = None):
         """Crtaj sve objekte iz task-a"""
         self.clear()
+        # Reset referenci jer clear() briše sve item-e sa scene
+        self.robot_item = None
+        self.robot_static_item = None
+        
         self.task_objects = objects
         self.robot = robot
         
@@ -212,6 +217,7 @@ class TaskScene(QGraphicsScene):
             )
             rect_item.setPos(obj.x * SCALE, obj.y * SCALE)
             rect_item.setRotation(obj.angle)
+            self.robot_static_item = rect_item  # Spremi za kasnije brisanje
             
             # Crvena linija za smjer (naprijed) — child of rect, unutar robota
             direction_pen = QPen(QColor(255, 0, 0), 2)
@@ -220,9 +226,19 @@ class TaskScene(QGraphicsScene):
     
     def add_robot(self, x: float, y: float, angle: float):
         """Dodaj robot na scenu"""
+        # Obriši postojećeg animiranog robota ako postoji
+        if self.robot_item:
+            self.removeItem(self.robot_item)
+            self.robot_item = None
         self.robot_item = RobotGraphicsItem(x, y, angle)
         self.addItem(self.robot_item)
-        self.robot_item.setZValue(1000)  # Postavi robota iznad svih ostalih objekata
+        self.robot_item.setZValue(1000)
+    
+    def remove_static_robot(self):
+        """Obriši statički robot kreirani iz render_task_objects"""
+        if self.robot_static_item:
+            self.removeItem(self.robot_static_item)
+            self.robot_static_item = None
     
     def update_robot(self, x: float, y: float, angle: float):
         """Ažuriraj robota"""

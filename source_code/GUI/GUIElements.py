@@ -100,14 +100,6 @@ class ViewerTab(QWidget):
                 self.task_data.load_from_file(path)
                 self.scene.load_task(self.task_data.objects, self.task_data.robot)
                 
-                # Ako postoji robot u task-u, prikaži ga na sceni
-                if self.task_data.robot:
-                    self.scene.add_robot(
-                        self.task_data.robot.x,
-                        self.task_data.robot.y,
-                        self.task_data.robot.angle
-                    )
-                
                 QMessageBox.information(self, "Uspješno", f"Task učitan: {path}")
             except Exception as e:
                 QMessageBox.critical(self, "Greška", f"Greška pri učitavanju task-a: {e}")
@@ -138,6 +130,8 @@ class ViewerTab(QWidget):
                         if self.sim_data.robot_states:
                             start_x, start_y, start_angle = self.sim_data.get_robot_state_at_time(0)
                     
+                    # Obriši statički robot prije dodavanja animiranog
+                    self.scene.remove_static_robot()
                     self.scene.add_robot(start_x, start_y, start_angle)
                     
                     QMessageBox.information(self, "Uspješno", f"Simulacija učitana: {path}\nStanja: {len(self.sim_data.robot_states)}")
@@ -150,12 +144,6 @@ class ViewerTab(QWidget):
         """Učitaj task"""
         self.task_data.load_from_file(task_path)
         self.scene.load_task(self.task_data.objects, self.task_data.robot)
-        if self.task_data.robot:
-            self.scene.add_robot(
-                self.task_data.robot.x,
-                self.task_data.robot.y,
-                self.task_data.robot.angle
-            )
     
     def load_simulation(self, sim_path: str):
         """Učitaj rezultate simulacije"""
@@ -174,18 +162,15 @@ class ViewerTab(QWidget):
             self.scene.add_robot(start_x, start_y, start_angle)
     
     def _transform_sim_to_world(self, sim_x: float, sim_y: float, sim_angle: float):
-        """Transformiraj simulacijske koordinate (od 0,0,0) u world koordinate prema task robotu.
+        """Transformiraj simulacijske koordinate (od 0,0,0) u world koordinate.
         
         GUI konvencija: 0° = robot gleda gore (-y na ekranu)
         Sim konvencija: 0° = robot gleda desno (+x os)
-        Offset: -90° za pretvorbu GUI kuta u matematički kut za transformaciju
+        Offset -90° se uvijek primjenjuje za pretvorbu kutova.
         """
-        if not self.task_data.robot:
-            return sim_x, sim_y, sim_angle
-        
-        ox = self.task_data.robot.x
-        oy = self.task_data.robot.y
-        oa = self.task_data.robot.angle
+        ox = self.task_data.robot.x if self.task_data.robot else 0.0
+        oy = self.task_data.robot.y if self.task_data.robot else 0.0
+        oa = self.task_data.robot.angle if self.task_data.robot else 0.0
         
         # GUI 0° = gore, Sim 0° = desno, razlika je 90°
         angle_rad = math.radians(oa - 90)
