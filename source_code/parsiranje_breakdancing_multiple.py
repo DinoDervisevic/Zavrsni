@@ -164,6 +164,181 @@ def evaluate_all_snapshots(task, start, end, all_snapshots, llsp_file_path, outp
     
     return maxi_score, final_file
 
+
+# Imena flagova po zadatku (odgovaraju criteria_met[] redom iz C++)
+FLAG_NAMES = {
+    1: [
+        "Correct motor rotation direction",
+        "The motor rotates one full rotation",
+        "Correct port",
+    ],
+    2: [
+        "Starts ONLY one motor",
+        "Starts two motors simultaneously",
+        "Starts one motor after the other",
+        "Motor port correctly set (1)",
+        "Motor port correctly set (2)",
+    ],
+    3: [
+        "Sets the speed before using the motor (1)",
+        "Sets the speed before using the motor (2)",
+        "Speed 30% correctly set",
+        "Speed 50% correctly set",
+        "Motor command correctly set to 375 degrees",
+        "Motor command correctly set to 5 s",
+        "Motor ports correctly set",
+    ],
+    4: [
+        "Sets the speed before using the motor (1)",
+        "Sets the speed before using the motor (2)",
+        "Speed 20% correctly set",
+        "Speed 100% correctly set",
+        "Motor command correctly set to 3 rotations",
+        "Motor command correctly set to 360 degrees",
+        "Motor port correctly set (1)",
+        "Motor port correctly set (2)",
+        "Starts motors simultaneously",
+    ],
+    5: [
+        "Repeat until command correctly transcribed",
+        "Distance sensor command correct",
+        "Distance correctly set",
+        "Speed set to the correct value",
+        "Number of rotations set to the correct value",
+        "Ports correctly entered in the speed-setting command",
+        "Ports correctly entered in the motor start command",
+    ],
+    6: [
+        "Program detects a hand",
+        "Program detects the hand every time, not only once",
+        "Distance correctly set to 5 cm",
+        "Motors for arms and legs started",
+        "Ultrasonic sensor port correctly set",
+        "Motor command correctly set to 180 seconds",
+        "Motor port correctly set (1)",
+        "Motor port correctly set (2)",
+    ],
+}
+
+
+def parse_simulation_output(stdout_text):
+    """Parsira C++ output: linija 1 = score, ostale linije = true/false flagovi"""
+    lines = stdout_text.strip().splitlines()
+    if not lines:
+        return -1, []
+    try:
+        score = int(lines[0].strip())
+    except ValueError:
+        return -1, []
+    flags = []
+    for line in lines[1:]:
+        val = line.strip().lower()
+        if val == "true":
+            flags.append(True)
+        elif val == "false":
+            flags.append(False)
+    return score, flags
+
+
+def run_snapshot_for_task(task_id, llsp_file_path, fname, output_dir, json_file_path, student_code):
+    """Pokreni simulaciju jednog snapshota za jedan zadatak. Vrati (score, flags_list)."""
+    clean_dir(output_dir)
+    try:
+        extract_sb3(llsp_file_path, fname, output_dir)
+        extract_sb3(output_dir, "scratch.sb3", output_dir)
+    except Exception as e:
+        return -1, []
+
+    try:
+        result = subprocess.run(
+            [exe_path, str(task_id), json_file_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            cwd=os.path.dirname(exe_path),
+            env={**os.environ, "PATH": os.path.dirname(exe_path) + ";" + os.environ["PATH"]},
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        return -1, []
+    except Exception as e:
+        return -1, []
+
+    score, flags = parse_simulation_output(result.stdout)
+
+    if score == -1:
+        if (
+            not result.stderr.startswith("Bad function call for opcode: ")
+            and not result.stderr.startswith("Program exited via ControlStop")
+            and not fname.endswith(".llsp")
+        ):
+            print(f"\n{'='*60}")
+            print(f"KRITICNA GRESKA!")
+            print(f"Student: {student_code}, Zadatak: {task_id}, File: {fname}")
+            print(f"STDOUT: {repr(result.stdout)}")
+            print(f"STDERR: {repr(result.stderr)}")
+            print(f"{'='*60}\n")
+
+    return score, flags
+
+
+def evaluate_last_snapshot_all_tasks(start, end, all_snapshots, llsp_file_path, output_dir, json_file_path, student_code, task_from_log):
+    """
+    Uzmi ZADNJI snapshot u periodu [start, end].
+    Ovisno o task_from_log:
+      - Ako je 1 ili 2: testiraj SVE taskove (1-6)
+      - Ako je 3-6: testiraj samo taskove 3-6 (Task 1 i 2 su trivijalni)
+    Vrati (best_task_id, best_score, best_flags_list, fname) prema najvisem scoreu.
+    Ako nema snapshotova, vrati (0, -1, [], "Nema").
+    """
+    start_dt = datetime.strptime(start, "%Y-%m-%d-%H-%M-%S,%f")
+    end_dt = datetime.strptime(end, "%Y-%m-%d-%H-%M-%S,%f")
+
+    snapshots_in_period = [
+        (ts, fname) for ts, fname in all_snapshots.items()
+        if start_dt <= ts.replace(tzinfo=None) <= end_dt
+    ]
+
+    if not snapshots_in_period:
+        print(f"    -> NEMA SNAPSHOTS-A U OVOM PERIODU [{start} -> {end}]")
+        return 0, -1, [], "Nema"
+
+    # Uzmi ZADNJI snapshot (po timestampu)
+    snapshots_in_period.sort(key=lambda x: x[0])
+    last_ts, last_fname = snapshots_in_period[-1]
+
+    print(f"    Zadnji snapshot: {last_fname[:60]}...")
+    
+    # Odredi koji se taskovi trebaju testirati
+    if task_from_log in [1, 2]:
+        # Ako su na Easy taskovima, testiraj SVE
+        tasks_to_test = range(1, 7)
+        print(f"    Log zadatak: {task_from_log} (Easy) -> testiranje svih taskova (1-6)")
+    elif task_from_log in [3, 4, 5, 6]:
+        # Ako su na teskim taskovima, ignoriraj 1 i 2 (trivijalni)
+        tasks_to_test = range(3, 7)
+        print(f"    Log zadatak: {task_from_log} (Hard) -> testiranje samo taskova 3-6")
+    else:
+        tasks_to_test = range(1, 7)
+
+    best_task_id = 0
+    best_score = -1
+    best_flags = []
+
+    for task_id in tasks_to_test:
+        score, flags = run_snapshot_for_task(
+            task_id, llsp_file_path, last_fname, output_dir, json_file_path, student_code
+        )
+        print(f"      Task {task_id}: score={score}")
+        if score >= best_score:
+            best_score = score
+            best_task_id = task_id
+            best_flags = flags
+
+    print(f"    -> Najbolji: Task {best_task_id} sa {best_score} bodova")
+    return best_task_id, best_score, best_flags, last_fname
+
+
 def normalize_code(code):
     """Normaliziraj kod: makni '1.' ili '1' s početka i pretvori u ALLCAPS"""
     normalized = code.strip()
@@ -222,24 +397,34 @@ def process_single_student(code, student_folder, metapodaci_student_folder):
         return None, "Nema podataka o zadacima"
     
     # Inicijaliziraj rezultate
+    # results[detected_task_id] = (detected_task_id, score, flags_list, fname)
     results = {}
-    for i in range(1, 7):
-        results[i] = (-1, "Nema")
     
-    # Evaluiraj svaki zadatak
-    for task, periods in task_periods.items():
-        if task < 1 or task > 6:
+    # Za svaki period (timeframe), uzmi zadnji snapshot i probaj sve taskove
+    period_index = 0
+    for task_from_log, periods in task_periods.items():
+        if task_from_log < 1 or task_from_log > 6:
             continue
         
         for start, end in periods:
-            maxi_score, final_file = evaluate_all_snapshots(
-                task, start, end, all_snapshots, 
+            period_index += 1
+            print(f"  Period {period_index} (log zadatak {task_from_log}): {start} -> {end}")
+            
+            best_task_id, best_score, best_flags, fname = evaluate_last_snapshot_all_tasks(
+                start, end, all_snapshots,
                 snapshots_dir, output_dir, json_file_path,
-                student_code=normalize_code(code)
+                student_code=normalize_code(code),
+                task_from_log=task_from_log
             )
             
-            if results[task][0] < maxi_score:
-                results[task] = (maxi_score, final_file)
+            if best_score < 0:
+                continue
+            
+            # Ako za ovaj detektirani zadatak vec imamo bolji rezultat, preskocimo
+            if best_task_id in results and results[best_task_id][1] >= best_score:
+                continue
+            
+            results[best_task_id] = (best_task_id, best_score, best_flags, fname)
     
     return results, None
 
@@ -287,22 +472,51 @@ def main():
         # Koristi normalizirani kod za rezultate
         all_results.append((normalize_code(code), results))
         
-        # Ispiši rezultate za ovog studenta
+        # Ispisi rezultate za ovog studenta
         for task_num in range(1, 7):
-            score, filename = results[task_num]
-            print(f"  Zadatak {task_num}: {score} bodova")
+            if task_num in results:
+                _, score, flags, fname = results[task_num]
+                flags_str = ", ".join(
+                    f"{name}={'DA' if val else 'NE'}"
+                    for name, val in zip(FLAG_NAMES.get(task_num, []), flags)
+                )
+                print(f"  Zadatak {task_num}: {score} bodova  [{flags_str}]")
+            else:
+                print(f"  Zadatak {task_num}: nije detektiran")
     
-    # Zapiši rezultate u CSV
+    # Zapisi rezultate u CSV
     output_csv_path = os.path.join(root_folder, "rezultati.csv")
     
+    # Pronadi maksimalan broj flagova za header
+    max_flags = max(len(v) for v in FLAG_NAMES.values())
+    
     with open(output_csv_path, 'w', encoding='utf-8') as f:
+        # Header
+        header_parts = ["student", "zadatak", "score", "file"]
+        for i in range(max_flags):
+            header_parts.append(f"flag_{i+1}_name")
+            header_parts.append(f"flag_{i+1}_value")
+        f.write(";".join(header_parts) + "\n")
+        
         for code, results in all_results:
-            f.write(f"{code}\n")
             for task_num in range(1, 7):
-                score, filename = results[task_num]
-                f.write(f"{task_num}: {score};{filename}\n")
-            f.write("//////////////////////////////////////////////////////\n")
-            f.write("//////////////////////////////////////////////////////\n")
+                if task_num in results:
+                    _, score, flags, fname = results[task_num]
+                    flag_names = FLAG_NAMES.get(task_num, [])
+                    
+                    row_parts = [code, str(task_num), str(score), fname]
+                    for i in range(max_flags):
+                        if i < len(flag_names):
+                            row_parts.append(flag_names[i])
+                            row_parts.append("true" if (i < len(flags) and flags[i]) else "false")
+                        else:
+                            row_parts.append("")
+                            row_parts.append("")
+                    f.write(";".join(row_parts) + "\n")
+                else:
+                    row_parts = [code, str(task_num), "-1", "Nema"]
+                    row_parts.extend([""] * (max_flags * 2))
+                    f.write(";".join(row_parts) + "\n")
     
     print("\n" + "="*60)
     print(f"ZAVRŠENO!")

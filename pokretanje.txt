@@ -1,1 +1,3 @@
 g++ main.cpp -static -static-libgcc -static-libstdc++ -O2 -o simulacija_ljiljana.exe
+
+g++ simulacija_breakdancing.cpp -static -static-libgcc -static-libstdc++ -O2 -o simulacija_breakdancing.exe

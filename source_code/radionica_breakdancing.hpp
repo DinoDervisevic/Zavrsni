@@ -567,7 +567,7 @@ TaskResult check_task_4_2_2(Robot& robot){
 
 void outside_interference_5(Robot& robot){
     if (!robot.distance_states.count("B") || !robot.distance_states["B"]) return;
-    if (robot.time_since_start < 4.1) {
+    if (robot.time_since_start < 19.1) {
         robot.distance_states["B"]->value = 100.0; // daleko
     } else {
         robot.distance_states["B"]->value = 4.0;   // bliže od 5cm

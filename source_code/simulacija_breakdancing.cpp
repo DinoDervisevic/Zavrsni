@@ -180,6 +180,9 @@ int main(int argc, char* argv[]) {
     TaskResult result = check_if_correct(robot, taskId);
 
     cout << result.score << endl;
+    for (bool met : result.criteria_met) {
+        cout << (met ? "true" : "false") << endl;
+    }
 
     return 0;
 }
