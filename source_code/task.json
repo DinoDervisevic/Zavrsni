@@ -1,0 +1,83 @@
+{
+  "objects": [
+    {
+      "id": "obstacle_1",
+      "type": "obstacle",
+      "x": -14.1875,
+      "y": -6.3125,
+      "width": 8.875,
+      "length": 30.875,
+      "angle": 0,
+      "metadata": {
+        "name": "Prepreka",
+        "description": ""
+      },
+      "points": 0
+    },
+    {
+      "id": "checkpoint_1",
+      "type": "checkpoint",
+      "x1": -39.375,
+      "y1": -20.375,
+      "x2": -40.0,
+      "y2": 10.75,
+      "metadata": {
+        "name": "Checkpoint",
+        "description": ""
+      },
+      "points": 5,
+      "direction_requirement": null
+    },
+    {
+      "id": "wall_1",
+      "type": "wall",
+      "x1": -72.875,
+      "y1": -35.75,
+      "x2": 13.5,
+      "y2": -31.0,
+      "metadata": {
+        "name": "Zid",
+        "description": ""
+      },
+      "points": 0
+    },
+    {
+      "id": "wall_2",
+      "type": "wall",
+      "x1": -65.125,
+      "y1": 29.625,
+      "x2": 18.25,
+      "y2": 16.25,
+      "metadata": {
+        "name": "Zid",
+        "description": ""
+      },
+      "points": 0
+    },
+    {
+      "id": "zone_1",
+      "type": "zone",
+      "x": 6.125,
+      "y": -10.5,
+      "radius": 14.512925273699992,
+      "metadata": {
+        "name": "Ciljna zona",
+        "description": ""
+      },
+      "points": 20,
+      "angle_required": 0,
+      "angle_tolerance": 10
+    },
+    {
+      "id": "robot_0",
+      "type": "robot",
+      "x": -61.5,
+      "y": -4.125,
+      "angle": 90.0,
+      "metadata": {
+        "name": "Robot",
+        "description": ""
+      }
+    }
+  ]
+}

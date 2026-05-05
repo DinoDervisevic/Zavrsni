@@ -15,6 +15,7 @@ class BlockSequence;
 struct Robot {
     string name;
     double x, y = 0; // center position in cm
+    double previous_x, previous_y = 0;
     double angle = 0;
     int default_yaw_angle = 0; // when calculating yaw angle, this needs to be subtracted from the current angle
     int pitch_angle = 0;

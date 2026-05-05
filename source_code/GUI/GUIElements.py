@@ -9,10 +9,10 @@ from PyQt5.QtWidgets import (
     QSpinBox, QDoubleSpinBox, QLineEdit, QGroupBox, QGraphicsScene, QGraphicsView,
     QFormLayout, QInputDialog, QMessageBox, QFileDialog
 )
-from GUI.SceneObjects import SceneObject, WallObject, CheckpointObject, ObstacleObject, ZoneObject, RobotObject
-from GUI.DataManagement import TaskData, SimulationData
-from GUI.GraphicsItems import TaskScene, TaskGraphicsView
-from GUI.RobotState import RobotState
+from SceneObjects import SceneObject, WallObject, CheckpointObject, ObstacleObject, ZoneObject, RobotObject
+from DataManagement import TaskData, SimulationData
+from GraphicsItems import TaskScene, TaskGraphicsView
+from RobotState import RobotState
 
 class ViewerTab(QWidget):
     """Tab za prikaz simulacije"""

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget
 import sys
-from GUI.GUIElements import EditorTab, ViewerTab
+from GUIElements import EditorTab, ViewerTab
 
 class MainWindow(QMainWindow):
     """Glavni prozor aplikacije"""

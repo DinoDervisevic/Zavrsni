@@ -1,0 +1,28 @@
+{
+  "objects": [
+    {
+      "id": "wall_1",
+      "type": "wall",
+      "x1": 3.875,
+      "y1": -43.625,
+      "x2": 3.875,
+      "y2": 18.125,
+      "metadata": {
+        "name": "Zid",
+        "description": ""
+      },
+      "points": 0
+    },
+    {
+      "id": "robot_0",
+      "type": "robot",
+      "x": -52.5,
+      "y": -13.375,
+      "angle": 90.0,
+      "metadata": {
+        "name": "Robot",
+        "description": ""
+      }
+    }
+  ]
+}

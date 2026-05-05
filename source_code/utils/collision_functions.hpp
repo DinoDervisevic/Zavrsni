@@ -5,8 +5,15 @@
 #include "obstacle.hpp"
 
 #define M_PI 3.14159265358979323846
+#define K_FACTOR 0.2
 
 struct Point { double x, y; };
+
+struct CollisionData {
+    bool is_collision;
+    Point normal;
+    double depth;
+};
 
 static Point normalize(const Point& v) {
     double len = sqrt(v.x * v.x + v.y * v.y);
@@ -40,7 +47,7 @@ vector<Point> get_rectangle_corners(double center_x, double center_y, double wid
     return corners;
 }
 
-bool sat_collision_check_obstacle(Robot& robot, Obstacle& obstacle){
+CollisionData sat_collision_check_obstacle(Robot& robot, Obstacle& obstacle){
     // Get the corners of the robot
     vector<Point> robot_corners = get_rectangle_corners(robot.x, robot.y, robot.robot_width, robot.robot_length, robot.angle);
 
@@ -49,6 +56,8 @@ bool sat_collision_check_obstacle(Robot& robot, Obstacle& obstacle){
 
     // Define the axes to test (normals of the edges)
     Point axes[4];
+    Point normal = {0, 0};
+    double min_overlap = 1e9;
     // Robot edges
     for(int i = 0; i < 2; ++i) {
         Point edge = {robot_corners[(i + 1) % 4].x - robot_corners[i].x,
@@ -81,14 +90,29 @@ bool sat_collision_check_obstacle(Robot& robot, Obstacle& obstacle){
         }
 
         // Check for gap
-        if(robot_max <= obstacle_min || obstacle_max <= robot_min) {
-            return false; // Found a separating axis
+        if(robot_max < obstacle_min || obstacle_max < robot_min) {
+            return {false, {0, 0}, 0}; // Found a separating axis --> no collision
+        }
+        else {
+            double overlap = min(robot_max, obstacle_max) - max(robot_min, obstacle_min);
+            if (overlap < 1e-12) overlap = 0;
+            if (overlap > 0 && overlap < min_overlap) {
+                min_overlap = overlap;
+                normal = normalize(axis);
+            }
         }
     }
-    return true; // No separating axis found --> collision detected
+
+    Point center_diff = {robot.x - obstacle.x, robot.y - obstacle.y};
+    if ((center_diff.x * normal.x + center_diff.y * normal.y) < 0) {
+        normal.x = -normal.x;
+        normal.y = -normal.y;
+    }
+
+    return {true, normal, min_overlap}; // No separating axis found --> collision detected
 }
 
-bool sat_collision_check_wall(Robot& robot, Wall& wall){
+CollisionData sat_collision_check_wall(Robot& robot, Wall& wall){
     // Get the corners of the robot
     vector<Point> robot_corners = get_rectangle_corners(robot.x, robot.y, robot.robot_width, robot.robot_length, robot.angle);
 
@@ -98,7 +122,9 @@ bool sat_collision_check_wall(Robot& robot, Wall& wall){
     wall_corners[1] = {wall.x2, wall.y2};
 
     // Define the axes to test (normals of the edges)
-    Point axes[3];
+    Point axes[4];
+    Point normal = {0, 0};
+    double min_overlap = 1e9;
     // Robot edges
     for(int i = 0; i < 2; ++i) {
         Point edge = {robot_corners[(i + 1) % 4].x - robot_corners[i].x,
@@ -108,6 +134,9 @@ bool sat_collision_check_wall(Robot& robot, Wall& wall){
     // Wall edge
     Point wall_edge = {wall.x2 - wall.x1, wall.y2 - wall.y1};
     axes[2] = {-wall_edge.y, wall_edge.x}; // Perpendicular vector
+
+    Point wall_normal = normalize(wall_edge);
+    axes[3] = {-wall_normal.y, wall_normal.x};
 
     // Check for overlap on each axis
     for(const auto& axis : axes) {
@@ -128,11 +157,28 @@ bool sat_collision_check_wall(Robot& robot, Wall& wall){
         }
 
         // Check for gap
-        if(robot_max <= wall_min || wall_max <= robot_min) {
-            return false; // Found a separating axis
+        if(robot_max < wall_min || wall_max < robot_min) {
+            return {false, {0, 0}, 0}; // Found a separating axis --> no collision
+        }
+        else {
+            double overlap = min(robot_max, wall_max) - max(robot_min, wall_min);
+            if (overlap < 1e-12) overlap = 0;
+            if (overlap > 0 && overlap < min_overlap) {
+                min_overlap = overlap;
+                normal = normalize(axis);
+            }
         }
     }
-    return true; // No separating axis found --> collision detected
+
+    double wall_mid_x = (wall.x1 + wall.x2) / 2.0;
+    double wall_mid_y = (wall.y1 + wall.y2) / 2.0;
+    Point center_diff = {robot.x - wall_mid_x, robot.y - wall_mid_y};
+    if ((center_diff.x * normal.x + center_diff.y * normal.y) < 0) {
+        normal.x = -normal.x;
+        normal.y = -normal.y;
+    }
+
+    return {true, normal, min_overlap}; // No separating axis found --> collision detected
 }
 
 bool segment_segment_intersect(Robot& robot, Wall& wall){
@@ -182,17 +228,55 @@ static bool segment_intersection_point(const Point& p1, const Point& p2,
     return false;
 }
 
-void handle_collision(Robot& robot, double prev_x, double prev_y, double prev_angle) {
-    double angle = (robot.angle - prev_angle) * M_PI / 180.0;
+Point find_collision_point(Robot& robot, Point normal, double depth){
+    vector<Point> robot_corners = get_rectangle_corners(robot.x, robot.y, robot.robot_width, robot.robot_length, robot.angle);
+
+    double min_projection = 1e9;
+    Point deepest_point = {0, 0};
+    vector<Point> contact_points;
+
+    for(int i = 0; i < 4; ++i) {
+        Point p1 = robot_corners[i];
+        
+        double projection = (p1.x * normal.x) + (p1.y * normal.y);
+        
+       if (projection < min_projection - 1e-5) {
+            min_projection = projection;
+            contact_points.clear();      
+            contact_points.push_back(p1);
+        }
+        else if (abs(projection - min_projection) <= 1e-5) {
+            contact_points.push_back(p1);
+        }
+    }
+    
+    if (contact_points.size() == 1) {
+        return contact_points[0];
+    }
+    else if (contact_points.size() == 2) {
+        return { (contact_points[0].x + contact_points[1].x) / 2.0, 
+                 (contact_points[0].y + contact_points[1].y) / 2.0 };
+    }
+
+   return contact_points[0];
+}
+
+void handle_collision(Robot& robot, double prev_x, double prev_y, CollisionData& collision_data){
     double dx = robot.x - prev_x;
     double dy = robot.y - prev_y;
-    double d = sqrt(dx*dx + dy*dy);
 
-    double R = (fabs(angle) < 1e-8) ? (d / (2 * sin(angle/2))) : 0.0; // circle radius
+    Point cp = find_collision_point(robot, collision_data.normal, collision_data.depth);
 
-    double theta0 = prev_angle * M_PI / 180.0;
-    double ICC_x = prev_x - R * sin(theta0);
-    double ICC_y = prev_y + R * cos(theta0);
+    robot.x += collision_data.normal.x * collision_data.depth;
+    robot.y += collision_data.normal.y * collision_data.depth;
+
+    double dot = dx * collision_data.normal.x + dy * collision_data.normal.y;
+    Point v_blocked = {dot * collision_data.normal.x, dot * collision_data.normal.y};
+
+    Point r_to_cp = {cp.x - robot.x, cp.y - robot.y};
+    double torque = r_to_cp.x * v_blocked.y - r_to_cp.y * v_blocked.x;
+
+    robot.angle += (K_FACTOR * torque) * 180.0 / M_PI;
 }
 
 #endif // COLLISION_FUNCTIONS_HPP

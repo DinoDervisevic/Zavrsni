@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import (
 )
 import math
 from typing import List, Dict, Optional, Tuple
-from GUI.SceneObjects import SceneObject, WallObject, CheckpointObject, ObstacleObject, ZoneObject, RobotObject
-from GUI.RobotState import RobotState
+from SceneObjects import SceneObject, WallObject, CheckpointObject, ObstacleObject, ZoneObject, RobotObject
+from RobotState import RobotState
 
 
 class TaskGraphicsView(QGraphicsView):

@@ -119,6 +119,8 @@ void calculate_position(Robot& robot){
     //cout << robot.motion_vector.linear_velocity << " " << robot.discrete_time_interval << endl;
     double delta_x = robot.motion_vector.linear_velocity * cos(robot.angle * 3.14159265358979323846 / 180) * robot.discrete_time_interval;
     double delta_y = robot.motion_vector.linear_velocity * sin(robot.angle * 3.14159265358979323846 / 180) * robot.discrete_time_interval;
+    robot.previous_x = robot.x;
+    robot.previous_y = robot.y;
     robot.x += delta_x;
     robot.y += delta_y;
     robot.angle += robot.motion_vector.angular_velocity * robot.discrete_time_interval;
@@ -145,7 +147,7 @@ void calculate_previous_value(Robot& robot){
 }
 
 
-// Funal function to calculate everything using these above
+// Final function to calculate everything using functions above
 void run_robot(Robot& robot){
     double prev_x = robot.x;
     double prev_y = robot.y;
