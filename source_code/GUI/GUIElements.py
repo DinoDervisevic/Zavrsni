@@ -1,5 +1,10 @@
 import math
 from typing import List, Dict, Optional, Tuple
+import subprocess
+import zipfile
+import os
+import tempfile
+import threading
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QCursor
@@ -19,9 +24,13 @@ class ViewerTab(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._sim_error = None
         
         self.task_data = TaskData()
         self.sim_data = SimulationData()
+        self.task_json_path = None          # Store path for subprocess call
+        self.sim_output_path = None         # Where simulation_result.json lands
+        self._sim_thread = None             # Background thread for subprocess
         
         # Timeline
         self.time_label = QLabel("Vrijeme: 0.00s / 0.00s")
@@ -30,13 +39,17 @@ class ViewerTab(QWidget):
         self.slider.setMaximum(100)
         self.slider.sliderMoved.connect(self.on_slider_moved)
         
-        # Gumbi za učitavanje
+        # Load buttons
         self.load_task_button = QPushButton("📂 Učitaj task")
         self.load_sim_button = QPushButton("📂 Učitaj simulaciju")
         self.load_task_button.clicked.connect(self.on_load_task)
         self.load_sim_button.clicked.connect(self.on_load_simulation)
+
+        # Run simulation button
+        self.run_sim_button = QPushButton("▶ Pokreni simulaciju (.llsp3)")
+        self.run_sim_button.clicked.connect(self.on_run_simulation)
         
-        # Gumbi
+        # Playback buttons
         self.play_button = QPushButton("▶ Play")
         self.pause_button = QPushButton("⏸ Pause")
         self.stop_button = QPushButton("■ Stop")
@@ -61,10 +74,13 @@ class ViewerTab(QWidget):
         self.view = QGraphicsView(self.scene)
         
         # Layout
+        load_layout = QHBoxLayout()
+        load_layout.addWidget(self.load_task_button)
+        load_layout.addWidget(self.load_sim_button)
+        load_layout.addWidget(self.run_sim_button)
+        load_layout.addStretch()
+
         controls_layout = QHBoxLayout()
-        controls_layout.addWidget(self.load_task_button)
-        controls_layout.addWidget(self.load_sim_button)
-        controls_layout.addStretch()
         controls_layout.addWidget(self.play_button)
         controls_layout.addWidget(self.pause_button)
         controls_layout.addWidget(self.stop_button)
@@ -81,6 +97,7 @@ class ViewerTab(QWidget):
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.view, 1)
         main_layout.addLayout(timeline_layout)
+        main_layout.addLayout(load_layout)
         main_layout.addLayout(controls_layout)
         
         self.setLayout(main_layout)
@@ -91,150 +108,225 @@ class ViewerTab(QWidget):
         self.current_time = 0.0
         self.is_playing = False
         self.max_time = 0.0
-    
+
+        # Timer za polling simulation_result.json (čeka da exe završi)
+        self._poll_timer = QTimer()
+        self._poll_timer.timeout.connect(self._poll_simulation_result)
+
+    # ------------------------------------------------------------------ #
+    #  LOAD TASK                                                           #
+    # ------------------------------------------------------------------ #
+
     def on_load_task(self):
         """Učitaj task JSON"""
         path, _ = QFileDialog.getOpenFileName(self, "Učitaj task", "", "JSON files (*.json)")
         if path:
             try:
                 self.task_data.load_from_file(path)
+                self.task_json_path = path                          # Remember for subprocess
                 self.scene.load_task(self.task_data.objects, self.task_data.robot)
-                
                 QMessageBox.information(self, "Uspješno", f"Task učitan: {path}")
             except Exception as e:
                 QMessageBox.critical(self, "Greška", f"Greška pri učitavanju task-a: {e}")
-    
+
+    # ------------------------------------------------------------------ #
+    #  RUN SIMULATION FROM .llsp3                                          #
+    # ------------------------------------------------------------------ #
+
+    def on_run_simulation(self):
+        """Učitaj .llsp3, raspakiraj, pokretni simulacija_gui.exe, prikaži rezultate"""
+
+        # 1. Odaberi .llsp3 datoteku
+        llsp_path, _ = QFileDialog.getOpenFileName(
+            self, "Odaberi .llsp3 datoteku", "", "SPIKE files (*.llsp3)"
+        )
+        if not llsp_path:
+            return
+
+        try:
+            # 2. Raspakiraj .llsp3 → temp dir
+            temp_dir = tempfile.mkdtemp(prefix="sim_")
+            with zipfile.ZipFile(llsp_path, 'r') as z:
+                z.extractall(temp_dir)
+
+            # 3. Pronađi i raspakiraj scratch.sb3 koji se nalazi unutra
+            sb3_path = os.path.join(temp_dir, "scratch.sb3")
+            if not os.path.exists(sb3_path):
+                QMessageBox.critical(self, "Greška", "scratch.sb3 nije pronađen u .llsp3 datoteci!")
+                return
+            with zipfile.ZipFile(sb3_path, 'r') as z:
+                z.extractall(temp_dir)
+
+            # 4. Provjeri postoji li project.json
+            project_json_path = os.path.join(temp_dir, "project.json")
+            if not os.path.exists(project_json_path):
+                QMessageBox.critical(self, "Greška", "project.json nije pronađen unutar scratch.sb3!")
+                return
+
+            # 5. Putanja za izlazni simulation_result.json (u istom temp_dir-u)
+            self.sim_output_path = os.path.join(temp_dir, "simulation_result.json")
+
+            # 6. Pokreni simulation_gui.exe u backgroundu
+            #    argv[1] = project.json, argv[2] = task.json (ili "" ako nije učitan)
+            exe_path = "C:\\Users\\amrad\\OneDrive\\Desktop\\fer\\3_2\\zavrsni\\source_code\\simulacija_gui.exe"
+            cmd = [exe_path, project_json_path]
+            if self.task_json_path:
+                cmd.append(self.task_json_path)
+            else:
+                cmd.append("")  # Prazan string ako nema učitan task
+            cmd.append(self.sim_output_path)
+
+            self.run_sim_button.setEnabled(False)
+            self.run_sim_button.setText("⏳ Simulacija se izvodi...")
+
+            def run_in_thread():
+                try:
+                    result = subprocess.run(
+                        cmd, 
+                        cwd=temp_dir, 
+                        check=True,
+                        capture_output=True,   # capture stdout + stderr
+                        text=True
+                    )
+                except subprocess.CalledProcessError as e:
+                    self.sim_output_path = None
+                    self._sim_error = f"STDOUT:\n{e.stdout}\n\nSTDERR:\n{e.stderr}"
+                except Exception as e:
+                    self.sim_output_path = None
+                    self._sim_error = str(e)
+                else:
+                    self._sim_error = None
+                finally:
+                    pass  # Polling timer provjerava rezultat
+
+            self._sim_thread = threading.Thread(target=run_in_thread, daemon=True)
+            self._sim_thread.start()
+
+            # 7. Počni polling svakih 500ms — čeka da se JSON napiše
+            self._poll_timer.start(500)
+
+        except Exception as e:
+            self.run_sim_button.setEnabled(True)
+            self.run_sim_button.setText("▶ Pokreni simulaciju (.llsp3)")
+            QMessageBox.critical(self, "Greška", f"Greška pri pokretanju simulacije:\n{e}")
+
+    def _poll_simulation_result(self):
+        """Provjeri svakih 500ms je li simulation_result.json napisan"""
+        # Thread je završio i putanja je postavljena
+        if self._sim_thread and not self._sim_thread.is_alive():
+            self._poll_timer.stop()
+            self.run_sim_button.setEnabled(True)
+            self.run_sim_button.setText("▶ Pokreni simulaciju (.llsp3)")
+
+            if self.sim_output_path is None:
+                QMessageBox.critical(self, "Greška", 
+                    f"Simulacija je završila s greškom:\n\n{self._sim_error}")
+                return
+
+            if not os.path.exists(self.sim_output_path):
+                QMessageBox.critical(self, "Greška", f"simulation_result.json nije pronađen:\n{self.sim_output_path}")
+                return
+
+            # Automatski učitaj rezultate
+            try:
+                self._load_simulation_from_path(self.sim_output_path)
+                QMessageBox.information(self, "Uspješno", "Simulacija završena! Rezultati su učitani.")
+            except Exception as e:
+                QMessageBox.critical(self, "Greška", f"Greška pri učitavanju rezultata:\n{e}")
+
+    # ------------------------------------------------------------------ #
+    #  LOAD SIMULATION (shared logic)                                      #
+    # ------------------------------------------------------------------ #
+
     def on_load_simulation(self):
-        """Učitaj simulacijske rezultate"""
+        """Ručno učitaj simulacijske rezultate iz JSON-a"""
         path, _ = QFileDialog.getOpenFileName(self, "Učitaj simulaciju", "", "JSON files (*.json)")
         if path:
             try:
-                self.sim_data.load_from_file(path)
-                
-                # Postavi maksimalno vrijeme
-                if self.sim_data.robot_states:
-                    self.max_time = self.sim_data.robot_states[-1].t
-                    self.slider.setMaximum(int(self.max_time * 1000))
-                    self.time_label.setText(f"Vrijeme: 0.00s / {self.max_time:.2f}s")
-                    
-                    # Dodaj robota na scenu
-                    start_x, start_y, start_angle = 0, 0, 0
-                    
-                    # Ako postoji robot u task-u, koristi njegovu početnu poziciju
-                    if self.task_data.robot:
-                        start_x = self.task_data.robot.x
-                        start_y = self.task_data.robot.y
-                        start_angle = self.task_data.robot.angle
-                    else:
-                        # Inače koristi prvi state iz simulacije
-                        if self.sim_data.robot_states:
-                            start_x, start_y, start_angle = self.sim_data.get_robot_state_at_time(0)
-                    
-                    # Obriši statički robot prije dodavanja animiranog
-                    self.scene.remove_static_robot()
-                    self.scene.add_robot(start_x, start_y, start_angle)
-                    
-                    QMessageBox.information(self, "Uspješno", f"Simulacija učitana: {path}\nStanja: {len(self.sim_data.robot_states)}")
-                else:
-                    QMessageBox.warning(self, "Greška", "Nema robot_states u JSON-u!")
+                self._load_simulation_from_path(path)
+                QMessageBox.information(
+                    self, "Uspješno",
+                    f"Simulacija učitana: {path}\nStanja: {len(self.sim_data.robot_states)}"
+                )
             except Exception as e:
                 QMessageBox.critical(self, "Greška", f"Greška pri učitavanju simulacije: {e}")
-    
+
+    def _load_simulation_from_path(self, path: str):
+        """Zajednička logika učitavanja simulacije iz JSON filea"""
+        self.sim_data.load_from_file(path)
+
+        if not self.sim_data.robot_states:
+            raise ValueError("Nema robot_states u JSON-u!")
+
+        self.max_time = self.sim_data.robot_states[-1].t
+        self.slider.setMaximum(int(self.max_time * 1000))
+        self.time_label.setText(f"Vrijeme: 0.00s / {self.max_time:.2f}s")
+
+        # Početna pozicija
+        if self.task_data.robot:
+            start_x = self.task_data.robot.x
+            start_y = self.task_data.robot.y
+            start_angle = self.task_data.robot.angle
+        else:
+            start_x, start_y, start_angle = self.sim_data.get_robot_state_at_time(0)
+
+        self.scene.remove_static_robot()
+        self.scene.add_robot(start_x, start_y, start_angle)
+
+
     def load_task(self, task_path: str):
-        """Učitaj task"""
         self.task_data.load_from_file(task_path)
+        self.task_json_path = task_path
         self.scene.load_task(self.task_data.objects, self.task_data.robot)
-    
+
     def load_simulation(self, sim_path: str):
-        """Učitaj rezultate simulacije"""
-        self.sim_data.load_from_file(sim_path)
-        
-        # Postavi maksimalno vrijeme
-        if self.sim_data.robot_states:
-            max_time = self.sim_data.robot_states[-1].t
-            self.slider.setMaximum(int(max_time * 1000))  # ms
-            
-            start_x, start_y, start_angle = 0, 0, 0
-            if self.task_data.robot:
-                start_x = self.task_data.robot.x
-                start_y = self.task_data.robot.y
-                start_angle = self.task_data.robot.angle
-            self.scene.add_robot(start_x, start_y, start_angle)
-    
-    def _transform_sim_to_world(self, sim_x: float, sim_y: float, sim_angle: float):
-        """Transformiraj simulacijske koordinate (od 0,0,0) u world koordinate.
-        
-        GUI konvencija: 0° = robot gleda gore (-y na ekranu)
-        Sim konvencija: 0° = robot gleda desno (+x os)
-        Offset -90° se uvijek primjenjuje za pretvorbu kutova.
-        """
-        ox = self.task_data.robot.x if self.task_data.robot else 0.0
-        oy = self.task_data.robot.y if self.task_data.robot else 0.0
-        oa = self.task_data.robot.angle if self.task_data.robot else 0.0
-        
-        # GUI 0° = gore, Sim 0° = desno, razlika je 90°
-        angle_rad = math.radians(oa - 90)
-        cos_a = math.cos(angle_rad)
-        sin_a = math.sin(angle_rad)
-        
-        world_x = ox + sim_x * cos_a - sim_y * sin_a
-        world_y = oy + sim_x * sin_a + sim_y * cos_a
-        world_angle = sim_angle + oa
-        
-        return world_x, world_y, world_angle
-    
+        self._load_simulation_from_path(sim_path)
+
+    def _transform_sim_to_world(self, sim_x, sim_y, sim_angle):
+        sim_y = -sim_y  # Invert Y koordinata zbog razlike u koordinatnim sustavima
+        sim_angle = -sim_angle + 90  # Korekcija kuta zbog orijentacije u simulaciji
+        return sim_x, sim_y, sim_angle
+
     def on_slider_moved(self, value: int):
-        """Korisnik pomakne slider"""
-        self.current_time = value / 1000.0  # Vrati u sekunde
+        self.current_time = value / 1000.0
         self.time_label.setText(f"Vrijeme: {self.current_time:.2f}s")
-        
         result = self.sim_data.get_robot_state_at_time(self.current_time)
         if result:
             x, y, angle = result
-            x, y, angle = self._transform_sim_to_world(x, y, angle)
+            #x, y, angle = self._transform_sim_to_world(x, y, angle)
+            #corrected_angle = angle - 90 # Korekcija zbog orijentacije u simulaciji
             self.scene.update_robot(x, y, angle)
         elif self.task_data.robot:
             self.scene.update_robot(self.task_data.robot.x, self.task_data.robot.y, self.task_data.robot.angle)
-    
+
     def on_play(self):
-        """Pokreni animaciju"""
         self.is_playing = True
-        self.animation_timer.start(16)  # ~60 FPS
-    
+        self.animation_timer.start(16)
+
     def on_pause(self):
-        """Pauziraj"""
         self.is_playing = False
         self.animation_timer.stop()
-    
+
     def on_stop(self):
-        """Zaustavi"""
         self.is_playing = False
         self.animation_timer.stop()
         self.current_time = 0.0
         self.slider.setValue(0)
         self.on_slider_moved(0)
-    
+
     def on_animation_tick(self):
-        """Animacija se ažurira svaki frame"""
         if not self.is_playing:
             return
-        
-        # Pomakni vrijeme prema brzini
         speed = self.speed_spinbox.value()
-        self.current_time += (16 / 1000.0) * speed  # 16ms frame time
-        
-        # Provjeri granice
+        self.current_time += (16 / 1000.0) * speed
         max_time = self.sim_data.robot_states[-1].t if self.sim_data.robot_states else 0
         if self.current_time >= max_time:
             self.current_time = max_time
             self.is_playing = False
             self.animation_timer.stop()
-        
-        # Ažuriraj slider i robota
         self.slider.blockSignals(True)
         self.slider.setValue(int(self.current_time * 1000))
         self.slider.blockSignals(False)
-        
         self.on_slider_moved(int(self.current_time * 1000))
 
 

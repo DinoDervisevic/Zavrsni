@@ -13,6 +13,8 @@ struct RobotState {
     double x, y, t;
     int angle;
     string sound_playing;
+    double cp_x, cp_y; // collision point
+    double normal_x, normal_y; // collision normal vector
 
     double pixel_display[5][5] = {0};
     double permanent_pixel_display[5][5] = {0};

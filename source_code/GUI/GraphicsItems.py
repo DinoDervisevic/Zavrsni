@@ -48,7 +48,7 @@ class RobotGraphicsItem(QGraphicsItem):
     
     def __init__(self, x: float, y: float, angle: float, parent=None):
         super().__init__(parent)
-        self.angle = angle
+        self.angle = -angle + 90
         self.setPos(x * self.ROBOT_SCALE, y * self.ROBOT_SCALE)
     
     def boundingRect(self):
@@ -84,7 +84,7 @@ class RobotGraphicsItem(QGraphicsItem):
     
     def update_position(self, x: float, y: float, angle: float):
         """Ažuriraj poziciju i kut"""
-        self.angle = angle
+        self.angle = -angle + 90
         self.setPos(x * self.ROBOT_SCALE, y * self.ROBOT_SCALE)
 
 
@@ -216,7 +216,7 @@ class TaskScene(QGraphicsScene):
                 pen, brush
             )
             rect_item.setPos(obj.x * SCALE, obj.y * SCALE)
-            rect_item.setRotation(obj.angle)
+            rect_item.setRotation(-obj.angle + 90)
             self.robot_static_item = rect_item  # Spremi za kasnije brisanje
             
             # Crvena linija za smjer (naprijed) — child of rect, unutar robota
@@ -297,7 +297,7 @@ class TaskScene(QGraphicsScene):
             ROBOT_WIDTH = 10.0  # cm
             ROBOT_LENGTH = 15.0
             return self._is_point_in_rotated_rect(
-                x, y, obj.x, obj.y, ROBOT_WIDTH, ROBOT_LENGTH, obj.angle
+                x, y, obj.x, obj.y, ROBOT_WIDTH, ROBOT_LENGTH, -obj.angle + 90
             )
         
         return False

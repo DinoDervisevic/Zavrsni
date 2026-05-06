@@ -148,14 +148,14 @@ void calculate_previous_value(Robot& robot){
 
 
 // Final function to calculate everything using functions above
-void run_robot(Robot& robot){
-    double prev_x = robot.x;
-    double prev_y = robot.y;
-    double prev_angle = robot.angle;
+void run_robot(Robot& robot, map<string, Obstacle>& obstacles, map<string, Wall>& walls){
     calculate_motor_speed(robot);
     //one_motor_two_wheel_robot(robot);
     two_motor_two_wheel_robot(robot);
     calculate_position(robot);
+
+    collision_response(robot, obstacles, walls);
+
     subtract_time_from_motors(robot);
 
     for(auto i : "ABCDEF"){

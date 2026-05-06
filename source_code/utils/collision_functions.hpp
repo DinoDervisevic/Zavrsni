@@ -5,7 +5,7 @@
 #include "obstacle.hpp"
 
 #define M_PI 3.14159265358979323846
-#define K_FACTOR 0.2
+#define K_FACTOR 0.025
 
 struct Point { double x, y; };
 
@@ -52,7 +52,7 @@ CollisionData sat_collision_check_obstacle(Robot& robot, Obstacle& obstacle){
     vector<Point> robot_corners = get_rectangle_corners(robot.x, robot.y, robot.robot_width, robot.robot_length, robot.angle);
 
     // Get the corners of the obstacle
-    vector<Point> obstacle_corners = get_rectangle_corners(obstacle.x, obstacle.y, obstacle.width, obstacle.length, obstacle.angle);
+    vector<Point> obstacle_corners = get_rectangle_corners(obstacle.x, obstacle.y, obstacle.length, obstacle.width, obstacle.angle);
 
     // Define the axes to test (normals of the edges)
     Point axes[4];
@@ -62,13 +62,13 @@ CollisionData sat_collision_check_obstacle(Robot& robot, Obstacle& obstacle){
     for(int i = 0; i < 2; ++i) {
         Point edge = {robot_corners[(i + 1) % 4].x - robot_corners[i].x,
                       robot_corners[(i + 1) % 4].y - robot_corners[i].y};
-        axes[i] = {-edge.y, edge.x}; // Perpendicular vector
+        axes[i] = normalize({-edge.y, edge.x}); // Perpendicular vector
     }
     // Obstacle edges
     for(int i = 0; i < 2; ++i) {
         Point edge = {obstacle_corners[(i + 1) % 4].x - obstacle_corners[i].x,
                       obstacle_corners[(i + 1) % 4].y - obstacle_corners[i].y};
-        axes[i + 2] = {-edge.y, edge.x}; // Perpendicular vector
+        axes[i + 2] = normalize({-edge.y, edge.x}); // Perpendicular vector
     }
 
     // Check for overlap on each axis
@@ -89,26 +89,19 @@ CollisionData sat_collision_check_obstacle(Robot& robot, Obstacle& obstacle){
             obstacle_max = max(obstacle_max, projection);
         }
 
-        // Check for gap
-        if(robot_max < obstacle_min || obstacle_max < robot_min) {
-            return {false, {0, 0}, 0}; // Found a separating axis --> no collision
-        }
-        else {
-            double overlap = min(robot_max, obstacle_max) - max(robot_min, obstacle_min);
-            if (overlap < 1e-12) overlap = 0;
-            if (overlap > 0 && overlap < min_overlap) {
-                min_overlap = overlap;
-                normal = normalize(axis);
-            }
+        double overlap = min(robot_max - obstacle_min, obstacle_max - robot_min);
+
+        if(overlap <= 0) return {false, {0, 0}, 0}; 
+
+        if (overlap < min_overlap) {
+            min_overlap = overlap;
+            Point d = {robot.x - obstacle.x, robot.y - obstacle.y};
+            if ((d.x * axis.x + d.y * axis.y) < 0) 
+                normal = {-axis.x, -axis.y};
+            else 
+                normal = axis;
         }
     }
-
-    Point center_diff = {robot.x - obstacle.x, robot.y - obstacle.y};
-    if ((center_diff.x * normal.x + center_diff.y * normal.y) < 0) {
-        normal.x = -normal.x;
-        normal.y = -normal.y;
-    }
-
     return {true, normal, min_overlap}; // No separating axis found --> collision detected
 }
 
@@ -129,14 +122,13 @@ CollisionData sat_collision_check_wall(Robot& robot, Wall& wall){
     for(int i = 0; i < 2; ++i) {
         Point edge = {robot_corners[(i + 1) % 4].x - robot_corners[i].x,
                       robot_corners[(i + 1) % 4].y - robot_corners[i].y};
-        axes[i] = {-edge.y, edge.x}; // Perpendicular vector
+        axes[i] = normalize({-edge.y, edge.x}); // Perpendicular vector
     }
     // Wall edge
     Point wall_edge = {wall.x2 - wall.x1, wall.y2 - wall.y1};
-    axes[2] = {-wall_edge.y, wall_edge.x}; // Perpendicular vector
+    axes[2] = normalize({-wall_edge.y, wall_edge.x}); // Perpendicular vector
 
-    Point wall_normal = normalize(wall_edge);
-    axes[3] = {-wall_normal.y, wall_normal.x};
+    axes[3] = normalize(wall_edge);
 
     // Check for overlap on each axis
     for(const auto& axis : axes) {
@@ -156,17 +148,15 @@ CollisionData sat_collision_check_wall(Robot& robot, Wall& wall){
             wall_max = max(wall_max, projection);
         }
 
+        double overlap = min(robot_max - wall_min, wall_max - robot_min);
+
         // Check for gap
-        if(robot_max < wall_min || wall_max < robot_min) {
+        if(overlap <= 0) {
             return {false, {0, 0}, 0}; // Found a separating axis --> no collision
         }
-        else {
-            double overlap = min(robot_max, wall_max) - max(robot_min, wall_min);
-            if (overlap < 1e-12) overlap = 0;
-            if (overlap > 0 && overlap < min_overlap) {
-                min_overlap = overlap;
-                normal = normalize(axis);
-            }
+        if (overlap < min_overlap) {
+            min_overlap = overlap;
+            normal = axis;
         }
     }
 
@@ -228,47 +218,182 @@ static bool segment_intersection_point(const Point& p1, const Point& p2,
     return false;
 }
 
-Point find_collision_point(Robot& robot, Point normal, double depth){
+Point find_collision_point_obstacle(Robot& robot, Point normal, Obstacle& obstacle){
     vector<Point> robot_corners = get_rectangle_corners(robot.x, robot.y, robot.robot_width, robot.robot_length, robot.angle);
+    vector<Point> obstacle_corners = get_rectangle_corners(obstacle.x, obstacle.y, obstacle.length, obstacle.width, obstacle.angle);
 
-    double min_projection = 1e9;
-    Point deepest_point = {0, 0};
-    vector<Point> contact_points;
+    Point tangent = {-normal.y, normal.x};
 
-    for(int i = 0; i < 4; ++i) {
-        Point p1 = robot_corners[i];
-        
-        double projection = (p1.x * normal.x) + (p1.y * normal.y);
-        
-       if (projection < min_projection - 1e-5) {
-            min_projection = projection;
-            contact_points.clear();      
-            contact_points.push_back(p1);
+    double obs_tan_min = 1e9, obs_tan_max = -1e9;
+    for (const auto& p : obstacle_corners) {
+        double proj = p.x * tangent.x + p.y * tangent.y;
+        obs_tan_min = min(obs_tan_min, proj);
+        obs_tan_max = max(obs_tan_max, proj);
+    }
+
+    double min_proj_norm = 1e9;
+    vector<Point> valid_points;
+
+    for (const auto& p : robot_corners) {
+        double proj_norm = p.x * normal.x + p.y * normal.y;
+        double proj_tan = p.x * tangent.x + p.y * tangent.y;
+
+        // Provjera: Je li točka unutar tangentnih granica prepreke?
+        // Dodajemo mali 'epsilon' (0.1) radi numeričke stabilnosti
+        if (proj_tan >= obs_tan_min - 1e-5 && proj_tan <= obs_tan_max + 1e-5) {
+            if (proj_norm < min_proj_norm - 1e-5) {
+                min_proj_norm = proj_norm;
+                valid_points.clear();
+                valid_points.push_back(p);
+            } else if (abs(proj_norm - min_proj_norm) <= 1e-5) {
+                valid_points.push_back(p);
+            }
         }
-        else if (abs(projection - min_projection) <= 1e-5) {
-            contact_points.push_back(p1);
-        }
-    }
-    
-    if (contact_points.size() == 1) {
-        return contact_points[0];
-    }
-    else if (contact_points.size() == 2) {
-        return { (contact_points[0].x + contact_points[1].x) / 2.0, 
-                 (contact_points[0].y + contact_points[1].y) / 2.0 };
     }
 
-   return contact_points[0];
+   if (valid_points.empty()) {
+        double robot_norm_min = 1e9;
+        Point best_obs_corner = obstacle_corners[0];
+        // Tražimo kut prepreke koji je najdublje u robotu
+        for (const auto& p : obstacle_corners) {
+            double proj_norm = p.x * (-normal.x) + p.y * (-normal.y);
+            if (proj_norm < robot_norm_min) {
+                robot_norm_min = proj_norm;
+                best_obs_corner = p;
+            }
+        }
+        return best_obs_corner;
+    }
+
+    if (valid_points.size() >= 2) {
+        double sum_x = 0, sum_y = 0;
+        for (const auto& p : valid_points) {
+            sum_x += p.x;
+            sum_y += p.y;
+        }
+        return { sum_x / (double)valid_points.size(), sum_y / (double)valid_points.size() };
+    }
+
+    return valid_points[0];
 }
 
-void handle_collision(Robot& robot, double prev_x, double prev_y, CollisionData& collision_data){
+Point find_collision_point_wall(Robot& robot, Point normal, Wall& wall) {
+    vector<Point> robot_corners = get_rectangle_corners(robot.x, robot.y, robot.robot_width, robot.robot_length, robot.angle);
+
+    // 1. Vektor zida i njegova dužina (to nam je tangenta)
+    double wall_dx = wall.x2 - wall.x1;
+    double wall_dy = wall.y2 - wall.y1;
+    double wall_len_sq = wall_dx * wall_dx + wall_dy * wall_dy;
+    double wall_len = sqrt(wall_len_sq);
+    
+    // Normalizirana tangenta
+    Point tangent = { wall_dx / wall_len, wall_dy / wall_len };
+
+    // 2. Projekcije krajeva zida na tangentu
+    // Postavljamo x1, y1 kao ishodište (0), a x2, y2 je na udaljenosti wall_len
+    double wall_min = 0;
+    double wall_max = wall_len;
+
+    double min_proj_norm = 1e9;
+    vector<Point> valid_points;
+
+    // 3. Provjeri koji kutovi robota su "iznad" segmenta zida
+    for (const auto& p : robot_corners) {
+        // Vektor od početka zida do kuta robota
+        double rel_x = p.x - wall.x1;
+        double rel_y = p.y - wall.y1;
+
+        // Projekcija na tangentu zida
+        double proj_tan = rel_x * tangent.x + rel_y * tangent.y;
+        // Projekcija na normalu
+        double proj_norm = p.x * normal.x + p.y * normal.y;
+
+        // Clipping: je li točka unutar [x1, y1] i [x2, y2]?
+        if (proj_tan >= wall_min - 0.01 && proj_tan <= wall_max + 0.01) {
+            if (proj_norm < min_proj_norm - 1e-5) {
+                min_proj_norm = proj_norm;
+                valid_points.clear();
+                valid_points.push_back(p);
+            } else if (abs(proj_norm - min_proj_norm) <= 1e-5) {
+                valid_points.push_back(p);
+            }
+        }
+    }
+
+    // 4. Ako niti jedan kut robota nije "iznad" zida, udario si u "vrh" zida
+    if (valid_points.empty()) {
+        // Točka sudara je onaj kraj zida koji je bliži centru robota
+        double d1 = pow(robot.x - wall.x1, 2) + pow(robot.y - wall.y1, 2);
+        double d2 = pow(robot.x - wall.x2, 2) + pow(robot.y - wall.y2, 2);
+        
+        return (d1 < d2) ? Point{wall.x1, wall.y1} : Point{wall.x2, wall.y2};
+    }
+
+    // 5. Ako cijeli rub robota naliježe na zid, uzmi točku bližu kraju zida za max torque
+    if (valid_points.size() >= 2) {
+        double sum_x = 0, sum_y = 0;
+        for (const auto& p : valid_points) {
+            sum_x += p.x;
+            sum_y += p.y;
+        }
+        return { sum_x / (double)valid_points.size(), sum_y / (double)valid_points.size() };
+    }
+    return valid_points[0];
+}
+
+void handle_collision_obstacle(Robot& robot, double prev_x, double prev_y, 
+    CollisionData& collision_data, Obstacle& obstacle) {
     double dx = robot.x - prev_x;
     double dy = robot.y - prev_y;
 
-    Point cp = find_collision_point(robot, collision_data.normal, collision_data.depth);
+    Point cp = find_collision_point_obstacle(robot, collision_data.normal, obstacle);
+    robot.robot_states.back().cp_x = cp.x;
+    robot.robot_states.back().cp_y = cp.y;
+    robot.robot_states.back().normal_x = collision_data.normal.x;
+    robot.robot_states.back().normal_y = collision_data.normal.y;
 
-    robot.x += collision_data.normal.x * collision_data.depth;
-    robot.y += collision_data.normal.y * collision_data.depth;
+    double slop = 0.001; 
+    // Faktor izbacivanja (ne izbacuj sve u jednom frameu, nego postepeno kako bi se snizio šok)
+    double correction = max(collision_data.depth - slop, 0.0) * 0.3; 
+    Point r_to_cp = {cp.x - robot.x, cp.y - robot.y};
+    robot.x += collision_data.normal.x * correction;
+    robot.y += collision_data.normal.y * correction;
+
+    double dot = dx * collision_data.normal.x + dy * collision_data.normal.y;
+    Point v_blocked = {dot * collision_data.normal.x, dot * collision_data.normal.y};
+
+    
+    double torque = r_to_cp.x * v_blocked.y - r_to_cp.y * v_blocked.x;
+
+    double dtheta_deg = -(K_FACTOR * torque) * 180.0 / M_PI;
+    double dtheta_rad  = dtheta_deg * M_PI / 180.0;
+
+    // Rotate the robot CENTER around the contact point
+    Point r_from_cp = {robot.x - cp.x, robot.y - cp.y};
+    double cos_dt = cos(dtheta_rad);
+    double sin_dt = sin(dtheta_rad);
+    robot.x = cp.x + r_from_cp.x * cos_dt - r_from_cp.y * sin_dt;
+    robot.y = cp.y + r_from_cp.x * sin_dt + r_from_cp.y * cos_dt;
+    robot.angle += dtheta_deg;
+}
+
+void handle_collision_wall(Robot& robot, double prev_x, double prev_y, 
+    CollisionData& collision_data, Wall& wall) {
+    double dx = robot.x - prev_x;
+    double dy = robot.y - prev_y;
+
+    Point cp = find_collision_point_wall(robot, collision_data.normal, wall);
+    robot.robot_states.back().cp_x = cp.x;
+    robot.robot_states.back().cp_y = cp.y;
+    robot.robot_states.back().normal_x = collision_data.normal.x;
+    robot.robot_states.back().normal_y = collision_data.normal.y;
+
+    double slop = 0.001; 
+    // Faktor izbacivanja (ne izbacuj sve u jednom frameu, nego postepeno kako bi se snizio šok)
+    double correction = max(collision_data.depth - slop, 0.0) * 0.3; 
+
+    robot.x += collision_data.normal.x * correction;
+    robot.y += collision_data.normal.y * correction;
 
     double dot = dx * collision_data.normal.x + dy * collision_data.normal.y;
     Point v_blocked = {dot * collision_data.normal.x, dot * collision_data.normal.y};
@@ -276,7 +401,35 @@ void handle_collision(Robot& robot, double prev_x, double prev_y, CollisionData&
     Point r_to_cp = {cp.x - robot.x, cp.y - robot.y};
     double torque = r_to_cp.x * v_blocked.y - r_to_cp.y * v_blocked.x;
 
-    robot.angle += (K_FACTOR * torque) * 180.0 / M_PI;
+    double dtheta_deg = -(K_FACTOR * torque) * 180.0 / M_PI;
+    double dtheta_rad  = dtheta_deg * M_PI / 180.0;
+
+    // Rotate the robot CENTER around the contact point
+    Point r_from_cp = {robot.x - cp.x, robot.y - cp.y};
+    double cos_dt = cos(dtheta_rad);
+    double sin_dt = sin(dtheta_rad);
+    robot.x = cp.x + r_from_cp.x * cos_dt - r_from_cp.y * sin_dt;
+    robot.y = cp.y + r_from_cp.x * sin_dt + r_from_cp.y * cos_dt;
+    robot.angle += dtheta_deg;
+}
+
+void collision_response(Robot& robot, map<string, Obstacle>& obstacles, map<string, Wall>& walls){
+    double prev_x = robot.previous_x;
+    double prev_y = robot.previous_y;
+
+    CollisionData collision_data;
+    for (auto& obstacle : obstacles) {
+        collision_data = sat_collision_check_obstacle(robot, obstacle.second);
+        if (collision_data.is_collision) {
+            handle_collision_obstacle(robot, prev_x, prev_y, collision_data, obstacle.second);
+        }
+    }
+    for (auto& wall : walls) {
+        collision_data = sat_collision_check_wall(robot, wall.second);
+        if (collision_data.is_collision) {
+            handle_collision_wall(robot, prev_x, prev_y, collision_data, wall.second);
+        }
+    }
 }
 
 #endif // COLLISION_FUNCTIONS_HPP
