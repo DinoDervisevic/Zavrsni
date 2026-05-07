@@ -13,6 +13,8 @@ using namespace std;
 #define DELTA_T 0.5
 #define MARGIN_OF_ERROR 0.015
 
+#define DEFAULT_SPEED 75
+
 #define MOVED_A_BIT 10
 
 struct TaskResult {
@@ -45,7 +47,7 @@ bool check_if_moved_a_bit(Robot& robot, string motor, int i){
 TaskResult check_task_1_with_motors(Robot& robot, string motor){
     // Kriteriji: smjer (satni ili suprotno);  prešao 360°; dobro postavljen port
     TaskResult result(0, {false, false, false});
-    int score = 0;
+    int score = 100;
     bool poceo_kretat = false;
     bool reached_target = false;
     bool halfway = false;
@@ -56,7 +58,7 @@ TaskResult check_task_1_with_motors(Robot& robot, string motor){
         //cout << robot.robot_states[i].motor_states.at(motor) << endl;
         if (!poceo_kretat && check_if_moved_a_bit(robot, motor, i)) {
             poceo_kretat = true;
-            score += 30;
+            score += 0;
 
             if (robot.robot_states[i].motor_states.at(motor) < 180) {
                 correct_direction = true;
@@ -75,7 +77,7 @@ TaskResult check_task_1_with_motors(Robot& robot, string motor){
             if ((pos > 360 - MARGIN_OF_ERROR * 360 && pos < 360) ||
                 (pos < 0 + MARGIN_OF_ERROR * 360 && pos > 0)) {
                 reached_target = true;
-                score += 70;
+                score += 0;
             }
         }
 
@@ -84,10 +86,17 @@ TaskResult check_task_1_with_motors(Robot& robot, string motor){
             bool in_range = (pos > 360 - MARGIN_OF_ERROR * 360 && pos <= 360) ||
                             (pos < 0 + MARGIN_OF_ERROR * 360 && pos >= 0);
             if (!in_range) {
-                score -= 50;
+                score -= 25;
                 break;
             }
         }
+    }
+
+    if (!reached_target && poceo_kretat) {
+        score -= 25;
+    }
+    if (!poceo_kretat) {
+        score -= 50; // Ili je naredba potpuno kriva ili je kriv port
     }
 
     result.score = score;
@@ -110,7 +119,7 @@ TaskResult check_task_1_2_2(Robot& robot){
 TaskResult check_task_2(Robot& robot){
     // Kriteriji: samo 1 motor; oba istovremeno; nisu istovremeno; prvi port dobro postavljen; drugi port dobro postavljen; oba porta dobro postavljena
     TaskResult result(0, {false, false, false, false, false});
-    int score = 0;
+    int score = 100;
     bool poceo_kretat_D = false;
     bool poceo_kretat_F = false;
     bool reached_target = false;
@@ -122,13 +131,17 @@ TaskResult check_task_2(Robot& robot){
         if (!poceo_kretat_D && check_if_moved_a_bit(robot, "D", i)) {
             poceo_kretat_D = true;
             start_time_D = robot.robot_states[i].t;
-            score += 50;
         }
         if (!poceo_kretat_F && check_if_moved_a_bit(robot, "F", i)) {
             poceo_kretat_F = true;
             start_time_F = robot.robot_states[i].t;
-            score += 50;
         }
+    }
+
+    if (!poceo_kretat_D && !poceo_kretat_F) {
+        score -= 100; // Niti jedan motor nije radio
+    } else if (!poceo_kretat_D || !poceo_kretat_F) {
+        score -= 70; // Samo jedan motor radi
     }
 
     if (poceo_kretat_D) result.criteria_met[3] = true;
@@ -153,7 +166,7 @@ TaskResult check_task_2(Robot& robot){
 TaskResult check_task_3_2_with_motors(Robot& robot, string motor_noge, string motor_ruke){
     
     TaskResult result(0, {false, false, false, false, false, false, false});
-    int score = 0;
+    int score = 100;
     
     // === NOGE (375° rotacija uz brzinu 30%) ===
     bool D_started = false;
@@ -162,6 +175,7 @@ TaskResult check_task_3_2_with_motors(Robot& robot, string motor_noge, string mo
     bool D_passed_full = false;
     bool D_reached_target = false;
     bool D_finished = false;
+    bool D_correct_movement = true;
     float D_start_time = -1.0;
     float D_end_time = -1.0;
     
@@ -204,11 +218,17 @@ TaskResult check_task_3_2_with_motors(Robot& robot, string motor_noge, string mo
             D_speed_correct = true;
             D_speed_set_time = time;
         }
+        else if(speed_D != DEFAULT_SPEED && !D_speed_correct){
+            D_speed_set_time = time; // Postavljena je neka brzina ali nije 30, dakle krivi parametar
+        }
         
         // --- Praćenje brzine ruke (50%) ---
         if (speed_F == 50 && !F_speed_correct){
             F_speed_correct = true;
             F_speed_set_time = time;
+        }
+        else if(speed_F != DEFAULT_SPEED && !F_speed_correct){
+            F_speed_set_time = time; // Postavljena je neka brzina ali nije 50, dakle krivi parametar
         }
         
         // === NOGE - 375° ===
@@ -218,6 +238,9 @@ TaskResult check_task_3_2_with_motors(Robot& robot, string motor_noge, string mo
             D_moving_clockwise = (pos_D > 180);
             
             if (D_speed_correct && D_speed_set_time <= D_start_time){
+                D_speed_set_before_start = true;
+            }
+            else if(D_speed_set_time > 0 && D_speed_set_time <= D_start_time){
                 D_speed_set_before_start = true;
             }
         }
@@ -248,6 +271,14 @@ TaskResult check_task_3_2_with_motors(Robot& robot, string motor_noge, string mo
                 D_finished = true;
                 D_end_time = time;
             }
+
+            if (D_reached_target){
+                bool in_range = (pos_D > TARGET_ANGLE - ANGLE_TOLERANCE && pos_D < TARGET_ANGLE + ANGLE_TOLERANCE) ||
+                                (pos_D > 360 - TARGET_ANGLE - ANGLE_TOLERANCE && pos_D < 360 - TARGET_ANGLE + ANGLE_TOLERANCE);
+                if (!in_range){
+                    D_correct_movement = false;
+                }
+            }
         }
         
         // === RUKE - 5 sekundi ===
@@ -256,6 +287,9 @@ TaskResult check_task_3_2_with_motors(Robot& robot, string motor_noge, string mo
             F_start_time = time;
             
             if (F_speed_correct && F_speed_set_time <= F_start_time){
+                F_speed_set_before_start = true;
+            }
+            else if(F_speed_set_time > 0 && F_speed_set_time <= F_start_time){
                 F_speed_set_before_start = true;
             }
         }
@@ -277,64 +311,66 @@ TaskResult check_task_3_2_with_motors(Robot& robot, string motor_noge, string mo
     
     // === BODOVANJE ===
     
-    // 1. Noge - 375° rotacija: max 30 bodova
+    // 1. Noge - 375° rotacija: -10 za krivi parametar
     if (D_started){
-        if (D_reached_target){
+        if (D_reached_target && D_correct_movement){
             result.criteria_met[4] = true;
-            score += 30;
-        } else if (D_passed_full){
-            score += 20;
-        } else if (D_passed_180){
-            score += 10;
-        } else {
-            score += 5;
-        }
+
+        } else{
+            score -= 10; // Počeo se kretati ali nije došao do cilja
+        } 
     }
     
-    // 2. Ruke - 5 sekundi: max 30 bodova
+    // 2. Ruke - 5 sekundi: -10 za krivi parametar
     if (F_started && F_finished){
         float F_duration = F_end_time - F_start_time;
         
         if (fabs(F_duration - 5.0) <= TIME_TOLERANCE){
             result.criteria_met[5] = true;
-            score += 30;
-        } else if (F_duration >= 4.0 && F_duration <= 6.0){
-            score += 20;
-        } else if (F_duration >= 3.0 && F_duration <= 7.0){
-            score += 10;
-        } else {
-            score += 5;
-        }
-    } else if (F_started){
-        score += 5;
+        } else{
+            score -= 10;
+        } 
+    }
+    else if (F_started && !F_finished){
+        score -= 10; // Počeo se kretati ali nije završio
     }
 
     if (D_started && F_started){
         result.criteria_met[6] = true;
     }
+    else if (D_started || F_started){
+        score -= 70; // Ponovo, pretpostavljamo da je tocno namjesten samo 1 motor, a ne da je problem u portu
+    }
+    else if (!D_started && !F_started){
+        score -= 100; // Niti jedan motor nije radio
+    }
     
     // 3. Brzina noge (30%): max 20 bodova
     if (D_speed_correct){
         result.criteria_met[2] = true;
-        score += 20;
         if (!D_speed_set_before_start){
             one_speed_after_end = true;
         }
         else result.criteria_met[0] = true; // Brzina noge postavljena prije početka kretanja
     }
+    else{
+        score -= 10;
+    }
     
     // 4. Brzina ruke (50%): max 20 bodova
     if (F_speed_correct){
         result.criteria_met[3] = true;
-        score += 20;
         if (!F_speed_set_before_start){
             one_speed_after_end = true;
         }
         else result.criteria_met[1] = true; // Brzina ruke postavljena prije početka kretanja
     }
+    else{
+        score -= 10;
+    }
 
     if (one_speed_after_end){
-        score -= 10;
+        score -= 20;
     }
     
     if (score > 100) score = 100;
@@ -363,7 +399,7 @@ TaskResult check_task_3_2_2(Robot& robot){
 // Helper funkcija za check_task_4_2 s određenim motorima
 TaskResult check_task_4_2_with_motors(Robot& robot, string motor_noge, string motor_ruke){
     TaskResult result(0, {false, false, false, false, false, false, false, false, false});
-    int score = 0;
+    int score = 100;
     
     // === NOGE - 3x lijevo-desno (3 × 360°) uz brzinu 20% ===
     bool D_started = false;
@@ -372,6 +408,7 @@ TaskResult check_task_4_2_with_motors(Robot& robot, string motor_noge, string mo
     bool D_finished = false;
     int D_full_rotations = 0;
     bool D_passed_180 = false;
+    bool D_movement_correct = true;
     
     // === RUKE - 360° u smjeru kazaljke sata uz brzinu 100% ===
     bool F_started = false;
@@ -381,6 +418,7 @@ TaskResult check_task_4_2_with_motors(Robot& robot, string motor_noge, string mo
     bool F_moving_clockwise = false;
     bool F_passed_180 = false;
     bool F_reached_360 = false;
+    bool F_movement_correct = true;
     
     // === Brzine ===
     bool D_speed_correct = false;
@@ -409,13 +447,18 @@ TaskResult check_task_4_2_with_motors(Robot& robot, string motor_noge, string mo
             D_speed_correct = true;
             D_speed_set_time = time;
         }
+        else if(speed_D != DEFAULT_SPEED && !D_speed_correct){
+            D_speed_set_time = time; // Postavljena je neka brzina ali nije 20, dakle krivi parametar
+        }
         
         // --- Praćenje brzine ruke (100%) ---
         if (speed_F == 100 && !F_speed_correct){
             F_speed_correct = true;
             F_speed_set_time = time;
         }
-        
+        else if(speed_F != DEFAULT_SPEED && !F_speed_correct){
+            F_speed_set_time = time; // Postavljena je neka brzina ali nije 100, dakle krivi parametar
+        }
         // === NOGE - 3 × 360° ===
         if (!D_started && check_if_moved_a_bit(robot, motor_noge, i)){
             D_started = true;
@@ -445,6 +488,10 @@ TaskResult check_task_4_2_with_motors(Robot& robot, string motor_noge, string mo
                 
                 if (time - D_end_time >= TIME_TOLERANCE * 3){
                     D_finished = true;
+                    bool accepted = (pos_D > 360 - ANGLE_TOLERANCE) || (pos_D < ANGLE_TOLERANCE);
+                    if (!accepted){
+                        D_movement_correct = false; // Ako nije na 0 ili 360, ne računamo posljednju rotaciju jer nije dovršena
+                    }
                 }
             }
 
@@ -481,6 +528,10 @@ TaskResult check_task_4_2_with_motors(Robot& robot, string motor_noge, string mo
                 F_finished = true;
                 F_passed_180 = false;
                 F_end_time = time;
+                bool accepted = (pos_F > 360 - ANGLE_TOLERANCE) || (pos_F < ANGLE_TOLERANCE);
+                if (!accepted){
+                    F_movement_correct = false;
+                }
             }
         }
     }
@@ -491,13 +542,10 @@ TaskResult check_task_4_2_with_motors(Robot& robot, string motor_noge, string mo
     if (D_started){
         result.criteria_met[6] = true;
         //cout << "D_full_rotations: " << D_full_rotations << endl;
-        if (D_full_rotations >= 3 && D_full_rotations <= 4){
+        if (D_full_rotations == 3 && D_movement_correct){
             result.criteria_met[4] = true;
-            score += 15;  // Puni bodovi - napravljen zadatak
-        } else if (D_full_rotations >= 1 && D_full_rotations < 8){
-            score += 10;  // Barem jedna rotacija
         } else {
-            score += 5;   // Barem se pomaknuo
+            score -= 10;   // Barem se pomaknuo
         }
     }
     
@@ -505,47 +553,54 @@ TaskResult check_task_4_2_with_motors(Robot& robot, string motor_noge, string mo
     if (F_started){
         result.criteria_met[7] = true;
         //cout << "F_reached_360: " << F_reached_360 << ", F_moving_clockwise: " << F_moving_clockwise << endl;
-        if (F_reached_360 && F_moving_clockwise){
+        if (F_reached_360 && F_moving_clockwise && F_movement_correct){
             result.criteria_met[5] = true;
-            score += 15;  // Puni bodovi - točna rotacija i smjer
             if (F_passed_180) score -= 5;
-        } else if (F_reached_360 && !F_passed_180){
-            score += 10;  // Točna rotacija ali krivi smjer
-        } else if (F_passed_180){
-            score += 5;   // Barem pola kruga
         } else {
-            score += 2;   // Barem se pomaknuo
+            score -= 10;   // Barem se pomaknuo
         }
     }
     
     // 3. Brzina noge (20%): max 10 bodova
     if (D_speed_correct){
         result.criteria_met[2] = true;
-        score += 10;
         if (D_speed_set_before_start){
             result.criteria_met[0] = true;
         }
+    }
+    else{
+        score -= 10;
+    }
+    if (D_speed_set_time > 0 && D_speed_set_time < D_start_time){
+        result.criteria_met[0] = true;
     }
     
     // 4. Brzina ruke (100%): max 10 bodova
     if (F_speed_correct){
         result.criteria_met[3] = true;
-        score += 10;
         if (F_speed_set_before_start){
             result.criteria_met[1] = true;
         }
     }
+    else{
+        score -= 10;
+    }
 
-    // 5. Istovremeni početak: 50 bodova
+    // 5. Istovremeni početak
     // Samo ako su oba motora krenula
     if (D_started && F_started && D_start_time > 0 && F_start_time > 0){
         if (fabs(D_start_time - F_start_time) <= TIME_TOLERANCE){
-            score += 50;
             result.criteria_met[8] = true;
         }
+        else{
+            score -= 60;
+        }
+    }
+    else if (D_started || F_started){
+        score -= 90; // Samo jedan motor je krenuo, pretpostavljamo da nije port kriv
     }
 
-    if ((D_speed_correct && !D_speed_set_before_start) || (F_speed_correct && !F_speed_set_before_start)){
+    if ((!D_speed_set_before_start) || (!F_speed_set_before_start)){
         score -= 10;
     }
     
@@ -621,12 +676,13 @@ TaskResult check_task_5_2(Robot& robot){
                     
                     // Bodovi za početak plesa
                     if (both_motors_active){
-                        score += 30;  // Oba motora plešu
+                        score += 50;  // Oba motora plešu
                         if (robot.robot_states[i].motor_states_speed.at("D") == 50 && robot.robot_states[i].motor_states_speed.at("F") == 50){
                             result.criteria_met[3] = true; // Oba motora imaju ispravnu brzinu
                         }
+                        else score -= 10; // Kriva brzina
                     } else {
-                        score += 10;  // Samo jedan motor
+                        score += 40;  // Samo jedan motor, oduzeto 10 bodova
                     }
                 }
                 
@@ -659,9 +715,9 @@ TaskResult check_task_5_2(Robot& robot){
                     
                     // Bodovi za brzu reakciju
                     if (reaction_time <= REACTION_TOLERANCE){
-                        score += 40;  // Brzo je stao
+                        score += 0;  // Brzo je stao
                     } else {
-                        score += 30;  // Stao je, ali sporo
+                        score -= 10;  // Stao je, ali sporo
                     }
                     
                     state = STOPPED;
@@ -679,7 +735,7 @@ TaskResult check_task_5_2(Robot& robot){
                 // Robot je stao - provjeravamo da NE počne opet plesati dok je prepreka tu
                 if (motors_active && obstacle_close){
                     // Robot je počeo plesati dok je prepreka još tu - penalizacija
-                    score -= 20;
+                    score -= 10;
                     result.score = score;
                     return result;
                 }
@@ -704,7 +760,7 @@ TaskResult check_task_5_2(Robot& robot){
     // Bonus bodovi ako je cijeli scenarij prošao dobro
     if (state == STOPPED && stopped_time > 0){
         // Robot je uspješno stao i ostao zaustavljen
-        score += 30;
+        score += 50;
     }
     
     // Ograniči score na [0, 100]
@@ -857,35 +913,23 @@ TaskResult check_task_6_2_2(Robot& robot){
         }
     }
     
-    // Bodovanje:
-    // - Ako je završio barem jedan ciklus: 100 bodova
-    // - Ako je stao ali nije dočekao drugu prepreku (simulacija završila): djelomični bodovi
-    // - Ako se pokrenuo ali nije stao: mali bodovi
-    // - Ako se nije ni pokrenuo: 0 bodova
-    
     if (cycle_count > 1){
         result.criteria_met[1] = true; // Završio ciklus dva puta
     }
+    else score -= 40; // Nije imao forever loop
 
     if (cycle_completed){
         score = 100;  // Puni bodovi za uspješan ciklus
-    } else if (state == STOPPED){
-        // Robot je stao i ostao zaustavljen do kraja simulacije
-        // (možda simulacija nije trajala dovoljno dugo da se pojavi druga prepreka)
-        score = 80;  // Većina bodova - napravio je sve što je mogao
-    } else if (state == MOVING){
+    }  else if (state == MOVING){
         // Robot se pokrenuo ali nije stao do kraja simulacije
-        score = 40;  // Djelomični bodovi
-    } else if (movement_start_time > 0){
-        // Robot se pokrenuo ali je negdje zapeo
-        score = 30;
+        score = 90;  // Djelomični bodovi
     } else {
         // Robot se nije ni pokrenuo
         score = 0;
     }
 
     if (started_moving_prematurely){
-        score -= 100; // Penalizacija za pokretanje prije pojave prepreke
+        score -= 10; // Penalizacija za pokretanje prije pojave prepreke
     }
 
     if (score < 0) score = 0;
