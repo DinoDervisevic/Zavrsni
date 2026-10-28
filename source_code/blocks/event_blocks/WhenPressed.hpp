@@ -12,6 +12,7 @@ public:
     WhenPressed(Block* port, string event) : Block("Event", "WhenPressed"), port(port), event(event) {}
 
     double execute(Robot& robot) override {
+        //cout << "Executing WhenPressed block" << endl;
         return 0;
     }
 

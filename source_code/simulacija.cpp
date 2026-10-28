@@ -13,7 +13,7 @@
 #include "blocks_include.hpp"
 #include "motion_simulation.hpp"
 #include "radionica.hpp"
-#include "json_export.hpp"
+//#include "json_export.hpp"
 
 using namespace std;
 
@@ -31,16 +31,7 @@ void print_robot_state(Robot& robot) {
 
 void run_interference(Robot& robot, int taskId){
     switch (taskId) {
-        case 1:  outside_interference_task_3(robot); break;
-        case 2:  outside_interference_task_3(robot); break;
         case 3:  outside_interference_task_3(robot); break;
-        case 4:  outside_interference_task_3(robot); break;
-        case 5:  outside_interference_task_3(robot); break;
-        case 6:  outside_interference_task_3(robot); break;
-        case 7:  outside_interference_task_3(robot); break;
-        case 8:  outside_interference_task_3(robot); break;
-        case 9:  outside_interference_task_3(robot); break;
-        case 10: outside_interference_task_3(robot); break;
         case 11: outside_interference_task_11(robot); break;
         case 12: outside_interference_task_12(robot); break;
         case 13: outside_interference_task_13(robot); break;
@@ -50,9 +41,18 @@ void run_interference(Robot& robot, int taskId){
 
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId) {
     bool done = false;
+    int debug_step = 0;
+    //cout << "Starting simulation..." << endl;
     while (true){
-        if(robot.time_since_start >= 2.0){
-            break;
+        if (taskId != 13){
+            if (robot.time_since_start >= 30.0){
+                break;
+            }
+        }
+        else{
+            if (robot.time_since_start >= 100.0){
+                break;
+            }
         }
         
         for(auto sequence : sequences){
@@ -65,8 +65,7 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
             }
         }
         run_robot(robot);
-        robot.save_state();
-        print_robot_state(robot);
+        
         //cout << robot.force_states["C"]->value << endl;
 
         if(taskId != -1){
@@ -74,11 +73,25 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
             run_interference(robot, taskId); // only for workshop
         }
 
+        robot.save_state();
+        // if (debug_step % 500 == 0) {
+        //     cerr << "[DEBUG] t=" << robot.time_since_start
+        //         << " force=" << robot.force_states["C"]->value
+        //         << " previous_force=" << robot.force_states["C"]->previous_value
+        //         << " motor_A_position=" << robot.motor_states["A"]->position
+        //         << " motor_A_value=" << robot.motor_states["A"]->value
+        //         << " motor_A_current_speed=" << robot.motor_states["A"]->current_speed
+        //         << " motor_A_time_left=" << robot.motor_states["A"]->time_left
+        //         << endl;
+        // }
+
+        debug_step++;
+
         robot.time_since_start += robot.discrete_time_interval;
     }
 }
 
-bool check_if_correct(Robot& robot, int taskId){
+TaskResult check_if_correct(Robot& robot, int taskId){
     switch (taskId) {
         case 0:  return check_task_0(robot);
         case 1:  return check_task_1(robot);
@@ -95,7 +108,7 @@ bool check_if_correct(Robot& robot, int taskId){
         case 12: return check_task_12(robot);
         case 13: return check_task_13(robot);
         case 14: return check_task_14(robot);
-        default: return false;
+        default: return TaskResult(0, {false});
     }
 }
 
@@ -115,10 +128,19 @@ void print_sequences(vector<BlockSequence*> sequences, Robot& robot) {
 
 
 int main(int argc, char* argv[]) {
-    cout << "Starting simulation..." << endl;
+    //cout << "Starting simulation..." << endl;
     //string json_file_path = "C:/Users/amrad/Downloads/radionica/Radionica File(1)/Radionica File/snapshot_data/project.json";
-    string json_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/project.json";
+    //string json_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/project.json";
     
+
+    if (argc < 3) {
+        cerr << "Usage: simulacija.exe <task_id> <project.json>" << endl;
+        return 1;
+    }
+
+    int taskId = stoi(argv[1]);
+    string json_file_path = argv[2];
+
     ifstream file(json_file_path);
     if (!file.is_open()) {
         std::cerr << "Could not open the file!" << std::endl;
@@ -126,13 +148,31 @@ int main(int argc, char* argv[]) {
     }
 
     json j;
-    file >> j;
+
+    try {
+        file >> j;
+    } catch (const json::parse_error& error) {
+        cerr << "JSON parse error: " << error.what() << endl;
+        return 1;
+    }
+
     auto blocks = j["targets"][1]["blocks"];
     vector<BlockSequence*> sequences;
     for(auto it = blocks.begin(); it != blocks.end(); ++it){
         if (it.value()["topLevel"]) {
-            BlockSequence* block_sequence = processBlock(blocks, it.key());
-            sequences.push_back(block_sequence);
+            string opcode = it.value()["opcode"].get<string>();
+            
+            // Procesiraj samo ako je event blok (početak programa)
+            if (opcode.find("event") != string::npos || 
+                opcode.find("Event") != string::npos ||
+                opcode.find("when") != string::npos ||
+                opcode.find("When") != string::npos) {
+                    //cerr << "Processing top-level event block: " << it.key() << " with opcode: " << opcode << endl;
+                
+                BlockSequence* block_sequence = processBlock(blocks, it.key());
+                sequences.push_back(block_sequence);
+            }
+            // Ignoriraj sve ostale top-level blokove (nepovezani blokovi)
         }
     }
 
@@ -141,8 +181,6 @@ int main(int argc, char* argv[]) {
     robot.addMotorState("B", 75);
     robot.addForceSensor("C", 0);
     robot.addColorSensor("D", -1);
-
-    int taskId = std::stoi(argv[1]);
     
     try {
         start_simulation(robot, sequences, taskId);
@@ -152,14 +190,17 @@ int main(int argc, char* argv[]) {
     for (auto& sequence : sequences) {
         delete sequence;
     }
-    bool result = check_if_correct(robot, taskId);
+    TaskResult result = check_if_correct(robot, taskId);
 
     // Exportaj u JSON
     vector<Obstacle> obstacles;  // Za sada prazno — kasnije učitaj iz task.json
     vector<Wall> walls;           // Za sada prazno — kasnije učitaj iz task.json
-    export_simulation_to_json(robot.robot_states, obstacles, walls, "simulation_result.json");
+    //export_simulation_to_json(robot.robot_states, obstacles, walls, "simulation_result.json");
 
-    cout << result << endl;
+    cout << result.score << endl;
+    for (bool met : result.criteria_met) {
+        cout << (met ? "true" : "false") << endl;
+    }
 
     return 0;
 

@@ -63,7 +63,6 @@ def get_all_snapshots():
         # Pretpostavljamo da je ime oblika: "TIMESTAMP ostatak.llsp"
         timestamp_str = filename.split(' ')[0]
         try:
-            # Ako želiš i datetime objekt:
             unix_time = float(timestamp_str[:10] + '.' + timestamp_str[10:])
             dt = datetime.fromtimestamp(unix_time)
             
@@ -384,5 +383,4 @@ def test_single_task(task_num):
     for start, end in task_periods[task_num]:
         evaluate_all_snapshots_debug(task_num, start, end, all_snapshots, llsp_file_path, sb3_path, output_dir)
 
-# Odkomentiraj ovu liniju i pokreni za debug jednog zadatka:
 # test_single_task(4)

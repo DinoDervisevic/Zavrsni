@@ -1,21 +1,25 @@
+import os
 import zipfile
 
-def extract_llsp(file_path, output_dir):
-    with zipfile.ZipFile(file_path, 'r') as zip_ref:
-        zip_ref.extractall(output_dir)
 
-def extract_sb3(file_path, output_dir):
-    with zipfile.ZipFile(file_path, 'r') as zip_ref:
-        zip_ref.extractall(output_dir)
+def extract_archive(file_path, output_dir):
+    with zipfile.ZipFile(file_path, "r") as archive:
+        archive.extractall(output_dir)
 
-# Putanja do .llsp datoteke
-llsp_file_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/Project 1.llsp3"
 
-output_dir = 'C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE'
+llsp_file_path = (
+    r"C:\Users\dinod\Desktop\PARTICIPANTS_EXTRACTED_Dino"
+    r"\10112251_201122525\LEGO_workshop\proba\p.llsp3"
+)
 
-sb3_path = "C:/Users/amrad/OneDrive/Documents/LEGO Education SPIKE/scratch.sb3"
+output_dir = (
+    r"C:\Users\dinod\Desktop\PARTICIPANTS_EXTRACTED_Dino"
+    r"\10112251_201122525\LEGO_workshop\proba"
+)
 
-# Ekstraktiraj .llsp datoteku
-extract_sb3(llsp_file_path, output_dir)
+# Prvo raspakiraj .llsp3
+extract_archive(llsp_file_path, output_dir)
 
-extract_sb3(sb3_path, output_dir)
+# Zatim raspakiraj scratch.sb3 koji je izvučen iz .llsp3
+scratch_path = os.path.join(output_dir, "scratch.sb3")
+extract_archive(scratch_path, output_dir)

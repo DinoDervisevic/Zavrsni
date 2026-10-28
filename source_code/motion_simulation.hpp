@@ -165,4 +165,20 @@ void run_robot(Robot& robot, map<string, Obstacle>& obstacles, map<string, Wall>
     calculate_previous_value(robot);
 }
 
+// For a case when there is no need for collision detection
+void run_robot(Robot& robot){
+    calculate_motor_speed(robot);
+    one_motor_two_wheel_robot(robot);
+    //two_motor_two_wheel_robot(robot);
+    calculate_position(robot);
+
+    subtract_time_from_motors(robot);
+
+    for(auto i : "ABCDEF"){
+        robot.calculate_motor_position(string(1, i));
+    }
+
+    calculate_previous_value(robot);
+}
+
 #endif

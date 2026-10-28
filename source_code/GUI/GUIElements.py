@@ -168,7 +168,7 @@ class ViewerTab(QWidget):
 
             # 6. Pokreni simulation_gui.exe u backgroundu
             #    argv[1] = project.json, argv[2] = task.json (ili "" ako nije učitan)
-            exe_path = "C:\\Users\\amrad\\OneDrive\\Desktop\\fer\\3_2\\zavrsni\\source_code\\simulacija_gui.exe"
+            exe_path = "C:\\Users\\dinod\\Desktop\\fer\\3_2\\zavrsni\\source_code\\simulacija_gui.exe"
             cmd = [exe_path, project_json_path]
             if self.task_json_path:
                 cmd.append(self.task_json_path)

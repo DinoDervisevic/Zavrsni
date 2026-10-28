@@ -38,7 +38,16 @@ FunctionMap createMotorFunctionMap(FunctionMap& globalMap) {
                 forward = false;
             }
         }
-        string port_name = json_object[name]["inputs"]["PORT"][1];
+
+        auto port_input = json_object[name]["inputs"]["PORT"];
+
+        string port_name;
+
+        if (port_input[1].is_null()) {
+            port_name = port_input[2].get<string>();
+        } else {
+            port_name = port_input[1].get<string>();
+        }
         Block* port = globalMap[json_object[port_name]["opcode"]](json_object, port_name).release();
 
         string unit = json_object[name]["fields"]["UNIT"][0].get<string>();

@@ -99,6 +99,7 @@ bool is_integer(const std::string& s) {
 }
 bool calculate_pressed_event(ForceSensor* state, string event){
     if(state->value >= 3 && state->previous_value < state->value && event == "pressed"){
+        //cout << "Pressed event detected: value=" << state->value << ", previous_value=" << state->previous_value << endl;
         return true;
     } else if(state->value == 0 && state->previous_value > 0 && event == "released"){
         return true;

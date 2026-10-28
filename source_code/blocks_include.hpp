@@ -33,7 +33,7 @@ inline FunctionMap& getFunctionMap() {
 }
 
 inline BlockSequence* processBlock(const json& blocks, string key) {
-    //err << "Processing block: " << key << endl;
+    //cerr << "Processing block: " << key << endl;
     auto curr_block = blocks[key];
     if (!curr_block.contains("opcode")) {
         cerr << "Error: Block is missing 'opcode'!" << endl;
@@ -47,10 +47,12 @@ inline BlockSequence* processBlock(const json& blocks, string key) {
         cerr << "Bad function call for opcode: " << curr_block["opcode"] << endl;
         return nullptr;
     }
-    //cerr << "  Opcode: " << curr_block["opcode"] << endl;
+    //cerr << "  Block created successfully." << endl;
     if (curr_sequence_block == nullptr) return nullptr;
     BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
     while (true) {
+        //cerr << "  Opcode: " << curr_block["opcode"] << endl;
+        //cerr << "  Full block JSON:\n" << curr_block.dump(2) << endl;
         if (curr_block["next"].is_null() || !blocks.contains(curr_block["next"])) {
             break;
         }
@@ -59,8 +61,7 @@ inline BlockSequence* processBlock(const json& blocks, string key) {
             cerr << "Error: Block is missing 'opcode'!" << endl;
             return nullptr;
         }
-        //cerr << "  Opcode: " << curr_block["opcode"] << endl;
-        //cerr << "  Full block JSON:\n" << curr_block.dump(2) << endl;
+        
         auto next_sequence_block = getFunctionMap()[next_block["opcode"]](blocks, curr_block["next"]).release();
         curr_sequence_block->next = next_sequence_block;
         next_sequence_block->parent = curr_sequence_block;
