@@ -86,7 +86,7 @@ TaskResult check_task_2(Robot& robot){
     return TaskResult(0, {moved_a_bit, reached_target});
 }
 
-//Robot se mora kretati do roza spremnika i nazad
+//Robot se mora kretati do roza spremnika i nazad nakon pritiska gumba
 TaskResult check_task_3(Robot& robot){
     // cerr << "[DEBUG] Number of saved states: "
     //  << robot.robot_states.size()

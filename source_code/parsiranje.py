@@ -142,9 +142,9 @@ def parse_log_file():
             parts = line.split()
             timestamp = parts[0]
             task_id = int(parts[2])
-            action = parts[3]  # Next ili Prev, ignorira se ako je TRUE ili FALSE
-            if action not in ["Next", "Prev"]:
-                continue
+            # action = parts[3]  # Next ili Prev, ignorira se ako je TRUE ili FALSE
+            # if action not in ["Next", "Prev"]:
+            #     continue
 
             # Ako smo već radili na nekom zadatku, zatvori taj period
             if current_task is not None and current_start is not None:

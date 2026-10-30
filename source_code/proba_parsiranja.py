@@ -8,13 +8,11 @@ def extract_archive(file_path, output_dir):
 
 
 llsp_file_path = (
-    r"C:\Users\dinod\Desktop\PARTICIPANTS_EXTRACTED_Dino"
-    r"\10112251_201122525\LEGO_workshop\proba\p.llsp3"
+    r"C:\Users\dinod\Desktop\proba\p.llsp3"
 )
 
 output_dir = (
-    r"C:\Users\dinod\Desktop\PARTICIPANTS_EXTRACTED_Dino"
-    r"\10112251_201122525\LEGO_workshop\proba"
+    r"C:\Users\dinod\Desktop\proba"
 )
 
 # Prvo raspakiraj .llsp3

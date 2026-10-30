@@ -44,9 +44,13 @@ inline BlockSequence* processBlock(const json& blocks, string key) {
     try {
         curr_sequence_block = getFunctionMap()[curr_block["opcode"]](blocks, key).release();
     } catch (const std::exception& e) {
-        cerr << "Bad function call for opcode: " << curr_block["opcode"] << endl;
-        return nullptr;
-    }
+    cerr << "[BLOCK ERROR] opcode="
+         << curr_block["opcode"]
+         << ", block=" << key
+         << ", error=" << e.what()
+         << endl;
+    return nullptr;
+}
     //cerr << "  Block created successfully." << endl;
     if (curr_sequence_block == nullptr) return nullptr;
     BlockSequence* block_sequence = new BlockSequence(curr_sequence_block);
@@ -62,7 +66,31 @@ inline BlockSequence* processBlock(const json& blocks, string key) {
             return nullptr;
         }
         
-        auto next_sequence_block = getFunctionMap()[next_block["opcode"]](blocks, curr_block["next"]).release();
+        Block* next_sequence_block = nullptr;
+
+        try {
+            next_sequence_block =
+                getFunctionMap()[next_block["opcode"]]
+                (blocks, curr_block["next"])
+                .release();
+        } catch (const std::exception& e) {
+            cerr << "[BLOCK ERROR] opcode="
+                << next_block["opcode"]
+                << ", block=" << curr_block["next"]
+                << ", error=" << e.what()
+                << endl;
+
+            delete block_sequence;
+            return nullptr;
+        }
+
+        if (next_sequence_block == nullptr) {
+            cerr << "[BLOCK ERROR] Block nije kreiran: "
+                << curr_block["next"] << endl;
+
+            delete block_sequence;
+            return nullptr;
+        }
         curr_sequence_block->next = next_sequence_block;
         next_sequence_block->parent = curr_sequence_block;
         curr_sequence_block = next_sequence_block;

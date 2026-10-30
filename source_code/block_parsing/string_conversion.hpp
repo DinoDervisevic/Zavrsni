@@ -16,8 +16,11 @@ double parseDouble(const string& str) {
         
         // Inače koristi standardnu notaciju (npr. 2e3 = 200)
         return stod(str);
-    } catch (...) {
-        return 0.0;  // Ako parsing padne, vrati 0
+    } catch (const std::exception& error) {
+        cerr << "[CONVERSION ERROR] "
+            << error.what()
+            << endl;
+        return 0.0;
     }
 }
 
@@ -32,8 +35,11 @@ int parseInt(const string& str) {
         
         // Inače koristi standardnu notaciju
         return stoi(str);
-    } catch (...) {
-        return 0;  // Ako parsing padne, vrati 0
+    } catch (const std::exception& error) {
+        cerr << "[CONVERSION ERROR] "
+            << error.what()
+            << endl;
+        return 0;
     }
 }
 

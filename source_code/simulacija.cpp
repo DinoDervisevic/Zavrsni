@@ -42,7 +42,7 @@ void run_interference(Robot& robot, int taskId){
 void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId) {
     bool done = false;
     int debug_step = 0;
-    //cout << "Starting simulation..." << endl;
+    //cerr << "Starting simulation..." << endl;
     while (true){
         if (taskId != 13){
             if (robot.time_since_start >= 30.0){
@@ -159,9 +159,11 @@ int main(int argc, char* argv[]) {
     auto blocks = j["targets"][1]["blocks"];
     vector<BlockSequence*> sequences;
     for(auto it = blocks.begin(); it != blocks.end(); ++it){
+        //cerr << "Processing block: " << it.key() << endl;
         if (it.value()["topLevel"]) {
+            //cerr << "Found top-level block: " << it.key() << endl;
             string opcode = it.value()["opcode"].get<string>();
-            
+            //cerr << "Found top-level block: " << it.key() << endl;
             // Procesiraj samo ako je event blok (početak programa)
             if (opcode.find("event") != string::npos || 
                 opcode.find("Event") != string::npos ||
@@ -170,11 +172,17 @@ int main(int argc, char* argv[]) {
                     //cerr << "Processing top-level event block: " << it.key() << " with opcode: " << opcode << endl;
                 
                 BlockSequence* block_sequence = processBlock(blocks, it.key());
-                sequences.push_back(block_sequence);
+                
+                if (block_sequence != nullptr) {
+                    sequences.push_back(block_sequence);
+                } else {
+                    cerr << "[WARNING] Preskacem sekvencu: "
+                        << it.key() << endl;
+                }
             }
             // Ignoriraj sve ostale top-level blokove (nepovezani blokovi)
         }
-    }
+    }//cerr << "Starting simulation..." << endl;
 
     Robot robot("robot", 0, 0, sequences);
     robot.addMotorState("A", 75);
