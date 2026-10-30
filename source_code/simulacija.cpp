@@ -29,9 +29,16 @@ void print_robot_state(Robot& robot) {
     //robot.print_sound();
 }
 
+// Ovdje je bitno napomenuti da je interference za task 3 samo stiskanje
+// gumba nakon 2 sekunde a to je potrebno u zadacima 1, 2, 3, 5 i 6.
 void run_interference(Robot& robot, int taskId){
     switch (taskId) {
+        case 1: outside_interference_task_3(robot); break;
+        case 2: outside_interference_task_3(robot); break;
         case 3:  outside_interference_task_3(robot); break;
+        case 4:  outside_interference_task_3(robot); break;
+        case 6:  outside_interference_task_3(robot); break;
+        case 7:  outside_interference_task_3(robot); break;
         case 11: outside_interference_task_11(robot); break;
         case 12: outside_interference_task_12(robot); break;
         case 13: outside_interference_task_13(robot); break;
@@ -78,10 +85,12 @@ void start_simulation(Robot& robot, vector<BlockSequence*> sequences, int taskId
         //     cerr << "[DEBUG] t=" << robot.time_since_start
         //         << " force=" << robot.force_states["C"]->value
         //         << " previous_force=" << robot.force_states["C"]->previous_value
-        //         << " motor_A_position=" << robot.motor_states["A"]->position
+        //         << " motor_b_position=" << robot.motor_states["B"]->position
         //         << " motor_A_value=" << robot.motor_states["A"]->value
         //         << " motor_A_current_speed=" << robot.motor_states["A"]->current_speed
         //         << " motor_A_time_left=" << robot.motor_states["A"]->time_left
+        //         << "robot x position=" << robot.x
+        //         << "robot y position=" << robot.y
         //         << endl;
         // }
 
@@ -108,6 +117,7 @@ TaskResult check_if_correct(Robot& robot, int taskId){
         case 12: return check_task_12(robot);
         case 13: return check_task_13(robot);
         case 14: return check_task_14(robot);
+        case 15: return check_task_15(robot);
         default: return TaskResult(0, {false});
     }
 }

@@ -256,7 +256,7 @@ def parse_log_file(log_path):
         timestamp = parts[0]
 
         try:
-            task_id = int(parts[2])
+            task_id = int(parts[2]) + 1
             datetime.strptime(timestamp, TIMESTAMP_FORMAT)
         except (ValueError, IndexError):
             print(f"    Preskačem neispravan metadata zapis: {line}")

@@ -141,7 +141,7 @@ def parse_log_file():
         if "Task:" in line:
             parts = line.split()
             timestamp = parts[0]
-            task_id = int(parts[2])
+            task_id = int(parts[2]) + 1
             # action = parts[3]  # Next ili Prev, ignorira se ako je TRUE ili FALSE
             # if action not in ["Next", "Prev"]:
             #     continue

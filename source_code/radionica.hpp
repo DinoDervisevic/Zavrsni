@@ -21,9 +21,9 @@ using namespace std;
 #define PLAVI_SPREMNIK 17.436*3
 #define CRNI_SPREMNIK 17.436*3
 #define CRVENI_SPREMNIK 17.436*4
-#define ZUTI_SPREMNIK 17.436*5
+#define ZUTI_SPREMNIK 17.436*1
 
-#define KOSARICA_OTVARANJE 15
+#define KOSARICA_OTVARANJE 40
 #define KOSARICA_MAX 50
 
 #define DEFAULT_SPEED 75
@@ -62,10 +62,12 @@ TaskResult check_task_1(Robot& robot){
 
         if(-robot.robot_states[i].x >= OKRETAJ*MARGIN_OF_ERROR_LOWER && -robot.robot_states[i].x <= OKRETAJ*MARGIN_OF_ERROR_UPPER){
             reached_target = true;
+            //cout << "[DEBUG] Robot reached target at time: " << robot.robot_states[i].t << " seconds" << endl;
         }
         else if(reached_target) return TaskResult(0, {moved_a_bit, false});
 
     }
+    //cout << "[DEBUG] Robot final x position: " << -robot.robot_states.back().x << endl;
     return TaskResult(0, {moved_a_bit, reached_target});
 }
 
@@ -282,7 +284,7 @@ TaskResult check_task_11(Robot& robot){
             reached_spremnik = true;
         }
         // 2. Otvaranje košarice nakon dolaska
-        if (reached_spremnik && !opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
+        if (!opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
             opened = true;
         }
         // 3. Zatvaranje košarice nakon otvaranja
@@ -300,7 +302,7 @@ TaskResult check_task_11(Robot& robot){
 
 void outside_interference_task_11(Robot& robot){
     if(robot.time_since_start >= 2.0){
-        robot.color_states["D"]->value = color_names.at("blue");
+        robot.color_states["D"]->value = color_names.at("yellow");
     }
     if(robot.time_since_start >= 2.1){
         robot.color_states["D"]->value = color_names.at("none");
@@ -334,11 +336,11 @@ TaskResult check_task_12(Robot& robot){
     // 1. Pronađi dolazak do plavog spremnika
     for (int i = start_idx; i < robot.robot_states.size(); ++i) {
         double x = -robot.robot_states[i].x;
-        if (!reached_spremnik && x >= CRNI_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= CRNI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
+        if (!reached_spremnik && x >= PLAVI_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= PLAVI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             reached_spremnik = true;
         }
         // 2. Otvaranje košarice nakon dolaska
-        if (reached_spremnik && !opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
+        if (!opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
             opened = true;
         }
         // 3. Zatvaranje košarice nakon otvaranja
@@ -356,7 +358,7 @@ TaskResult check_task_12(Robot& robot){
 
 void outside_interference_task_12(Robot& robot){
     if(robot.time_since_start >= 2.0){
-        robot.color_states["D"]->value = color_names.at("black");
+        robot.color_states["D"]->value = color_names.at("blue");
     }
     if(robot.time_since_start >= 2.1){
         robot.color_states["D"]->value = color_names.at("none");
@@ -376,7 +378,7 @@ TaskResult check_task_13(Robot& robot){
 
     int start_idx = 0;
 
-    vector<double> spremnici = {CRVENI_SPREMNIK, PLAVI_SPREMNIK, ZUTI_SPREMNIK};
+    vector<double> spremnici = {ROZA_SPREMNIK, PLAVI_SPREMNIK, ZUTI_SPREMNIK};
     for (int k = 0; k < 3; ++k){
         if (start_idx == robot.robot_states.size()) {
             break;
@@ -404,7 +406,7 @@ TaskResult check_task_13(Robot& robot){
                 reached_spremnik = true;
             }
             // 2. Otvaranje košarice nakon dolaska
-            if (reached_spremnik && !opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
+            if (!opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
                 opened = true;
             }
             // 3. Zatvaranje košarice nakon otvaranja
@@ -429,7 +431,7 @@ TaskResult check_task_13(Robot& robot){
 
 void outside_interference_task_13(Robot& robot){
     if(robot.time_since_start >= 2.0){
-        robot.color_states["D"]->value = color_names.at("red");
+        robot.color_states["D"]->value = color_names.at("violet");
     }
     if(robot.time_since_start >= 2.1){
         robot.color_states["D"]->value = color_names.at("none");
@@ -449,6 +451,10 @@ void outside_interference_task_13(Robot& robot){
 }
 
 TaskResult check_task_14(Robot& robot){
+    return TaskResult(0, {true});
+}
+
+TaskResult check_task_15(Robot& robot){
     return TaskResult(0, {true});
 }
 
