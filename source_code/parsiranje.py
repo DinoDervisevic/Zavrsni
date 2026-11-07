@@ -380,55 +380,21 @@ def write_results_to_csv(
     student_name="",
 ):
     """
-    Zapisuje rezultate u CSV datoteku.
-
-    results format:
-        {
-            "Task 1": (score, flags, filename),
-            "Task 2": (score, flags, filename),
-        }
-
-    Ako output_path već postoji, otvara se u načinu 'w'
-    i njegov se sadržaj prepisuje.
+    Zapisuje rezultate u čitljiv tekstualni format.
     """
-
     if flag_names is None:
         flag_names = {}
 
-    max_flags = 0
-
-    for task_result in results.values():
-        if len(task_result) != 3:
-            raise ValueError(
-                "Svaki rezultat mora imati format "
-                "(score, flags, filename)."
-            )
-
-        _, flags, _ = task_result
-        max_flags = max(max_flags, len(flags))
+    separator = "=" * 40
 
     with open(
         output_path,
         "w",
-        encoding="utf-8-sig",
-        newline="",
-    ) as csv_file:
-        writer = csv.writer(csv_file, delimiter=";")
-
-        header = [
-            "student",
-            "task",
-            "score",
-            "filename",
-        ]
-
-        for index in range(max_flags):
-            header.extend([
-                f"flag_{index + 1}_name",
-                f"flag_{index + 1}_value",
-            ])
-
-        writer.writerow(header)
+        encoding="utf-8",
+    ) as results_file:
+        if student_name:
+            results_file.write(f"student: {student_name}\n")
+            results_file.write(f"{separator}\n")
 
         def task_number(task_name):
             return int(task_name.split()[-1])
@@ -438,31 +404,31 @@ def write_results_to_csv(
             task_id = task_number(task_name)
             names = flag_names.get(task_id, [])
 
-            row = [
-                student_name,
-                task_id,
-                score,
-                filename,
-            ]
+            results_file.write(f"task {task_id}\n")
+            results_file.write(f"score {score}\n")
 
-            for index in range(max_flags):
+            number_of_flags = max(
+                len(flags),
+                len(names),
+            )
+
+            for index in range(number_of_flags):
                 if index < len(names):
                     flag_name = names[index]
                 else:
-                    flag_name = f"flag_{index + 1}"
+                    flag_name = f"flag{index + 1}"
 
-                flag_value = (
-                    flags[index]
-                    if index < len(flags)
-                    else False
+                if index < len(flags):
+                    flag_value = flags[index]
+                else:
+                    flag_value = False
+
+                results_file.write(
+                    f"{flag_name}: "
+                    f"{'true' if flag_value else 'false'}\n"
                 )
 
-                row.extend([
-                    flag_name,
-                    "true" if flag_value else "false",
-                ])
-
-            writer.writerow(row)
+            results_file.write(f"{separator}\n")
 
 for task, periods in task_periods.items():
     if task not in VALID_TASKS:

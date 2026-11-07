@@ -595,47 +595,17 @@ def write_results_to_csv(
     student_name,
 ):
     """
-    Zapisuje rezultate jednog pristupnika u CSV datoteku.
+    Zapisuje rezultate jednog pristupnika u čitljiv tekstualni format.
     """
-    max_flags = 0
-
-    for task_result in results.values():
-        if len(task_result) != 3:
-            raise ValueError(
-                "Rezultat mora imati oblik "
-                "(score, flags, filename)."
-            )
-
-        _, flags, _ = task_result
-        max_flags = max(max_flags, len(flags))
+    separator = "=" * 40
 
     with open(
         output_path,
         "w",
-        encoding="utf-8-sig",
-        newline="",
-    ) as csv_file:
-        writer = csv.writer(
-            csv_file,
-            delimiter=";",
-        )
-
-        header = [
-            "student",
-            "task",
-            "score",
-            "filename",
-        ]
-
-        for index in range(max_flags):
-            header.extend(
-                [
-                    f"flag_{index + 1}_name",
-                    f"flag_{index + 1}_value",
-                ]
-            )
-
-        writer.writerow(header)
+        encoding="utf-8",
+    ) as results_file:
+        results_file.write(f"student: {student_name}\n")
+        results_file.write(f"{separator}\n")
 
         for task_name in sorted(
             results,
@@ -643,36 +613,85 @@ def write_results_to_csv(
         ):
             score, flags, file_name = results[task_name]
             task_id = task_number(task_name)
-
             names = FLAG_NAMES.get(task_id, [])
 
-            row = [
-                student_name,
-                task_id,
-                score,
-                file_name,
-            ]
+            results_file.write(f"task {task_id}\n")
+            results_file.write(f"score {score}\n")
 
-            for index in range(max_flags):
+            number_of_flags = max(
+                len(flags),
+                len(names),
+            )
+
+            for index in range(number_of_flags):
                 if index < len(names):
                     flag_name = names[index]
                 else:
-                    flag_name = f"flag_{index + 1}"
+                    flag_name = f"flag{index + 1}"
 
                 if index < len(flags):
                     flag_value = flags[index]
                 else:
                     flag_value = False
 
-                row.extend(
-                    [
-                        flag_name,
-                        "true" if flag_value else "false",
-                    ]
+                results_file.write(
+                    f"{flag_name}: "
+                    f"{'true' if flag_value else 'false'}\n"
                 )
 
-            writer.writerow(row)
+            results_file.write(f"{separator}\n")
 
+def append_results_to_combined_file(
+    results,
+    output_path,
+    student_name,
+):
+    """
+    Dodaje rezultate jednog pristupnika u zajednički file.
+    """
+    separator = "=" * 40
+
+    with open(
+        output_path,
+        "a",
+        encoding="utf-8",
+    ) as results_file:
+        results_file.write(f"student: {student_name}\n")
+        results_file.write(f"{separator}\n")
+
+        for task_name in sorted(
+            results,
+            key=task_number,
+        ):
+            score, flags, file_name = results[task_name]
+            task_id = task_number(task_name)
+            names = FLAG_NAMES.get(task_id, [])
+
+            results_file.write(f"task {task_id}\n")
+            results_file.write(f"score {score}\n")
+
+            number_of_flags = max(
+                len(flags),
+                len(names),
+            )
+
+            for index in range(number_of_flags):
+                if index < len(names):
+                    flag_name = names[index]
+                else:
+                    flag_name = f"flag{index + 1}"
+
+                if index < len(flags):
+                    flag_value = flags[index]
+                else:
+                    flag_value = False
+
+                results_file.write(
+                    f"{flag_name}: "
+                    f"{'true' if flag_value else 'false'}\n"
+                )
+
+            results_file.write(f"{separator}\n")
 
 def find_metadata_file(workshop_folder):
     """
@@ -698,7 +717,7 @@ def find_metadata_file(workshop_folder):
     return None
 
 
-def process_student(student_folder, error_log_path):
+def process_student(student_folder, error_log_path, combined_results_path):
     """
     Obrađuje jednog pristupnika.
     """
@@ -823,6 +842,12 @@ def process_student(student_folder, error_log_path):
         student_name=student_name,
     )
 
+    append_results_to_combined_file(
+        results=results,
+        output_path=combined_results_path,
+        student_name=student_name,
+    )
+
     print()
     print(f"  CSV je spremljen u: {csv_path}")
     print("  Rezultati:")
@@ -902,9 +927,17 @@ def main():
         "neocekivane_greske.txt",
     )
 
+    combined_results_path = os.path.join(
+        root_folder,
+        "svi_rezultati.csv",
+    )
+
     # Prethodni log se briše na početku novog pokretanja.
     with open(error_log_path, "w", encoding="utf-8") as error_file:
         error_file.write("")
+
+    with open(combined_results_path, "w", encoding="utf-8") as combined_file:
+        combined_file.write("")
 
     if not student_folders:
         print(
@@ -917,7 +950,7 @@ def main():
     skipped_count = 0
 
     for student_folder in student_folders:
-        was_processed = process_student(student_folder, error_log_path=error_log_path)
+        was_processed = process_student(student_folder, error_log_path=error_log_path, combined_results_path=combined_results_path)
 
         if was_processed:
             processed_count += 1

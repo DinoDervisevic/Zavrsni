@@ -101,6 +101,8 @@ TaskResult check_task_3(Robot& robot){
     bool returned_to_base = false;
     bool stayed_in_base_after_return = false;
 
+    bool undo_reached_spremnik = false;
+
     for (int i = 0; i < robot.robot_states.size(); ++i) {
         if(check_if_moved_a_bit(robot, "A", i)) {
             if (robot.robot_states[i].t >= 2.0) {
@@ -121,6 +123,11 @@ TaskResult check_task_3(Robot& robot){
         if (x >= ROZA_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= ROZA_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             start_idx = i;
             reached_pink_container = true;
+            break;
+        }
+        if (reached_pink_container && x > ROZA_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
+            reached_pink_container = false;
+            undo_reached_spremnik = true;
             break;
         }
     }
@@ -189,6 +196,7 @@ TaskResult check_task_6(Robot& robot){
     bool opened = false;
     bool closed = false;
     bool returned_to_base = false;
+    bool undo_reached_spremnik = false;
 
     // 1. Pronađi dolazak do plavog spremnika
     for (int i = 0; i < robot.robot_states.size(); ++i) {
@@ -196,8 +204,11 @@ TaskResult check_task_6(Robot& robot){
         if (!reached_spremnik && x >= PLAVI_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= PLAVI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             reached_spremnik = true;
         }
+        if (reached_spremnik && x > PLAVI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
+            undo_reached_spremnik = true;
+        }
         // 2. Otvaranje košarice nakon dolaska
-        if (reached_spremnik && !opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
+        if (!opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
             opened = true;
         }
         // 3. Zatvaranje košarice nakon otvaranja
@@ -205,9 +216,12 @@ TaskResult check_task_6(Robot& robot){
             closed = true;
         }
         // 4. Povratak u bazu nakon zatvaranja
-        if (closed && fabs(x) < EPSILON) {
+        if (reached_spremnik && fabs(x) < EPSILON) {
             returned_to_base = true;
         }
+    }
+    if (undo_reached_spremnik) {
+        reached_spremnik = false;
     }
     return TaskResult(0, {reached_spremnik, opened, closed, returned_to_base});
 }
@@ -218,6 +232,7 @@ TaskResult check_task_7(Robot& robot){
     bool opened = false;
     bool closed = false;
     bool returned_to_base = false;
+    bool undo_reached_spremnik = false;
 
     // 1. Pronađi dolazak do plavog spremnika
     for (int i = 0; i < robot.robot_states.size(); ++i) {
@@ -225,8 +240,11 @@ TaskResult check_task_7(Robot& robot){
         if (!reached_spremnik && x >= ROZA_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= ROZA_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             reached_spremnik = true;
         }
+        if (reached_spremnik && x > ROZA_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
+            undo_reached_spremnik = true;
+        }
         // 2. Otvaranje košarice nakon dolaska
-        if (reached_spremnik && !opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
+        if (!opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
             opened = true;
         }
         // 3. Zatvaranje košarice nakon otvaranja
@@ -234,9 +252,12 @@ TaskResult check_task_7(Robot& robot){
             closed = true;
         }
         // 4. Povratak u bazu nakon zatvaranja
-        if (closed && fabs(x) < EPSILON) {
+        if (reached_spremnik && fabs(x) < EPSILON) {
             returned_to_base = true;
         }
+    }
+    if (undo_reached_spremnik) {
+        reached_spremnik = false;
     }
     return TaskResult(0, {reached_spremnik, opened, closed, returned_to_base});
 }
@@ -261,6 +282,8 @@ TaskResult check_task_11(Robot& robot){
     bool closed = false;
     bool returned_to_base = false;
 
+    bool undo_reached_spremnik = false;
+
     // Pronađi prvi indeks nakon pritiska tipke
     int start_idx = -1;
     for (int i = 0; i < robot.robot_states.size(); ++i) {
@@ -283,6 +306,9 @@ TaskResult check_task_11(Robot& robot){
         if (!reached_spremnik && x >= ZUTI_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= ZUTI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             reached_spremnik = true;
         }
+        if (reached_spremnik && x > ZUTI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
+            undo_reached_spremnik = true;
+        }
         // 2. Otvaranje košarice nakon dolaska
         if (!opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
             opened = true;
@@ -292,10 +318,13 @@ TaskResult check_task_11(Robot& robot){
             closed = true;
         }
         // 4. Povratak u bazu nakon zatvaranja
-        if (closed && fabs(x) < EPSILON) {
+        if (reached_spremnik && fabs(x) < EPSILON) {
             returned_to_base = true;
-            return TaskResult(0, {started_moving_only_after_color, reached_spremnik, opened, closed, returned_to_base});
+            break;
         }
+    }
+    if (undo_reached_spremnik) {
+        reached_spremnik = false;
     }
     return TaskResult(0, {started_moving_only_after_color, reached_spremnik, opened, closed, returned_to_base});
 }
@@ -316,6 +345,8 @@ TaskResult check_task_12(Robot& robot){
     bool opened = false;
     bool closed = false;
     bool returned_to_base = false;
+
+    bool undo_reached_spremnik = false;
 
     // Pronađi prvi indeks nakon pritiska tipke
     int start_idx = -1;
@@ -339,6 +370,10 @@ TaskResult check_task_12(Robot& robot){
         if (!reached_spremnik && x >= PLAVI_SPREMNIK * MARGIN_OF_ERROR_LOWER && x <= PLAVI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
             reached_spremnik = true;
         }
+
+        if (reached_spremnik && x > PLAVI_SPREMNIK * MARGIN_OF_ERROR_UPPER) {
+            undo_reached_spremnik = true;
+        }
         // 2. Otvaranje košarice nakon dolaska
         if (!opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
             opened = true;
@@ -348,10 +383,13 @@ TaskResult check_task_12(Robot& robot){
             closed = true;
         }
         // 4. Povratak u bazu nakon zatvaranja
-        if (closed && fabs(x) < EPSILON) {
+        if (reached_spremnik && fabs(x) < EPSILON) {
             returned_to_base = true;
-            return TaskResult(0, {started_moving_only_after_color, reached_spremnik, opened, closed, returned_to_base});
+            break;
         }
+    }
+    if (undo_reached_spremnik) {
+        reached_spremnik = false;
     }
     return TaskResult(0, {started_moving_only_after_color, reached_spremnik, opened, closed, returned_to_base});
 }
@@ -369,7 +407,6 @@ void outside_interference_task_12(Robot& robot){
 TaskResult check_task_13(Robot& robot){
     double time = 0;
     int starting_index = -1;
-    int cn = 0;
 
     bool started_moving_only_after_color_every_time = true;
     bool did_first_part = false;
@@ -405,8 +442,12 @@ TaskResult check_task_13(Robot& robot){
             if (!reached_spremnik && x >= spremnici[k] * MARGIN_OF_ERROR_LOWER && x <= spremnici[k] * MARGIN_OF_ERROR_UPPER) {
                 reached_spremnik = true;
             }
+            if (reached_spremnik && x > spremnici[k] * MARGIN_OF_ERROR_UPPER) {
+                reached_spremnik = false;
+                break;
+            }
             // 2. Otvaranje košarice nakon dolaska
-            if (!opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
+            if (reached_spremnik && !opened && robot.robot_states[i].motor_states.at("B") >= KOSARICA_OTVARANJE) {
                 opened = true;
             }
             // 3. Zatvaranje košarice nakon otvaranja
@@ -416,16 +457,15 @@ TaskResult check_task_13(Robot& robot){
             }
             // 4. Povratak u bazu nakon zatvaranja
             if (closed && fabs(x) < EPSILON) {
-                cn++;
+                if (k == 0) did_first_part = true;
+                if (k == 1) did_second_part = true;
+                if (k == 2) did_third_part = true;
                 time = robot.robot_states[i].t + robot.discrete_time_interval;
                 break;
             }
         }
     }
     
-    if (cn >= 1) did_first_part = true;
-    if (cn >= 2) did_second_part = true;
-    if (cn == 3) did_third_part = true;
     return TaskResult(0, {started_moving_only_after_color_every_time, did_first_part, did_second_part, did_third_part});
 }
 
